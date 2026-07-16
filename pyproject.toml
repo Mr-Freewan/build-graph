@@ -1,0 +1,60 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "build-graph"
+dynamic = ["version"]
+description = "Interactive code+docs dependency graph with doc-sync tooling and an AI-agent-friendly JSON export"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+authors = [{ name = "Yuriy Totyshev" }]
+keywords = [
+    "dependency-graph",
+    "documentation",
+    "doc-sync",
+    "visualization",
+    "d3",
+    "ast",
+    "imports",
+    "llm",
+    "ai-agents",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Documentation",
+    "Topic :: Software Development :: Documentation",
+    "Topic :: Software Development :: Quality Assurance",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/Mr-Freewan/build-graph"
+Repository = "https://github.com/Mr-Freewan/build-graph"
+Issues = "https://github.com/Mr-Freewan/build-graph/issues"
+
+[project.scripts]
+build-graph = "build_graph.graph:main"
+find-related-docs = "build_graph.related:main"
+verify-doc-links = "build_graph.links:main"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.hatch.version]
+path = "src/build_graph/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/build_graph"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

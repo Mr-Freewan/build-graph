@@ -1,0 +1,309 @@
+<div id="brand">
+  <svg viewBox="0 0 22 14" width="22" height="14" aria-hidden="true">
+    <line x1="4" y1="7" x2="18" y2="7" stroke="currentColor"
+          stroke-width="1.4" stroke-linecap="round"></line>
+    <circle cx="4" cy="7" r="2.2" fill="currentColor"></circle>
+    <circle cx="18" cy="7" r="2.2" fill="currentColor"></circle>
+    <circle cx="11" cy="2.5" r="1.6" fill="currentColor" opacity="0.55"></circle>
+    <line x1="4" y1="7" x2="11" y2="2.5" stroke="currentColor"
+          stroke-width="1.2" stroke-linecap="round" opacity="0.55"></line>
+    <line x1="18" y1="7" x2="11" y2="2.5" stroke="currentColor"
+          stroke-width="1.2" stroke-linecap="round" opacity="0.55"></line>
+  </svg>
+  <span>Dependency Graph</span>
+</div>
+<div id="theme-toggle">
+  <div class="toggle-row">
+    <span class="theme-icon">🌙</span>
+    <label class="theme-switch">
+      <input type="checkbox" id="theme-check">
+      <span class="theme-track"></span>
+      <span class="theme-thumb"></span>
+    </label>
+    <span class="theme-icon">☀</span>
+  </div>
+  <div class="toggle-row">
+    <span class="palette-icon" style="background: #80deea"></span>
+    <label class="theme-switch theme-switch--palette">
+      <input type="checkbox" id="palette-check">
+      <span class="theme-track"></span>
+      <span class="theme-thumb"></span>
+    </label>
+    <span class="palette-icon" style="background: #00838f"></span>
+  </div>
+</div>
+<div id="controls">
+  <div id="search-wrap">
+    <svg class="search-icon-inset" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2" stroke-linecap="round"
+         stroke-linejoin="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="8"/>
+      <path d="m21 21-4.3-4.3"/>
+    </svg>
+    <input id="search" type="text" data-i18n-placeholder="search.placeholder"
+           autocomplete="off" />
+    <button id="search-clear" class="btn-icon">&times;</button>
+  </div>
+  <span class="bar-divider"></span>
+  <button id="reset-zoom" class="btn btn-icon-only" data-i18n-title="btn.resetZoom">
+    <svg class="btn-icon-svg lucide" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2" stroke-linecap="round"
+         stroke-linejoin="round" aria-hidden="true">
+      <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
+      <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+      <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
+      <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+      <path d="M9 12h6"/>
+    </svg>
+  </button>
+  <button id="btn-show-all" class="btn btn-icon-only view-btn" data-i18n-title="btn.clearFilters">
+    <svg class="btn-icon-svg lucide" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2" stroke-linecap="round"
+         stroke-linejoin="round" aria-hidden="true">
+      <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>
+      <line x1="13.5" y1="13.5" x2="20" y2="20"/>
+      <line x1="20" y1="13.5" x2="13.5" y2="20"/>
+    </svg>
+  </button>
+  <span class="bar-divider"></span>
+  <div class="menu-wrap">
+    <button id="btn-file-menu" class="btn btn-with-icon" data-i18n-title="btn.fileTitle">
+      <svg class="btn-icon-svg lucide" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round"
+           stroke-linejoin="round" aria-hidden="true">
+        <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>
+      </svg>
+      <span data-i18n="btn.file">File &#9662;</span>
+    </button>
+    <div id="file-menu" class="popup-menu hidden">
+      <button id="btn-export-prefs" class="popup-item" data-i18n="btn.export">Export prefs</button>
+      <button id="btn-import-prefs" class="popup-item" data-i18n="btn.import">Import prefs</button>
+      <button id="btn-copy-llm" class="popup-item" data-i18n="btn.copyLlm" data-i18n-title="btn.copyLlmTitle">Copy JSON</button>
+      <button id="btn-copy-link" class="popup-item" data-i18n="btn.copyLink" data-i18n-title="btn.copyLinkTitle">Copy link</button>
+      <button id="btn-copy-mermaid" class="popup-item" data-i18n="btn.copyMermaid" data-i18n-title="btn.copyMermaidTitle">Copy as Mermaid</button>
+    </div>
+  </div>
+  <button id="btn-git" class="btn btn-with-icon" data-i18n-title="btn.gitTitle">
+    <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M23.546 10.93L13.067.452c-.604-.603-1.582-.603-2.188 0L8.708 2.627l2.76 2.76c.645-.215 1.379-.07 1.889.441.516.515.658 1.258.438 1.9l2.658 2.66c.645-.223 1.387-.078 1.9.435.721.72.721 1.884 0 2.604-.719.719-1.881.719-2.6 0-.539-.541-.674-1.337-.404-1.996L12.86 8.955v6.525c.176.086.342.203.488.348.713.721.713 1.883 0 2.6-.719.721-1.889.721-2.609 0-.719-.719-.719-1.879 0-2.598.182-.18.387-.316.605-.406V8.835c-.217-.091-.424-.222-.6-.401-.545-.545-.676-1.342-.396-2.009L7.636 3.7.45 10.881c-.6.605-.6 1.584 0 2.189l10.48 10.477c.604.604 1.582.604 2.186 0l10.43-10.43c.605-.603.605-1.582 0-2.187"/>
+    </svg>
+    <span data-i18n="btn.git">Git</span>
+  </button>
+  <span class="bar-divider"></span>
+  <select id="ide-select" data-i18n-title="ide.title">
+    <option value="vscode">VS Code</option>
+    <option value="cursor">Cursor</option>
+    <option value="pycharm">PyCharm</option>
+    <option value="copy" data-i18n="ide.copy">&mdash; Copy path</option>
+  </select>
+  <input type="file" id="import-file" accept=".json"
+         style="display:none">
+</div>
+<div id="stats"></div>
+<div id="help-panel">
+  <span class="lang-wrap">
+    <span class="lang-icon" aria-hidden="true">🌐</span>
+    <select id="select-lang" title="Language">
+      <option value="de">DE</option>
+      <option value="en">EN</option>
+      <option value="es">ES</option>
+      <option value="fr">FR</option>
+      <option value="it">IT</option>
+      <option value="ja">JA</option>
+      <option value="ko">KO</option>
+      <option value="pt">PT</option>
+      <option value="ru">RU</option>
+      <option value="zh">ZH</option>
+    </select>
+  </span>
+  <button id="btn-faq" class="btn" data-i18n-title="btn.faqTitle">?</button>
+</div>
+<div id="legend"><h4 data-i18n="legend.nodeTypes">Node types</h4></div>
+<div id="info-panel" class="hidden">
+  <div id="info-header">
+    <span id="info-title"></span>
+    <button id="info-close" class="btn-icon">×</button>
+  </div>
+  <div id="info-type"></div>
+  <div id="info-path"></div>
+  <div id="info-conn-count"></div>
+  <div id="info-connections"></div>
+</div>
+<div id="exclude-panel">
+  <h4 data-i18n="excl.title">Exclude by name</h4>
+  <div id="excl-row">
+    <input id="exclude-input" type="text" data-i18n-placeholder="excl.placeholder"
+           autocomplete="off" />
+    <button id="exclude-add" class="btn btn-icon-only" data-i18n-title="excl.add">
+      <svg class="btn-icon-svg lucide" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round"
+           stroke-linejoin="round" aria-hidden="true">
+        <path d="M5 12h14"/><path d="M12 5v14"/>
+      </svg>
+    </button>
+  </div>
+  <ul id="exclude-list"></ul>
+  <button id="exclude-clear" class="btn btn--sm btn--block btn--ghost btn-with-icon" data-i18n-title="excl.clearAll">
+    <svg class="btn-icon-svg lucide" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2" stroke-linecap="round"
+         stroke-linejoin="round" aria-hidden="true">
+      <path d="M3 6h18"/>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+    </svg>
+    <span data-i18n="excl.clearAll">Clear all</span>
+  </button>
+</div>
+<div id="controls-left">
+  <h4 data-i18n="ctrl.title">Graph controls</h4>
+  <span class="ctrl-group-title" data-i18n="ctrl.group.nodesEdges">Nodes &amp; Edges</span>
+  <label for="ctrl-contrast" data-i18n="ctrl.contrast">Color contrast</label>
+  <input type="range" id="ctrl-contrast"
+         min="0" max="1.5" step="0.1" value="0">
+  <span class="ctrl-val" id="val-contrast">0.0</span>
+  <label for="ctrl-node-scale" data-i18n="ctrl.nodeScale">Node scale</label>
+  <input type="range" id="ctrl-node-scale"
+         min="0" max="1" step="0.05" value="1">
+  <span class="ctrl-val" id="val-node-scale">1.00</span>
+  <label for="ctrl-edge-width" data-i18n="ctrl.edgeWidth">Edge width</label>
+  <input type="range" id="ctrl-edge-width"
+         min="0.2" max="3" step="0.1" value="0.75">
+  <span class="ctrl-val" id="val-edge-width">0.75</span>
+  <label for="ctrl-edge-opacity" data-i18n="ctrl.edgeOpacity">Edge opacity</label>
+  <input type="range" id="ctrl-edge-opacity"
+         min="0.05" max="0.8" step="0.05" value="0.28">
+  <span class="ctrl-val" id="val-edge-opacity">0.28</span>
+  <span class="ctrl-group-title" data-i18n="ctrl.group.labels">Labels</span>
+  <label for="ctrl-font-size" data-i18n="ctrl.fontSize">Font size</label>
+  <input type="range" id="ctrl-font-size"
+         min="7" max="18" step="1" value="10">
+  <span class="ctrl-val" id="val-font-size">10px</span>
+  <label for="ctrl-label-zoom" data-i18n="ctrl.labelZoom">Show at zoom</label>
+  <input type="range" id="ctrl-label-zoom"
+         min="0.5" max="3" step="0.05" value="1.74">
+  <span class="ctrl-val" id="val-label-zoom">1.74</span>
+  <span class="ctrl-group-title" data-i18n="ctrl.group.physics">Physics</span>
+  <label for="ctrl-charge" data-i18n="ctrl.charge">Repulsion</label>
+  <input type="range" id="ctrl-charge"
+         min="-800" max="-50" step="10" value="-300">
+  <span class="ctrl-val" id="val-charge">-300</span>
+  <label for="ctrl-link" data-i18n="ctrl.linkForce">Link force</label>
+  <input type="range" id="ctrl-link"
+         min="0.05" max="1" step="0.05" value="0.3">
+  <span class="ctrl-val" id="val-link">0.30</span>
+  <button id="btn-release-pinned" class="btn btn--sm btn--block btn--ghost btn-with-icon ctrl-action" data-i18n-title="btn.releasePinnedTitle">
+    <svg class="btn-icon-svg lucide" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2" stroke-linecap="round"
+         stroke-linejoin="round" aria-hidden="true">
+      <path d="m12 17-5 5"/>
+      <path d="M12 7 17 2"/>
+      <path d="M22 22 2 2"/>
+      <path d="M14.91 9.09a3 3 0 0 0-4.24 4.24"/>
+    </svg>
+    <span data-i18n="btn.releasePinned">Release pinned</span>
+  </button>
+  <button id="exclude-rebuild" class="btn btn--sm btn--block btn--ghost btn-with-icon ctrl-action" data-i18n-title="excl.rebuild">
+    <svg class="btn-icon-svg lucide" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2" stroke-linecap="round"
+         stroke-linejoin="round" aria-hidden="true">
+      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+      <path d="M21 3v5h-5"/>
+      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+      <path d="M3 21v-5h5"/>
+    </svg>
+    <span data-i18n="excl.rebuild">Rebuild physics</span>
+  </button>
+</div>
+<div id="copy-toast" data-i18n="toast.copied">Path copied!</div>
+<div id="watermark"></div>
+<div id="edge-tooltip" class="hidden"></div>
+<div id="faq-overlay">
+  <div id="faq-modal">
+    <button id="faq-close" class="btn-icon" data-i18n-title="faq.closeTitle">×</button>
+    <h2 data-i18n="faq.title">Graph guide</h2>
+
+    <h3 data-i18n="faq.section.about">About the graph</h3>
+    <ul>
+      <li data-i18n-html="faq.about.li1"></li>
+      <li data-i18n-html="faq.about.li2"></li>
+      <li data-i18n-html="faq.about.li3"></li>
+      <li data-i18n-html="faq.about.li4"></li>
+      <li data-i18n-html="faq.about.li5"></li>
+    </ul>
+
+    <h3 data-i18n="faq.section.navigation">Navigation</h3>
+    <ul>
+      <li data-i18n-html="faq.nav.li1"></li>
+      <li data-i18n-html="faq.nav.li2"></li>
+      <li data-i18n-html="faq.nav.li3"></li>
+      <li data-i18n-html="faq.nav.li4"></li>
+      <li data-i18n-html="faq.nav.li5"></li>
+      <li data-i18n-html="faq.nav.li6"></li>
+      <li data-i18n-html="faq.nav.li7"></li>
+      <li data-i18n-html="faq.nav.li8"></li>
+      <li data-i18n-html="faq.nav.li9"></li>
+      <li data-i18n-html="faq.nav.li10"></li>
+    </ul>
+
+    <h3 data-i18n="faq.section.filters">Filters &amp; highlight</h3>
+    <ul>
+      <li data-i18n-html="faq.filters.li1"></li>
+      <li data-i18n-html="faq.filters.li2"></li>
+      <li data-i18n-html="faq.filters.li3"></li>
+      <li data-i18n-html="faq.filters.li4"></li>
+      <li data-i18n-html="faq.filters.li5"></li>
+      <li data-i18n-html="faq.filters.li6"></li>
+      <li data-i18n-html="faq.filters.li7"></li>
+      <li data-i18n-html="faq.filters.li8"></li>
+      <li data-i18n-html="faq.filters.li9"></li>
+      <li data-i18n-html="faq.filters.li10"></li>
+      <li data-i18n-html="faq.filters.li11"></li>
+    </ul>
+
+    <h3 data-i18n="faq.section.appearance">Appearance</h3>
+    <ul>
+      <li data-i18n-html="faq.appearance.li1"></li>
+      <li data-i18n-html="faq.appearance.li2"></li>
+      <li data-i18n-html="faq.appearance.li3"></li>
+      <li data-i18n-html="faq.appearance.li4"></li>
+      <li data-i18n-html="faq.appearance.li5"></li>
+      <li data-i18n-html="faq.appearance.li6"></li>
+      <li data-i18n-html="faq.appearance.li7"></li>
+      <li data-i18n-html="faq.appearance.li8"></li>
+    </ul>
+
+    <h3 data-i18n="faq.section.openingFiles">Opening files</h3>
+    <ul>
+      <li data-i18n-html="faq.opening.li1"></li>
+      <li data-i18n-html="faq.opening.li2"></li>
+      <li data-i18n-html="faq.opening.li3"></li>
+      <li data-i18n-html="faq.opening.li4"></li>
+    </ul>
+
+    <h3 data-i18n="faq.section.gitMode">Git mode</h3>
+    <ul>
+      <li data-i18n-html="faq.git.li1"></li>
+      <li data-i18n-html="faq.git.li2"></li>
+      <li data-i18n-html="faq.git.li3"></li>
+      <li data-i18n-html="faq.git.li4"></li>
+      <li data-i18n-html="faq.git.li5"></li>
+    </ul>
+
+    <h3 data-i18n="faq.section.persistence">Persistence</h3>
+    <ul>
+      <li data-i18n-html="faq.persistence.li1"></li>
+      <li data-i18n-html="faq.persistence.li2"></li>
+      <li data-i18n-html="faq.persistence.li3"></li>
+      <li data-i18n-html="faq.persistence.li4"></li>
+    </ul>
+
+    <h3 data-i18n="faq.section.shortcuts">Keyboard shortcuts</h3>
+    <ul>
+      <li data-i18n-html="faq.shortcuts.li1"></li>
+      <li data-i18n-html="faq.shortcuts.li2"></li>
+      <li data-i18n-html="faq.shortcuts.li3"></li>
+      <li data-i18n-html="faq.shortcuts.li4"></li>
+    </ul>
+  </div>
+</div>
+<canvas id="graph"></canvas>

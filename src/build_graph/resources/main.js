@@ -1,0 +1,4334 @@
+
+// === STATE & EDGE COLORS ===
+// Edge palettes mirror the node palette swap: hue stays, saturation flips.
+// `code->code` uses green (well-separated from blue/orange) instead of indigo
+// which was too close to the doc->doc blue.
+const EDGE_COLORS_PASTEL = {
+    "doc->doc":   "#a0c4ff",
+    "code->doc":  "#ffd6a5",
+    "code->code": "#86efac",
+    "rename":     "#ce93d8",
+    "docstring":  "#f8bbd0",
+    "type-only":  "#b2dfdb"
+};
+const EDGE_COLORS_SATURATED = {
+    "doc->doc":   "#2563eb",
+    "code->doc":  "#f97316",
+    "code->code": "#16a34a",
+    "rename":     "#9b59b6",
+    "docstring":  "#ec4899",
+    "type-only":  "#0d9488"
+};
+let EDGE_COLORS = EDGE_COLORS_PASTEL;
+
+// === I18N ===
+// =============================================================================
+// I18N: dictionary, formatters, applyI18n — RU/EN switch via #btn-lang.
+// HTML uses data-i18n / data-i18n-html / data-i18n-placeholder / data-i18n-title.
+// Dynamic strings go through t(key) or tFmt(key, ...args).
+// =============================================================================
+const I18N = {
+    en: {
+        "search.placeholder": "Search nodes…",
+        "btn.resetZoom": "Reset zoom",
+        "btn.clearFilters": "Clear filters",
+        "btn.orphans": "Orphans only",
+        "btn.export": "Export prefs",
+        "btn.import": "Import prefs",
+        "btn.copyLlm": "Copy JSON",
+        "btn.copyLlmTitle": "Copy graph as JSON for LLM context",
+        "btn.file": "File ▾",
+        "btn.fileTitle": "Export / import preferences, copy graph as JSON",
+        "btn.paletteSaturated": "Saturated",
+        "btn.palettePastel": "Pastel",
+        "toggle.theme": "Theme",
+        "toggle.colours": "Colours",
+        "btn.git": "Git",
+        "btn.gitTitle": "Toggle git status overlay",
+        "btn.gitNotAvailable": "Not in a git repository",
+        "btn.faqTitle": "Help (?)",
+        "ide.title": "Open links in IDE",
+        "ide.copy": "— Copy path",
+        "legend.nodeTypes": "Node types",
+        "legend.edgeTypes": "Edge types",
+        "legend.gitStatus": "Git status",
+        "legend.showAll": "Show all",
+        "legend.hideAll": "Hide all",
+        "git.added": "Added",
+        "git.modified": "Modified",
+        "git.renamed": "Renamed",
+        "git.deleted": "Deleted",
+        "git.clean": "Clean",
+        "excl.title": "Exclude by name",
+        "excl.placeholder": "e.g. __init__",
+        "excl.add": "Add",
+        "excl.clearAll": "Clear all",
+        "excl.rebuild": "Rebuild physics",
+        "ctrl.title": "Graph controls",
+        "ctrl.group.nodesEdges": "Nodes & Edges",
+        "ctrl.group.labels": "Labels",
+        "ctrl.group.physics": "Physics",
+        "ctrl.contrast": "Color contrast",
+        "ctrl.nodeScale": "Node scale",
+        "ctrl.edgeWidth": "Edge width",
+        "ctrl.edgeOpacity": "Edge opacity",
+        "ctrl.fontSize": "Font size",
+        "ctrl.labelZoom": "Show at zoom",
+        "ctrl.charge": "Repulsion",
+        "ctrl.linkForce": "Link force",
+        "toast.copied": "Path copied!",
+        "tooltip.lines": "Lines",
+        "info.outgoing": "Outgoing",
+        "info.incoming": "Incoming",
+        "info.copyTitle": "Click to copy path",
+        "alert.invalidPrefs": "Invalid preferences file",
+        "faq.closeTitle": "Close (Esc)",
+        "faq.title": "Graph guide",
+        "faq.section.about": "About the graph",
+        "faq.section.navigation": "Navigation",
+        "faq.section.filters": "Filters & highlight",
+        "faq.section.appearance": "Appearance",
+        "faq.section.openingFiles": "Opening files",
+        "faq.section.persistence": "Persistence",
+        "faq.section.shortcuts": "Keyboard shortcuts",
+        "faq.about.li1": "<b>Nodes</b> represent files: <i>docs</i> (markdown) and <i>code</i> (Python modules). Color = type from the legend.",
+        "faq.about.li2": "<b>Edges</b>: <i>doc&rarr;doc</i> are markdown links, <i>code&rarr;doc</i> are mentions of a file inside markdown, <i>code&rarr;code</i> are imports.",
+        "faq.about.li3": "Node size grows with degree (number of incoming + outgoing edges).",
+        "faq.about.li4": "Edge thickness reflects how many references exist between two files.",
+        "faq.about.li5": "Arrowheads show the direction of the reference (source &rarr; target).",
+        "faq.nav.li1": "Left-click a node &mdash; open the info-panel with all of its connections (line numbers shown for code edges).",
+        "faq.nav.li2": "Drag a node &mdash; move it around (physics will adjust the rest).",
+        "faq.nav.li3": "Scroll &mdash; zoom; drag the empty background &mdash; pan.",
+        "faq.nav.li4": "Click the empty background &mdash; close the info-panel.",
+        "faq.filters.li1": "<b>Legend &mdash; Node types</b>: click a type to hide / show all nodes of that type.",
+        "faq.filters.li2": "<b>Legend &mdash; Edge types</b>: click an edge type to hide that kind of edge; nodes that lose all visible connections (orphans) are hidden too.",
+        "faq.filters.li3": "<b>Search</b> (top): dims everything that does not match; matching nodes and their immediate connections stay highlighted.",
+        "faq.filters.li4": "<b>Exclude by name</b> (left panel): freeze nodes by label or stem so they stop interfering with layout. <i>Rebuild physics</i> releases the visible nodes and pins the excluded ones aside.",
+        "faq.filters.li5": "<b>Orphans only</b>: toggle to show <i>only</i> nodes without connections (useful for finding stragglers).",
+        "faq.filters.li6": "<b>Color contrast</b>: global slider that boosts saturation for nodes, edges and arrowheads.",
+        "faq.appearance.li1": "<b>Palette</b>: <i>Pastel</i> &harr; <i>Saturated</i> toggle.",
+        "faq.appearance.li2": "<b>Theme</b>: dark / light switch in the top-left corner.",
+        "faq.appearance.li3": "All panels can be dragged by their header. <b>Info-panel</b> can be resized via its bottom-right corner (both axes); <b>Graph controls</b> can be resized horizontally via its right edge.",
+        "faq.opening.li1": "The info-panel exposes a per-file action button next to each connection.",
+        "faq.opening.li2": "The <b>IDE selector</b> in the controls bar picks what that button does: open in VS Code / Cursor / PyCharm, or simply copy the path.",
+        "faq.persistence.li1": "Panel positions, slider values, filters, palette, theme and IDE choice are saved in <code>localStorage</code> automatically.",
+        "faq.persistence.li2": "<b>Export &darr;</b> / <b>Import &uarr;</b> &mdash; save settings to a JSON file or load them back.",
+        "faq.persistence.li3": "<b>Clear filters</b> &mdash; reset filters (types, edges, exclusions, orphans) without touching panel positions or theme.",
+        "faq.shortcuts.li1": "<kbd>Esc</kbd> &mdash; close this dialog &rarr; close info-panel &rarr; reset search (in priority order).",
+        "faq.shortcuts.li2": "<kbd>Space</kbd> &mdash; pause / resume physics simulation.",
+        "faq.shortcuts.li3": "<kbd>Ctrl</kbd>+<kbd>K</kbd> / <kbd>⌘</kbd>+<kbd>K</kbd> &mdash; focus the search field.",
+        "faq.shortcuts.li4": "<kbd>B</kbd> &mdash; pin / unpin the node under the cursor (works mid-drag: drag a node aside, press B, release &mdash; it stays put).",
+        "faq.section.gitMode": "Git mode",
+        "faq.nav.li5": "Clicking a node <b>pins</b> the highlight &mdash; the node and its connections stay bright even when the cursor moves away. Click the same node again or the background to unpin.",
+        "faq.nav.li6": "With a node pinned, hovering one of its neighbors briefly shows a second-level peek &mdash; the union of the pin's and the hovered node's neighborhoods.",
+        "faq.nav.li7": "Clicking any faded (dimmed) element or the empty background clears all current selections (pinned node, edge focus, search highlight).",
+        "faq.filters.li7": "<b>Edge tooltip</b>: hover any edge to see its type, source &rarr; target, and the line numbers (for code-doc edges).",
+        "faq.filters.li8": "<b>Click an edge</b> to enter focus mode &mdash; only that edge and its two endpoints stay highlighted; <kbd>Esc</kbd> or background click exits.",
+        "faq.filters.li9": "<b>Show all</b> / <b>Hide all</b> buttons in the legend bulk-reveal or bulk-hide every type at once (works for node types and git statuses).",
+        "faq.appearance.li4": "<b>Graph controls</b> panel groups sliders into <i>Nodes &amp; Edges</i> (size, edge width / opacity), <i>Labels</i> (font size, zoom threshold) and <i>Physics</i> (repulsion, link force).",
+        "faq.appearance.li5": "<b>Show at zoom</b>: node labels appear only when the zoom level passes this threshold; lower it to see labels earlier.",
+        "faq.appearance.li6": "<b>Collapsible panels</b>: click the title of <i>Graph controls</i>, <i>Node types</i> or <i>Exclude by name</i> to fold the panel; chevron <code>▾</code> / <code>▸</code> shows the state.",
+        "faq.appearance.li7": "Inside <i>Graph controls</i>, the section titles (<i>Nodes &amp; Edges</i> / <i>Labels</i> / <i>Physics</i>) toggle individual subgroups.",
+        "faq.appearance.li8": "<b>Stats overlay</b> in the bottom-left shows the current node and edge counts (updates as filters apply).",
+        "faq.opening.li3": "Connections in the info-panel are grouped by file with collapsible <code>▾</code> / <code>▸</code> headers; the <code>+N</code> button expands the full line list when there are more references than fit in the inline preview.",
+        "faq.git.li1": "Toggle <b>Git mode</b> from the top bar &mdash; node colors switch from type-based to git status (Added / Modified / Renamed / Deleted / Clean).",
+        "faq.git.li2": "Each status has its own swatch in the <b>Git status</b> legend section; click to hide / show, or use Show all / Hide all for bulk.",
+        "faq.git.li3": "<b>Ghost nodes</b> (dashed outline) appear for deleted files or rename sources; visible only in git mode.",
+        "faq.git.li4": "<b>Rename edges</b> are drawn dotted without an arrowhead, linking the old path to the new one; they aren't part of the Edge types legend.",
+        "faq.git.li5": "Git status colors follow the active palette (Pastel / Saturated). The Git button is disabled if the build wasn't run inside a git repository.",
+        "faq.persistence.li4": "<b>Copy JSON</b> in the File menu copies a compact graph representation (id, path, type, edges, line numbers) &mdash; handy to paste into an LLM as project context.",
+        "toast.noPath": "No path found",
+        "btn.deadCode": "Dead code",
+        "btn.deadCodeTitle": "Highlight code files that nothing imports and no doc mentions",
+        "btn.untracked": "Unmapped",
+        "btn.untrackedTitle": "Highlight files not covered by an explicit graph.toml rule (auto-classified)",
+        "faq.filters.li11": "<b>Unmapped</b> button (in the legend, only when a graph.toml exists) outlines files classified by the autodiscovery fallback &mdash; no explicit config rule covers them. A hint to refresh the config via <code>--init --diff</code> / <code>--init --merge</code>.",
+        "faq.nav.li8": "<b>Shift+click</b> two nodes to highlight the shortest path between them through the graph; <kbd>Esc</kbd> clears.",
+        "faq.nav.li9": "<b>Double-click</b> a node to <i>pin</i> its position (the physics simulation will stop moving it); double-click again to release.",
+        "faq.filters.li10": "<b>Dead code</b> button (in the legend, only when there are candidates) outlines code files that nothing imports and no doc mentions &mdash; potential cleanup targets.",
+        "faq.opening.li4": "Each <b>directory segment</b> in the path shown in the info-panel is clickable &mdash; click to filter the graph to nodes from that subtree (uses the search filter).",
+        "btn.releasePinned": "Release pinned",
+        "btn.releasePinnedTitle": "Release all double-click-pinned nodes back to the simulation",
+        "faq.nav.li10": "<b>Release pinned</b> button (in <i>Graph controls</i> &rarr; Physics) frees all double-click pinned nodes at once. Sticky pins have priority over <i>Rebuild physics</i> &mdash; they stay pinned through rebuild.",
+        "btn.copyLink": "Copy link",
+        "btn.copyLinkTitle": "Copy a shareable URL with the current view (filters, theme, search, pin)",
+        "btn.copyMermaid": "Copy as Mermaid",
+        "btn.copyMermaidTitle": "Copy the focused subgraph (pin / path / search) as a Mermaid flowchart (paste into ADR / README)",
+        "toast.nothingToExport": "Nothing to export",
+        "legend.isolate": "Show only this type (toggle)"
+    },
+    ru: {
+        "search.placeholder": "Поиск узлов…",
+        "btn.resetZoom": "Сбросить зум",
+        "btn.clearFilters": "Сбросить фильтры",
+        "btn.orphans": "Только сироты",
+        "btn.export": "Экспорт настроек",
+        "btn.import": "Импорт настроек",
+        "btn.copyLlm": "Копировать JSON",
+        "btn.copyLlmTitle": "Скопировать граф как JSON для LLM",
+        "btn.file": "Файл ▾",
+        "btn.fileTitle": "Экспорт / импорт настроек, копирование графа как JSON",
+        "btn.paletteSaturated": "Насыщенная",
+        "btn.palettePastel": "Пастель",
+        "toggle.theme": "Тема",
+        "toggle.colours": "Цвета",
+        "btn.git": "Git",
+        "btn.gitTitle": "Подсветка по git-статусу",
+        "btn.gitNotAvailable": "Не git-репозиторий",
+        "btn.faqTitle": "Справка (?)",
+        "ide.title": "Открывать в IDE",
+        "ide.copy": "— Копировать путь",
+        "legend.nodeTypes": "Типы узлов",
+        "legend.edgeTypes": "Типы связей",
+        "legend.gitStatus": "Git-статус",
+        "legend.showAll": "Показать все",
+        "legend.hideAll": "Скрыть все",
+        "git.added": "Добавлено",
+        "git.modified": "Изменено",
+        "git.renamed": "Переименовано",
+        "git.deleted": "Удалено",
+        "git.clean": "Без изменений",
+        "excl.title": "Исключить по имени",
+        "excl.placeholder": "напр. __init__",
+        "excl.add": "Добавить",
+        "excl.clearAll": "Очистить",
+        "excl.rebuild": "Пересобрать физику",
+        "ctrl.title": "Параметры графа",
+        "ctrl.group.nodesEdges": "Узлы и связи",
+        "ctrl.group.labels": "Подписи",
+        "ctrl.group.physics": "Физика",
+        "ctrl.contrast": "Контраст цветов",
+        "ctrl.nodeScale": "Размер узлов",
+        "ctrl.edgeWidth": "Толщина связей",
+        "ctrl.edgeOpacity": "Прозрачность связей",
+        "ctrl.fontSize": "Размер шрифта",
+        "ctrl.labelZoom": "Показ при zoom",
+        "ctrl.charge": "Отталкивание",
+        "ctrl.linkForce": "Сила связи",
+        "toast.copied": "Путь скопирован!",
+        "tooltip.lines": "Строки",
+        "info.outgoing": "Исходящие",
+        "info.incoming": "Входящие",
+        "info.copyTitle": "Нажмите, чтобы скопировать путь",
+        "alert.invalidPrefs": "Некорректный файл настроек",
+        "faq.closeTitle": "Закрыть (Esc)",
+        "faq.title": "Руководство по графу",
+        "faq.section.about": "О графе",
+        "faq.section.navigation": "Навигация",
+        "faq.section.filters": "Фильтры и подсветка",
+        "faq.section.appearance": "Внешний вид",
+        "faq.section.openingFiles": "Открытие файлов",
+        "faq.section.persistence": "Сохранение",
+        "faq.section.shortcuts": "Горячие клавиши",
+        "faq.about.li1": "<b>Узлы</b> &mdash; это файлы: <i>docs</i> (markdown) и <i>code</i> (Python-модули). Цвет задаётся типом из легенды.",
+        "faq.about.li2": "<b>Связи</b>: <i>doc&rarr;doc</i> &mdash; markdown-ссылки, <i>code&rarr;doc</i> &mdash; упоминания файла в markdown, <i>code&rarr;code</i> &mdash; импорты.",
+        "faq.about.li3": "Размер узла растёт вместе со степенью связности (входящие + исходящие).",
+        "faq.about.li4": "Толщина ребра показывает число ссылок между двумя файлами.",
+        "faq.about.li5": "Стрелка указывает направление ссылки (источник &rarr; цель).",
+        "faq.nav.li1": "Левый клик по узлу &mdash; открыть info-panel со списком всех связей (для code-рёбер показываются номера строк).",
+        "faq.nav.li2": "Перетаскивание узла &mdash; двигать по холсту (физика подстроит остальные).",
+        "faq.nav.li3": "Колёсиком &mdash; zoom; перетаскивание по фону &mdash; pan.",
+        "faq.nav.li4": "Клик по пустому фону &mdash; закрыть info-panel.",
+        "faq.filters.li1": "<b>Легенда &mdash; Типы узлов</b>: клик по типу &mdash; скрыть / показать все узлы этого типа.",
+        "faq.filters.li2": "<b>Легенда &mdash; Типы связей</b>: клик &mdash; скрыть рёбра этого типа; узлы, оставшиеся без видимых связей (сироты), тоже скроются.",
+        "faq.filters.li3": "<b>Поиск</b> (сверху): затемняет всё несовпадающее; найденные узлы и их ближайшие связи остаются яркими.",
+        "faq.filters.li4": "<b>Исключить по имени</b> (левая панель): заморозить узлы по лейблу или stem, чтобы они не мешали лейауту. <i>Пересобрать физику</i> освобождает видимые и прижимает исключённые по краям.",
+        "faq.filters.li5": "<b>Только сироты</b>: переключатель &mdash; показать <i>только</i> узлы без связей (полезно для поиска бесхозных файлов).",
+        "faq.filters.li6": "<b>Контраст цветов</b>: глобальный слайдер &mdash; насыщает цвета узлов, рёбер и стрелок.",
+        "faq.appearance.li1": "<b>Палитра</b>: переключение <i>Пастель</i> &harr; <i>Насыщённая</i>.",
+        "faq.appearance.li2": "<b>Тема</b>: переключатель тёмная / светлая в левом верхнем углу.",
+        "faq.appearance.li3": "Все панели перетаскиваются за заголовок. <b>Info-panel</b> можно тянуть за правый-нижний угол (по обеим осям); <b>Параметры графа</b> &mdash; горизонтально за правый край.",
+        "faq.opening.li1": "Рядом с каждой связью в info-panel есть кнопка действия для файла.",
+        "faq.opening.li2": "<b>IDE-селектор</b> в controls bar выбирает, что эта кнопка делает: открыть в VS Code / Cursor / PyCharm или просто скопировать путь.",
+        "faq.persistence.li1": "Позиции панелей, значения слайдеров, фильтры, палитра, тема и выбор IDE автоматически сохраняются в <code>localStorage</code>.",
+        "faq.persistence.li2": "<b>Экспорт &darr;</b> / <b>Импорт &uarr;</b> &mdash; выгрузить настройки в JSON-файл или загрузить их обратно.",
+        "faq.persistence.li3": "<b>Сбросить фильтры</b> &mdash; сбрасывает фильтры (типы, рёбра, исключения, сироты), не трогая позиции панелей и тему.",
+        "faq.shortcuts.li1": "<kbd>Esc</kbd> &mdash; закрыть это окно &rarr; закрыть info-panel &rarr; сбросить поиск (по приоритету).",
+        "faq.shortcuts.li2": "<kbd>Space</kbd> &mdash; пауза / возобновление физики.",
+        "faq.shortcuts.li3": "<kbd>Ctrl</kbd>+<kbd>K</kbd> / <kbd>⌘</kbd>+<kbd>K</kbd> &mdash; фокус на поле поиска.",
+        "faq.shortcuts.li4": "<kbd>B</kbd> &mdash; закрепить / открепить ноду под курсором (работает во время перетаскивания: оттяни ноду, нажми B, отпусти &mdash; она останется на месте).",
+        "faq.section.gitMode": "Git-режим",
+        "faq.nav.li5": "Клик по узлу <b>фиксирует</b> подсветку &mdash; узел и его связи остаются яркими даже когда курсор уходит. Повторный клик по тому же узлу или клик по фону снимает фиксацию.",
+        "faq.nav.li6": "Когда узел зафиксирован, hover на одного из его соседей кратковременно показывает peek второго уровня &mdash; объединение окрестностей зафиксированного и наведённого узлов.",
+        "faq.nav.li7": "Клик по любому затемнённому элементу или по пустому фону снимает все текущие выделения (зафиксированный узел, edge focus, подсветку поиска).",
+        "faq.filters.li7": "<b>Tooltip ребра</b>: hover на любом ребре показывает его тип, source &rarr; target и номера строк (для code-doc-рёбер).",
+        "faq.filters.li8": "<b>Клик по ребру</b> переводит в режим фокуса &mdash; только это ребро и оба его конца остаются яркими; <kbd>Esc</kbd> или клик по фону выходят.",
+        "faq.filters.li9": "Кнопки <b>Показать все</b> / <b>Скрыть все</b> в легенде разом раскрывают или скрывают все типы (работают для типов узлов и git-статусов).",
+        "faq.appearance.li4": "Панель <b>Параметры графа</b> группирует слайдеры в <i>Узлы и связи</i> (размер, толщина / прозрачность рёбер), <i>Подписи</i> (размер шрифта, порог zoom) и <i>Физика</i> (отталкивание, сила связи).",
+        "faq.appearance.li5": "<b>Показ при zoom</b>: подписи узлов появляются только когда уровень zoom переходит этот порог; уменьшение порога показывает подписи раньше.",
+        "faq.appearance.li6": "<b>Сворачиваемые панели</b>: клик по заголовку <i>Параметры графа</i>, <i>Типы узлов</i> или <i>Исключить по имени</i> сворачивает панель; chevron <code>▾</code> / <code>▸</code> показывает состояние.",
+        "faq.appearance.li7": "Внутри <i>Параметры графа</i> заголовки секций (<i>Узлы и связи</i> / <i>Подписи</i> / <i>Физика</i>) сворачивают отдельные подгруппы.",
+        "faq.appearance.li8": "<b>Stats overlay</b> в левом нижнем углу показывает текущее число узлов и рёбер (обновляется по мере применения фильтров).",
+        "faq.opening.li3": "Связи в info-panel сгруппированы по файлам со сворачиваемыми заголовками <code>▾</code> / <code>▸</code>; кнопка <code>+N</code> разворачивает полный список строк, если ссылок больше, чем помещается в inline-превью.",
+        "faq.git.li1": "Переключатель <b>Git-режим</b> в верхней панели &mdash; цвета узлов меняются с типов на git-статус (Добавлено / Изменено / Переименовано / Удалено / Без изменений).",
+        "faq.git.li2": "У каждого статуса свой кружок в секции <b>Git-статус</b> легенды; клик скрывает / показывает, либо Показать все / Скрыть все для массового переключения.",
+        "faq.git.li3": "<b>Ghost-узлы</b> (пунктирная обводка) появляются для удалённых файлов или для исходников переименования; видны только в git-режиме.",
+        "faq.git.li4": "<b>Rename-рёбра</b> рисуются пунктиром без стрелки и связывают старый путь с новым; в легенде Edge types их нет.",
+        "faq.git.li5": "Цвета git-статусов используют активную палитру (Пастель / Насыщенная). Кнопка Git недоступна, если сборка запущена вне git-репозитория.",
+        "faq.persistence.li4": "<b>Копировать JSON</b> в меню Файл копирует компактное представление графа (id, путь, тип, рёбра, номера строк) &mdash; удобно вставлять в LLM как контекст проекта.",
+        "toast.noPath": "Путь не найден",
+        "btn.deadCode": "Мёртвый код",
+        "btn.deadCodeTitle": "Подсветить файлы кода, которые никто не импортирует и не упоминают доки",
+        "btn.untracked": "Вне правил",
+        "btn.untrackedTitle": "Подсветить файлы, не покрытые явным правилом graph.toml (классифицированы автоматически)",
+        "faq.filters.li11": "Кнопка <b>Вне правил</b> (в легенде, только при наличии graph.toml) обводит файлы, классифицированные fallback-механизмом автодискавери &mdash; их не покрывает явное правило конфига. Подсказка обновить конфиг через <code>--init --diff</code> / <code>--init --merge</code>.",
+        "faq.nav.li8": "<b>Shift+клик</b> по двум узлам подсвечивает кратчайший путь между ними через граф; <kbd>Esc</kbd> снимает.",
+        "faq.nav.li9": "<b>Двойной клик</b> по узлу <i>фиксирует</i> его позицию (физика перестаёт его двигать); повторный двойной клик освобождает.",
+        "faq.filters.li10": "Кнопка <b>Мёртвый код</b> (в легенде, появляется только при наличии кандидатов) обводит файлы кода, которые никто не импортирует и не упоминают доки &mdash; потенциальные кандидаты на удаление.",
+        "faq.opening.li4": "Каждый <b>сегмент директории</b> в пути в info-panel кликабелен &mdash; клик фильтрует граф по узлам из этого поддерева (через поле поиска).",
+        "btn.releasePinned": "Отпустить закреплённые",
+        "btn.releasePinnedTitle": "Освободить все узлы, закреплённые двойным кликом",
+        "faq.nav.li10": "Кнопка <b>Отпустить закреплённые</b> (в <i>Параметры графа</i> &rarr; Физика) освобождает все sticky-узлы одним кликом. Закреплённые узлы имеют приоритет над <i>Пересобрать физику</i> &mdash; пересборка их не трогает.",
+        "btn.copyLink": "Копировать ссылку",
+        "btn.copyLinkTitle": "Скопировать URL с текущей view (фильтры, тема, поиск, pin)",
+        "btn.copyMermaid": "Копировать как Mermaid",
+        "btn.copyMermaidTitle": "Скопировать фокусный подграф (pin / path / поиск) как Mermaid-flowchart (вставлять в ADR / README)",
+        "toast.nothingToExport": "Нечего экспортировать",
+        "legend.isolate": "Показать только этот тип (toggle)"
+    },
+    de: {
+        "search.placeholder": "Knoten suchen…",
+        "btn.resetZoom": "Zoom zurücksetzen",
+        "btn.clearFilters": "Filter zurücksetzen",
+        "btn.orphans": "Nur isolierte Knoten",
+        "btn.export": "Einstellungen exportieren",
+        "btn.import": "Einstellungen importieren",
+        "btn.copyLlm": "JSON kopieren",
+        "btn.copyLlmTitle": "Graph als JSON für LLM kopieren",
+        "btn.file": "Datei ▾",
+        "btn.fileTitle": "Einstellungen exportieren / importieren, Graph als JSON kopieren",
+        "btn.paletteSaturated": "Gesättigt",
+        "btn.palettePastel": "Pastell",
+        "toggle.theme": "Thema",
+        "toggle.colours": "Farben",
+        "btn.git": "Git",
+        "btn.gitTitle": "Git-Status-Overlay umschalten",
+        "btn.gitNotAvailable": "Kein Git-Repository",
+        "btn.faqTitle": "Hilfe (?)",
+        "ide.title": "Links in IDE öffnen",
+        "ide.copy": "— Pfad kopieren",
+        "legend.nodeTypes": "Knotentypen",
+        "legend.edgeTypes": "Kantentypen",
+        "legend.gitStatus": "Git-Status",
+        "legend.showAll": "Alle anzeigen",
+        "legend.hideAll": "Alle ausblenden",
+        "git.added": "Hinzugefügt",
+        "git.modified": "Geändert",
+        "git.renamed": "Umbenannt",
+        "git.deleted": "Gelöscht",
+        "git.clean": "Unverändert",
+        "excl.title": "Nach Name ausschließen",
+        "excl.placeholder": "z. B. __init__",
+        "excl.add": "Hinzufügen",
+        "excl.clearAll": "Alle entfernen",
+        "excl.rebuild": "Physik neu aufbauen",
+        "ctrl.title": "Graph-Steuerung",
+        "ctrl.group.nodesEdges": "Knoten & Kanten",
+        "ctrl.group.labels": "Beschriftungen",
+        "ctrl.group.physics": "Physik",
+        "ctrl.contrast": "Farbkontrast",
+        "ctrl.nodeScale": "Knotengröße",
+        "ctrl.edgeWidth": "Kantenbreite",
+        "ctrl.edgeOpacity": "Kantentransparenz",
+        "ctrl.fontSize": "Schriftgröße",
+        "ctrl.labelZoom": "Anzeige bei Zoom",
+        "ctrl.charge": "Abstoßung",
+        "ctrl.linkForce": "Verbindungskraft",
+        "toast.copied": "Pfad kopiert!",
+        "tooltip.lines": "Zeilen",
+        "info.outgoing": "Ausgehend",
+        "info.incoming": "Eingehend",
+        "info.copyTitle": "Klicken zum Kopieren des Pfads",
+        "alert.invalidPrefs": "Ungültige Einstellungsdatei",
+        "faq.closeTitle": "Schließen (Esc)",
+        "faq.title": "Graph-Anleitung",
+        "faq.section.about": "Über den Graphen",
+        "faq.section.navigation": "Navigation",
+        "faq.section.filters": "Filter & Hervorhebung",
+        "faq.section.appearance": "Darstellung",
+        "faq.section.openingFiles": "Dateien öffnen",
+        "faq.section.persistence": "Persistenz",
+        "faq.section.shortcuts": "Tastenkürzel",
+        "faq.about.li1": "<b>Knoten</b> stehen für Dateien: <i>docs</i> (Markdown) und <i>code</i> (Python-Module). Die Farbe entspricht dem Typ in der Legende.",
+        "faq.about.li2": "<b>Kanten</b>: <i>doc&rarr;doc</i> sind Markdown-Links, <i>code&rarr;doc</i> sind Dateierwähnungen in Markdown, <i>code&rarr;code</i> sind Imports.",
+        "faq.about.li3": "Die Knotengröße wächst mit dem Grad (eingehende + ausgehende Kanten).",
+        "faq.about.li4": "Die Kantenbreite zeigt, wie viele Verweise zwischen zwei Dateien bestehen.",
+        "faq.about.li5": "Pfeilspitzen geben die Richtung des Verweises an (Quelle &rarr; Ziel).",
+        "faq.nav.li1": "Linksklick auf einen Knoten &mdash; öffnet das Info-Panel mit allen Verbindungen (Zeilennummern bei Code-Kanten).",
+        "faq.nav.li2": "Knoten ziehen &mdash; verschieben (die Physik passt den Rest an).",
+        "faq.nav.li3": "Scrollen &mdash; Zoomen; den leeren Hintergrund ziehen &mdash; Verschieben.",
+        "faq.nav.li4": "Klick auf den leeren Hintergrund &mdash; Info-Panel schließen.",
+        "faq.filters.li1": "<b>Legende &mdash; Knotentypen</b>: Klick auf einen Typ blendet alle Knoten dieses Typs ein/aus.",
+        "faq.filters.li2": "<b>Legende &mdash; Kantentypen</b>: Klick auf einen Kantentyp blendet diese Art von Kanten aus; Knoten, die dadurch alle sichtbaren Verbindungen verlieren (Waisen), werden ebenfalls ausgeblendet.",
+        "faq.filters.li3": "<b>Suche</b> (oben): alles, was nicht passt, wird abgedunkelt; Treffer und ihre direkten Verbindungen bleiben hervorgehoben.",
+        "faq.filters.li4": "<b>Nach Name ausschließen</b> (linkes Panel): Knoten anhand von Beschriftung oder Dateistamm einfrieren, damit sie das Layout nicht stören. <i>Physik neu aufbauen</i> gibt sichtbare Knoten frei und heftet ausgeschlossene zur Seite.",
+        "faq.filters.li5": "<b>Nur isolierte Knoten</b>: zeigt <i>nur</i> Knoten ohne Verbindungen (nützlich, um vergessene Dateien zu finden).",
+        "faq.filters.li6": "<b>Farbkontrast</b>: globaler Schieberegler, der Knoten, Kanten und Pfeilspitzen sättigt.",
+        "faq.appearance.li1": "<b>Palette</b>: Umschalter <i>Pastell</i> &harr; <i>Gesättigt</i>.",
+        "faq.appearance.li2": "<b>Thema</b>: Hell-/Dunkel-Schalter in der oberen linken Ecke.",
+        "faq.appearance.li3": "Alle Panels können am Header gezogen werden. Das <b>Info-Panel</b> lässt sich an der unteren rechten Ecke in beide Richtungen vergrößern; die <b>Graph-Steuerung</b> horizontal am rechten Rand.",
+        "faq.opening.li1": "Im Info-Panel gibt es neben jeder Verbindung eine Aktionsschaltfläche für die Datei.",
+        "faq.opening.li2": "Der <b>IDE-Selektor</b> in der Steuerleiste legt fest, was diese Schaltfläche tut: in VS Code / Cursor / PyCharm öffnen oder einfach den Pfad kopieren.",
+        "faq.persistence.li1": "Panel-Positionen, Slider-Werte, Filter, Palette, Thema und IDE-Auswahl werden automatisch in <code>localStorage</code> gespeichert.",
+        "faq.persistence.li2": "<b>Export &darr;</b> / <b>Import &uarr;</b> &mdash; Einstellungen in eine JSON-Datei speichern oder zurückladen.",
+        "faq.persistence.li3": "<b>Filter zurücksetzen</b> &mdash; setzt die Filter zurück (Typen, Kanten, Ausschlüsse, Waisen), ohne Panel-Positionen oder Thema zu verändern.",
+        "faq.shortcuts.li1": "<kbd>Esc</kbd> &mdash; dieses Fenster schließen &rarr; Info-Panel schließen &rarr; Suche zurücksetzen (in dieser Reihenfolge).",
+        "faq.shortcuts.li2": "<kbd>Leertaste</kbd> &mdash; Physik-Simulation pausieren / fortsetzen.",
+        "faq.shortcuts.li3": "<kbd>Strg</kbd>+<kbd>K</kbd> / <kbd>⌘</kbd>+<kbd>K</kbd> &mdash; Suchfeld fokussieren.",
+        "faq.shortcuts.li4": "<kbd>B</kbd> &mdash; Knoten unter dem Cursor fixieren / lösen (funktioniert auch beim Ziehen: Knoten ziehen, B drücken, loslassen &mdash; er bleibt an Ort und Stelle).",
+        "faq.section.gitMode": "Git-Modus",
+        "faq.nav.li5": "Ein Klick auf einen Knoten <b>fixiert</b> die Hervorhebung &mdash; der Knoten und seine Verbindungen bleiben hell, auch wenn der Cursor abdriftet. Erneuter Klick auf denselben Knoten oder auf den Hintergrund hebt die Fixierung auf.",
+        "faq.nav.li6": "Bei einem fixierten Knoten zeigt das Bewegen über einen seiner Nachbarn kurz einen Zwei-Ebenen-Peek &mdash; die Vereinigung der Nachbarschaften von fixiertem und überfahrenem Knoten.",
+        "faq.nav.li7": "Ein Klick auf ein abgedunkeltes Element oder auf den leeren Hintergrund hebt alle aktuellen Auswahlen auf (fixierter Knoten, Kantenfokus, Suchhervorhebung).",
+        "faq.filters.li7": "<b>Kanten-Tooltip</b>: über eine beliebige Kante fahren, um Typ, Quelle &rarr; Ziel und Zeilennummern (bei Code-Doc-Kanten) zu sehen.",
+        "faq.filters.li8": "<b>Klick auf eine Kante</b> aktiviert den Fokusmodus &mdash; nur diese Kante und ihre beiden Endknoten bleiben hervorgehoben; <kbd>Esc</kbd> oder Hintergrundklick beendet.",
+        "faq.filters.li9": "Die Schaltflächen <b>Alle anzeigen</b> / <b>Alle ausblenden</b> in der Legende blenden alle Typen gleichzeitig ein oder aus (für Knotentypen und Git-Status).",
+        "faq.appearance.li4": "Das Panel <b>Graph-Steuerung</b> gliedert Schieberegler in <i>Knoten &amp; Kanten</i> (Größe, Kantenbreite / -transparenz), <i>Beschriftungen</i> (Schriftgröße, Zoom-Schwelle) und <i>Physik</i> (Abstoßung, Verbindungskraft).",
+        "faq.appearance.li5": "<b>Anzeige bei Zoom</b>: Knotenbeschriftungen erscheinen erst, wenn die Zoomstufe diesen Schwellenwert überschreitet; ein niedrigerer Wert zeigt Beschriftungen früher.",
+        "faq.appearance.li6": "<b>Einklappbare Panels</b>: Klick auf den Titel von <i>Graph-Steuerung</i>, <i>Knotentypen</i> oder <i>Nach Name ausschließen</i> klappt das Panel zu; Chevron <code>▾</code> / <code>▸</code> zeigt den Zustand.",
+        "faq.appearance.li7": "Innerhalb der <i>Graph-Steuerung</i> klappen die Abschnittstitel (<i>Knoten &amp; Kanten</i> / <i>Beschriftungen</i> / <i>Physik</i>) einzelne Untergruppen ein und aus.",
+        "faq.appearance.li8": "<b>Stats-Overlay</b> unten links zeigt die aktuelle Knoten- und Kantenanzahl (aktualisiert sich beim Anwenden von Filtern).",
+        "faq.opening.li3": "Verbindungen im Info-Panel sind nach Datei mit einklappbaren Überschriften <code>▾</code> / <code>▸</code> gruppiert; die Schaltfläche <code>+N</code> erweitert die vollständige Zeilenliste, wenn mehr Verweise vorliegen, als in die Inline-Vorschau passen.",
+        "faq.git.li1": "Mit <b>Git-Modus</b> in der oberen Leiste umschalten &mdash; Knotenfarben wechseln von Typ-basiert zu Git-Status (Hinzugefügt / Geändert / Umbenannt / Gelöscht / Unverändert).",
+        "faq.git.li2": "Jeder Status hat sein eigenes Symbol im Legendenabschnitt <b>Git-Status</b>; Klick blendet ein / aus, oder Alle anzeigen / Alle ausblenden für Massenwechsel.",
+        "faq.git.li3": "<b>Ghost-Knoten</b> (gestrichelte Kontur) erscheinen für gelöschte Dateien oder Quellen einer Umbenennung; nur im Git-Modus sichtbar.",
+        "faq.git.li4": "<b>Umbenennungs-Kanten</b> werden gepunktet ohne Pfeilspitze gezeichnet und verbinden den alten Pfad mit dem neuen; sie sind nicht Teil der Kantentypen-Legende.",
+        "faq.git.li5": "Die Farben der Git-Status folgen der aktiven Palette (Pastell / Gesättigt). Die Git-Schaltfläche ist deaktiviert, wenn der Build nicht in einem Git-Repository ausgeführt wurde.",
+        "faq.persistence.li4": "<b>JSON kopieren</b> im Datei-Menü kopiert eine kompakte Graph-Darstellung (id, Pfad, Typ, Kanten, Zeilennummern) &mdash; praktisch, um sie als Projektkontext in ein LLM einzufügen.",
+        "toast.noPath": "Kein Pfad gefunden",
+        "btn.deadCode": "Toter Code",
+        "btn.deadCodeTitle": "Code-Dateien hervorheben, die nichts importiert und keine Dokumentation erwähnt",
+        "btn.untracked": "Nicht zugeordnet",
+        "btn.untrackedTitle": "Dateien hervorheben, die keine explizite graph.toml-Regel abdeckt (automatisch klassifiziert)",
+        "faq.filters.li11": "Die Schaltfläche <b>Nicht zugeordnet</b> (in der Legende, nur wenn eine graph.toml existiert) umrandet Dateien, die per Autodiscovery-Fallback klassifiziert wurden &mdash; keine explizite Konfigurationsregel deckt sie ab. Ein Hinweis, die Konfiguration per <code>--init --diff</code> / <code>--init --merge</code> zu aktualisieren.",
+        "faq.nav.li8": "<b>Shift+Klick</b> auf zwei Knoten hebt den kürzesten Pfad zwischen ihnen durch den Graphen hervor; <kbd>Esc</kbd> löscht.",
+        "faq.nav.li9": "<b>Doppelklick</b> auf einen Knoten <i>fixiert</i> seine Position (die Physik bewegt ihn nicht mehr); erneuter Doppelklick gibt ihn frei.",
+        "faq.filters.li10": "Die Schaltfläche <b>Toter Code</b> (in der Legende, nur bei Kandidaten sichtbar) umrandet Code-Dateien, die nichts importiert und keine Dokumentation erwähnt &mdash; potenzielle Aufräum-Kandidaten.",
+        "faq.opening.li4": "Jedes <b>Verzeichnissegment</b> im Pfad im Info-Panel ist klickbar &mdash; ein Klick filtert den Graphen auf Knoten aus diesem Teilbaum (über das Suchfeld).",
+        "btn.releasePinned": "Fixierte freigeben",
+        "btn.releasePinnedTitle": "Alle per Doppelklick fixierten Knoten an die Simulation zurückgeben",
+        "faq.nav.li10": "<b>Fixierte freigeben</b> (in <i>Graph-Steuerung</i> &rarr; Physik) gibt alle per Doppelklick fixierten Knoten gleichzeitig frei. Fixierte haben Vorrang vor <i>Physik neu aufbauen</i> &mdash; sie bleiben beim Neuaufbau fixiert.",
+        "btn.copyLink": "Link kopieren",
+        "btn.copyLinkTitle": "Teilbare URL mit der aktuellen Ansicht (Filter, Thema, Suche, Pin) kopieren",
+        "btn.copyMermaid": "Als Mermaid kopieren",
+        "btn.copyMermaidTitle": "Den fokussierten Teilgraphen (Pin / Pfad / Suche) als Mermaid-Flowchart kopieren (für ADR / README einfügen)",
+        "toast.nothingToExport": "Nichts zu exportieren",
+        "legend.isolate": "Nur diesen Typ anzeigen (umschalten)"
+    },
+    es: {
+        "search.placeholder": "Buscar nodos…",
+        "btn.resetZoom": "Restablecer zoom",
+        "btn.clearFilters": "Borrar filtros",
+        "btn.orphans": "Solo huérfanos",
+        "btn.export": "Exportar prefs.",
+        "btn.import": "Importar prefs.",
+        "btn.copyLlm": "Copiar JSON",
+        "btn.copyLlmTitle": "Copiar el grafo como JSON para el LLM",
+        "btn.file": "Archivo ▾",
+        "btn.fileTitle": "Exportar / importar prefs., copiar el grafo como JSON",
+        "btn.paletteSaturated": "Saturada",
+        "btn.palettePastel": "Pastel",
+        "toggle.theme": "Tema",
+        "toggle.colours": "Colores",
+        "btn.git": "Git",
+        "btn.gitTitle": "Activar superposición del estado git",
+        "btn.gitNotAvailable": "No es un repositorio git",
+        "btn.faqTitle": "Ayuda (?)",
+        "ide.title": "Abrir enlaces en el IDE",
+        "ide.copy": "— Copiar ruta",
+        "legend.nodeTypes": "Tipos de nodos",
+        "legend.edgeTypes": "Tipos de aristas",
+        "legend.gitStatus": "Estado git",
+        "legend.showAll": "Mostrar todo",
+        "legend.hideAll": "Ocultar todo",
+        "git.added": "Añadido",
+        "git.modified": "Modificado",
+        "git.renamed": "Renombrado",
+        "git.deleted": "Eliminado",
+        "git.clean": "Sin cambios",
+        "excl.title": "Excluir por nombre",
+        "excl.placeholder": "ej. __init__",
+        "excl.add": "Añadir",
+        "excl.clearAll": "Limpiar todo",
+        "excl.rebuild": "Reconstruir física",
+        "ctrl.title": "Controles del grafo",
+        "ctrl.group.nodesEdges": "Nodos y aristas",
+        "ctrl.group.labels": "Etiquetas",
+        "ctrl.group.physics": "Física",
+        "ctrl.contrast": "Contraste de color",
+        "ctrl.nodeScale": "Tamaño de nodos",
+        "ctrl.edgeWidth": "Grosor de aristas",
+        "ctrl.edgeOpacity": "Opacidad de aristas",
+        "ctrl.fontSize": "Tamaño de fuente",
+        "ctrl.labelZoom": "Mostrar al zoom",
+        "ctrl.charge": "Repulsión",
+        "ctrl.linkForce": "Fuerza del enlace",
+        "toast.copied": "¡Ruta copiada!",
+        "tooltip.lines": "Líneas",
+        "info.outgoing": "Salientes",
+        "info.incoming": "Entrantes",
+        "info.copyTitle": "Clic para copiar la ruta",
+        "alert.invalidPrefs": "Archivo de preferencias no válido",
+        "faq.closeTitle": "Cerrar (Esc)",
+        "faq.title": "Guía del grafo",
+        "faq.section.about": "Acerca del grafo",
+        "faq.section.navigation": "Navegación",
+        "faq.section.filters": "Filtros y resaltado",
+        "faq.section.appearance": "Apariencia",
+        "faq.section.openingFiles": "Abrir archivos",
+        "faq.section.persistence": "Persistencia",
+        "faq.section.shortcuts": "Atajos de teclado",
+        "faq.about.li1": "<b>Los nodos</b> representan archivos: <i>docs</i> (markdown) y <i>code</i> (módulos de Python). El color corresponde al tipo de la leyenda.",
+        "faq.about.li2": "<b>Aristas</b>: <i>doc&rarr;doc</i> son enlaces de markdown, <i>code&rarr;doc</i> son menciones de un archivo dentro de markdown, <i>code&rarr;code</i> son imports.",
+        "faq.about.li3": "El tamaño del nodo crece con el grado (aristas entrantes + salientes).",
+        "faq.about.li4": "El grosor de la arista refleja cuántas referencias hay entre dos archivos.",
+        "faq.about.li5": "Las flechas indican la dirección de la referencia (origen &rarr; destino).",
+        "faq.nav.li1": "Clic izquierdo sobre un nodo &mdash; abre el panel de información con todas sus conexiones (números de línea para las aristas de código).",
+        "faq.nav.li2": "Arrastrar un nodo &mdash; moverlo (la física ajustará el resto).",
+        "faq.nav.li3": "Rueda &mdash; zoom; arrastrar el fondo vacío &mdash; desplazar la vista.",
+        "faq.nav.li4": "Clic en el fondo vacío &mdash; cerrar el panel de información.",
+        "faq.filters.li1": "<b>Leyenda &mdash; Tipos de nodos</b>: clic en un tipo para ocultar / mostrar todos los nodos de ese tipo.",
+        "faq.filters.li2": "<b>Leyenda &mdash; Tipos de aristas</b>: clic en un tipo de arista para ocultar esa categoría; los nodos que se queden sin conexiones visibles (huérfanos) también se ocultan.",
+        "faq.filters.li3": "<b>Búsqueda</b> (arriba): atenúa todo lo que no coincida; los nodos coincidentes y sus conexiones inmediatas siguen resaltados.",
+        "faq.filters.li4": "<b>Excluir por nombre</b> (panel izquierdo): congela los nodos por etiqueta o nombre base para que dejen de interferir con la disposición. <i>Reconstruir física</i> libera los visibles y aparta los excluidos.",
+        "faq.filters.li5": "<b>Solo huérfanos</b>: muestra <i>solo</i> los nodos sin conexiones (útil para encontrar archivos olvidados).",
+        "faq.filters.li6": "<b>Contraste de color</b>: deslizador global que satura nodos, aristas y flechas.",
+        "faq.appearance.li1": "<b>Paleta</b>: alternancia entre <i>Pastel</i> &harr; <i>Saturada</i>.",
+        "faq.appearance.li2": "<b>Tema</b>: interruptor claro / oscuro en la esquina superior izquierda.",
+        "faq.appearance.li3": "Todos los paneles se arrastran por su cabecera. El <b>panel de información</b> se redimensiona desde la esquina inferior derecha (ambos ejes); los <b>Controles del grafo</b> horizontalmente desde el borde derecho.",
+        "faq.opening.li1": "El panel de información ofrece un botón de acción por archivo junto a cada conexión.",
+        "faq.opening.li2": "El <b>selector de IDE</b> de la barra de controles decide qué hace ese botón: abrir en VS Code / Cursor / PyCharm o simplemente copiar la ruta.",
+        "faq.persistence.li1": "Las posiciones de los paneles, los valores de los deslizadores, los filtros, la paleta, el tema y la elección de IDE se guardan automáticamente en <code>localStorage</code>.",
+        "faq.persistence.li2": "<b>Exportar &darr;</b> / <b>Importar &uarr;</b> &mdash; guardar las preferencias en un archivo JSON o volver a cargarlas.",
+        "faq.persistence.li3": "<b>Borrar filtros</b> &mdash; restablece los filtros (tipos, aristas, exclusiones, huérfanos) sin tocar las posiciones de los paneles ni el tema.",
+        "faq.shortcuts.li1": "<kbd>Esc</kbd> &mdash; cerrar este diálogo &rarr; cerrar el panel de información &rarr; restablecer la búsqueda (en orden de prioridad).",
+        "faq.shortcuts.li2": "<kbd>Espacio</kbd> &mdash; pausar / reanudar la simulación física.",
+        "faq.shortcuts.li3": "<kbd>Ctrl</kbd>+<kbd>K</kbd> / <kbd>⌘</kbd>+<kbd>K</kbd> &mdash; enfocar el campo de búsqueda.",
+        "faq.shortcuts.li4": "<kbd>B</kbd> &mdash; fijar / soltar el nodo bajo el cursor (funciona durante el arrastre: arrastra un nodo, pulsa B, suéltalo &mdash; se queda en su sitio).",
+        "faq.section.gitMode": "Modo git",
+        "faq.nav.li5": "Hacer clic en un nodo <b>fija</b> el resaltado &mdash; el nodo y sus conexiones siguen brillantes aunque el cursor se aleje. Otro clic en el mismo nodo o en el fondo libera la fijación.",
+        "faq.nav.li6": "Con un nodo fijado, pasar el cursor por uno de sus vecinos muestra brevemente una vista de segundo nivel &mdash; la unión de los vecindarios del nodo fijado y del que está bajo el cursor.",
+        "faq.nav.li7": "Hacer clic en cualquier elemento atenuado o en el fondo vacío limpia todas las selecciones actuales (nodo fijado, foco de arista, resaltado de búsqueda).",
+        "faq.filters.li7": "<b>Tooltip de arista</b>: pasa el cursor sobre cualquier arista para ver su tipo, origen &rarr; destino y los números de línea (para aristas code-doc).",
+        "faq.filters.li8": "<b>Clic en una arista</b> entra en modo foco &mdash; solo esa arista y sus dos extremos quedan resaltados; <kbd>Esc</kbd> o clic en el fondo lo desactiva.",
+        "faq.filters.li9": "Los botones <b>Mostrar todo</b> / <b>Ocultar todo</b> en la leyenda muestran u ocultan todos los tipos a la vez (para tipos de nodos y estados git).",
+        "faq.appearance.li4": "El panel <b>Controles del grafo</b> agrupa los deslizadores en <i>Nodos y aristas</i> (tamaño, grosor / opacidad de aristas), <i>Etiquetas</i> (tamaño de fuente, umbral de zoom) y <i>Física</i> (repulsión, fuerza del enlace).",
+        "faq.appearance.li5": "<b>Mostrar al zoom</b>: las etiquetas de los nodos aparecen solo cuando el nivel de zoom supera este umbral; bájalo para ver las etiquetas antes.",
+        "faq.appearance.li6": "<b>Paneles plegables</b>: clic en el título de <i>Controles del grafo</i>, <i>Tipos de nodos</i> o <i>Excluir por nombre</i> pliega el panel; el chevron <code>▾</code> / <code>▸</code> indica el estado.",
+        "faq.appearance.li7": "Dentro de <i>Controles del grafo</i>, los títulos de sección (<i>Nodos y aristas</i> / <i>Etiquetas</i> / <i>Física</i>) alternan los subgrupos individuales.",
+        "faq.appearance.li8": "El <b>resumen</b> en la esquina inferior izquierda muestra el número actual de nodos y aristas (se actualiza al aplicar los filtros).",
+        "faq.opening.li3": "Las conexiones del panel de información se agrupan por archivo con cabeceras plegables <code>▾</code> / <code>▸</code>; el botón <code>+N</code> expande la lista completa de líneas cuando hay más referencias de las que caben en la vista previa.",
+        "faq.git.li1": "Activa el <b>Modo git</b> desde la barra superior &mdash; los colores de los nodos cambian de tipo a estado git (Añadido / Modificado / Renombrado / Eliminado / Sin cambios).",
+        "faq.git.li2": "Cada estado tiene su propio círculo en la sección <b>Estado git</b> de la leyenda; clic para ocultar / mostrar, o Mostrar todo / Ocultar todo para masivo.",
+        "faq.git.li3": "<b>Nodos fantasma</b> (contorno discontinuo) aparecen para archivos eliminados o las fuentes de un renombrado; visibles solo en modo git.",
+        "faq.git.li4": "<b>Aristas de renombrado</b> se dibujan punteadas y sin flecha, enlazando la ruta antigua con la nueva; no aparecen en la leyenda de Tipos de aristas.",
+        "faq.git.li5": "Los colores del estado git siguen la paleta activa (Pastel / Saturada). El botón Git se deshabilita si la compilación no se ejecutó dentro de un repositorio git.",
+        "faq.persistence.li4": "<b>Copiar JSON</b> en el menú Archivo copia una representación compacta del grafo (id, ruta, tipo, aristas, números de línea) &mdash; útil para pegarla en un LLM como contexto del proyecto.",
+        "toast.noPath": "No se encontró ruta",
+        "btn.deadCode": "Código muerto",
+        "btn.deadCodeTitle": "Resaltar archivos de código que nada importa y ninguna doc menciona",
+        "btn.untracked": "Sin regla",
+        "btn.untrackedTitle": "Resaltar archivos no cubiertos por una regla explícita de graph.toml (clasificados automáticamente)",
+        "faq.filters.li11": "El botón <b>Sin regla</b> (en la leyenda, solo cuando existe un graph.toml) delinea los archivos clasificados por el fallback del autodescubrimiento &mdash; ninguna regla explícita de la configuración los cubre. Una pista para actualizar la configuración con <code>--init --diff</code> / <code>--init --merge</code>.",
+        "faq.nav.li8": "<b>Shift+clic</b> en dos nodos resalta la ruta más corta entre ellos a través del grafo; <kbd>Esc</kbd> la limpia.",
+        "faq.nav.li9": "<b>Doble clic</b> en un nodo <i>fija</i> su posición (la física dejará de moverlo); otro doble clic lo libera.",
+        "faq.filters.li10": "El botón <b>Código muerto</b> (en la leyenda, solo cuando hay candidatos) delinea los archivos de código que nada importa y ninguna doc menciona &mdash; posibles objetivos de limpieza.",
+        "faq.opening.li4": "Cada <b>segmento de directorio</b> en la ruta del panel de información es clicable &mdash; clic para filtrar el grafo a los nodos de ese subárbol (usando el filtro de búsqueda).",
+        "btn.releasePinned": "Soltar fijados",
+        "btn.releasePinnedTitle": "Liberar todos los nodos fijados con doble clic",
+        "faq.nav.li10": "El botón <b>Soltar fijados</b> (en <i>Controles del grafo</i> &rarr; Física) libera todos los nodos fijados con doble clic a la vez. Los fijados tienen prioridad sobre <i>Reconstruir física</i> &mdash; permanecen fijados durante la reconstrucción.",
+        "btn.copyLink": "Copiar enlace",
+        "btn.copyLinkTitle": "Copiar URL compartible con la vista actual (filtros, tema, búsqueda, fijado)",
+        "btn.copyMermaid": "Copiar como Mermaid",
+        "btn.copyMermaidTitle": "Copiar el subgrafo enfocado (fijado / ruta / búsqueda) como diagrama Mermaid (pegar en ADR / README)",
+        "toast.nothingToExport": "Nada que exportar",
+        "legend.isolate": "Mostrar solo este tipo (alternar)"
+    },
+    it: {
+        "search.placeholder": "Cerca nodi…",
+        "btn.resetZoom": "Reimposta zoom",
+        "btn.clearFilters": "Azzera filtri",
+        "btn.orphans": "Solo orfani",
+        "btn.export": "Esporta pref.",
+        "btn.import": "Importa pref.",
+        "btn.copyLlm": "Copia JSON",
+        "btn.copyLlmTitle": "Copia il grafo come JSON per l'LLM",
+        "btn.file": "File ▾",
+        "btn.fileTitle": "Esporta / importa preferenze, copia il grafo come JSON",
+        "btn.paletteSaturated": "Saturo",
+        "btn.palettePastel": "Pastello",
+        "toggle.theme": "Tema",
+        "toggle.colours": "Colori",
+        "btn.git": "Git",
+        "btn.gitTitle": "Attiva sovrapposizione stato git",
+        "btn.gitNotAvailable": "Non è un repository git",
+        "btn.faqTitle": "Aiuto (?)",
+        "ide.title": "Apri i link nell'IDE",
+        "ide.copy": "— Copia percorso",
+        "legend.nodeTypes": "Tipi di nodi",
+        "legend.edgeTypes": "Tipi di archi",
+        "legend.gitStatus": "Stato git",
+        "legend.showAll": "Mostra tutto",
+        "legend.hideAll": "Nascondi tutto",
+        "git.added": "Aggiunto",
+        "git.modified": "Modificato",
+        "git.renamed": "Rinominato",
+        "git.deleted": "Eliminato",
+        "git.clean": "Invariato",
+        "excl.title": "Escludi per nome",
+        "excl.placeholder": "es. __init__",
+        "excl.add": "Aggiungi",
+        "excl.clearAll": "Cancella tutto",
+        "excl.rebuild": "Ricostruisci fisica",
+        "ctrl.title": "Controlli del grafo",
+        "ctrl.group.nodesEdges": "Nodi e archi",
+        "ctrl.group.labels": "Etichette",
+        "ctrl.group.physics": "Fisica",
+        "ctrl.contrast": "Contrasto colori",
+        "ctrl.nodeScale": "Dimensione nodi",
+        "ctrl.edgeWidth": "Spessore archi",
+        "ctrl.edgeOpacity": "Opacità archi",
+        "ctrl.fontSize": "Dimensione font",
+        "ctrl.labelZoom": "Mostra allo zoom",
+        "ctrl.charge": "Repulsione",
+        "ctrl.linkForce": "Forza del collegamento",
+        "toast.copied": "Percorso copiato!",
+        "tooltip.lines": "Righe",
+        "info.outgoing": "Uscenti",
+        "info.incoming": "Entranti",
+        "info.copyTitle": "Clicca per copiare il percorso",
+        "alert.invalidPrefs": "File delle preferenze non valido",
+        "faq.closeTitle": "Chiudi (Esc)",
+        "faq.title": "Guida al grafo",
+        "faq.section.about": "Informazioni sul grafo",
+        "faq.section.navigation": "Navigazione",
+        "faq.section.filters": "Filtri ed evidenziazione",
+        "faq.section.appearance": "Aspetto",
+        "faq.section.openingFiles": "Apertura dei file",
+        "faq.section.persistence": "Persistenza",
+        "faq.section.shortcuts": "Scorciatoie da tastiera",
+        "faq.about.li1": "<b>I nodi</b> rappresentano file: <i>docs</i> (markdown) e <i>code</i> (moduli Python). Il colore corrisponde al tipo nella legenda.",
+        "faq.about.li2": "<b>Archi</b>: <i>doc&rarr;doc</i> sono link markdown, <i>code&rarr;doc</i> sono riferimenti a un file all'interno di markdown, <i>code&rarr;code</i> sono import.",
+        "faq.about.li3": "La dimensione del nodo cresce con il grado (archi entranti + uscenti).",
+        "faq.about.li4": "Lo spessore dell'arco riflette quanti riferimenti esistono tra due file.",
+        "faq.about.li5": "Le frecce indicano la direzione del riferimento (sorgente &rarr; destinazione).",
+        "faq.nav.li1": "Clic sinistro su un nodo &mdash; apre il pannello informazioni con tutte le sue connessioni (numeri di riga per gli archi di codice).",
+        "faq.nav.li2": "Trascina un nodo &mdash; per spostarlo (la fisica regolerà il resto).",
+        "faq.nav.li3": "Rotellina &mdash; zoom; trascinare lo sfondo vuoto &mdash; pan.",
+        "faq.nav.li4": "Clic sullo sfondo vuoto &mdash; chiude il pannello informazioni.",
+        "faq.filters.li1": "<b>Legenda &mdash; Tipi di nodi</b>: clic su un tipo per nascondere / mostrare tutti i nodi di quel tipo.",
+        "faq.filters.li2": "<b>Legenda &mdash; Tipi di archi</b>: clic su un tipo di arco per nascondere quel genere di archi; i nodi che perdono tutte le connessioni visibili (orfani) vengono nascosti anch'essi.",
+        "faq.filters.li3": "<b>Ricerca</b> (in alto): attenua tutto ciò che non corrisponde; i nodi corrispondenti e le loro connessioni dirette restano evidenziati.",
+        "faq.filters.li4": "<b>Escludi per nome</b> (pannello sinistro): congela i nodi per etichetta o nome base affinché non interferiscano col layout. <i>Ricostruisci fisica</i> rilascia i nodi visibili e fissa di lato gli esclusi.",
+        "faq.filters.li5": "<b>Solo orfani</b>: mostra <i>solo</i> i nodi senza connessioni (utile per trovare file dimenticati).",
+        "faq.filters.li6": "<b>Contrasto colori</b>: cursore globale che satura nodi, archi e frecce.",
+        "faq.appearance.li1": "<b>Palette</b>: passaggio tra <i>Pastello</i> &harr; <i>Saturo</i>.",
+        "faq.appearance.li2": "<b>Tema</b>: interruttore chiaro / scuro nell'angolo superiore sinistro.",
+        "faq.appearance.li3": "Tutti i pannelli si trascinano dall'intestazione. Il <b>pannello informazioni</b> si ridimensiona dall'angolo in basso a destra (entrambi gli assi); i <b>Controlli del grafo</b> orizzontalmente dal bordo destro.",
+        "faq.opening.li1": "Il pannello informazioni mostra un pulsante di azione per file accanto a ogni connessione.",
+        "faq.opening.li2": "Il <b>selettore IDE</b> nella barra dei controlli decide cosa fa quel pulsante: aprire in VS Code / Cursor / PyCharm o semplicemente copiare il percorso.",
+        "faq.persistence.li1": "Posizioni dei pannelli, valori dei cursori, filtri, palette, tema e scelta dell'IDE vengono salvati automaticamente in <code>localStorage</code>.",
+        "faq.persistence.li2": "<b>Esporta &darr;</b> / <b>Importa &uarr;</b> &mdash; salva le impostazioni in un file JSON o ricaricale.",
+        "faq.persistence.li3": "<b>Azzera filtri</b> &mdash; reimposta i filtri (tipi, archi, esclusioni, orfani) senza toccare posizioni dei pannelli o tema.",
+        "faq.shortcuts.li1": "<kbd>Esc</kbd> &mdash; chiudere questa finestra &rarr; chiudere il pannello informazioni &rarr; reimpostare la ricerca (in ordine di priorità).",
+        "faq.shortcuts.li2": "<kbd>Spazio</kbd> &mdash; mettere in pausa / riprendere la simulazione fisica.",
+        "faq.shortcuts.li3": "<kbd>Ctrl</kbd>+<kbd>K</kbd> / <kbd>⌘</kbd>+<kbd>K</kbd> &mdash; mette il focus sul campo di ricerca.",
+        "faq.shortcuts.li4": "<kbd>B</kbd> &mdash; fissare / rilasciare il nodo sotto il cursore (funziona durante il trascinamento: trascina un nodo, premi B, rilascia &mdash; resta al suo posto).",
+        "faq.section.gitMode": "Modalità git",
+        "faq.nav.li5": "Cliccare su un nodo <b>fissa</b> l'evidenziazione &mdash; il nodo e le sue connessioni restano in chiaro anche quando il cursore si sposta. Un altro clic sullo stesso nodo o sullo sfondo rilascia la fissazione.",
+        "faq.nav.li6": "Con un nodo fissato, passare con il cursore su uno dei suoi vicini mostra brevemente un'anteprima di secondo livello &mdash; l'unione dei vicinati del nodo fissato e di quello evidenziato.",
+        "faq.nav.li7": "Cliccare su qualsiasi elemento attenuato o sullo sfondo vuoto cancella tutte le selezioni correnti (nodo fissato, focus dell'arco, evidenziazione della ricerca).",
+        "faq.filters.li7": "<b>Tooltip dell'arco</b>: passa con il cursore su un arco per vedere tipo, sorgente &rarr; destinazione e numeri di riga (per gli archi code-doc).",
+        "faq.filters.li8": "<b>Clic su un arco</b> attiva la modalità focus &mdash; solo quell'arco e i suoi due estremi restano evidenziati; <kbd>Esc</kbd> o clic sullo sfondo escono.",
+        "faq.filters.li9": "I pulsanti <b>Mostra tutto</b> / <b>Nascondi tutto</b> nella legenda mostrano o nascondono tutti i tipi in blocco (per tipi di nodi e stati git).",
+        "faq.appearance.li4": "Il pannello <b>Controlli del grafo</b> raggruppa i cursori in <i>Nodi e archi</i> (dimensione, spessore / opacità degli archi), <i>Etichette</i> (dimensione font, soglia di zoom) e <i>Fisica</i> (repulsione, forza del collegamento).",
+        "faq.appearance.li5": "<b>Mostra allo zoom</b>: le etichette dei nodi compaiono solo quando il livello di zoom supera questa soglia; abbassala per vedere le etichette prima.",
+        "faq.appearance.li6": "<b>Pannelli pieghevoli</b>: clic sul titolo di <i>Controlli del grafo</i>, <i>Tipi di nodi</i> o <i>Escludi per nome</i> per piegare il pannello; il chevron <code>▾</code> / <code>▸</code> ne indica lo stato.",
+        "faq.appearance.li7": "All'interno di <i>Controlli del grafo</i>, i titoli delle sezioni (<i>Nodi e archi</i> / <i>Etichette</i> / <i>Fisica</i>) attivano / disattivano i singoli sottogruppi.",
+        "faq.appearance.li8": "Il <b>riepilogo</b> in basso a sinistra mostra il numero attuale di nodi e archi (si aggiorna man mano che vengono applicati i filtri).",
+        "faq.opening.li3": "Le connessioni nel pannello informazioni sono raggruppate per file con intestazioni pieghevoli <code>▾</code> / <code>▸</code>; il pulsante <code>+N</code> espande l'elenco completo delle righe quando ci sono più riferimenti di quanti ne entrino nell'anteprima in linea.",
+        "faq.git.li1": "Attiva la <b>Modalità git</b> dalla barra superiore &mdash; i colori dei nodi passano dal tipo allo stato git (Aggiunto / Modificato / Rinominato / Eliminato / Invariato).",
+        "faq.git.li2": "Ogni stato ha il proprio pallino nella sezione <b>Stato git</b> della legenda; clic per nascondere / mostrare, oppure Mostra tutto / Nascondi tutto per agire in blocco.",
+        "faq.git.li3": "I <b>nodi fantasma</b> (contorno tratteggiato) compaiono per file eliminati o per le origini di una rinomina; visibili solo in modalità git.",
+        "faq.git.li4": "Gli <b>archi di rinomina</b> sono disegnati tratteggiati senza freccia e collegano il percorso vecchio al nuovo; non compaiono nella legenda dei Tipi di archi.",
+        "faq.git.li5": "I colori dello stato git seguono la palette attiva (Pastello / Saturo). Il pulsante Git è disabilitato se la compilazione non è eseguita in un repository git.",
+        "faq.persistence.li4": "<b>Copia JSON</b> nel menu File copia una rappresentazione compatta del grafo (id, percorso, tipo, archi, numeri di riga) &mdash; comodo da incollare in un LLM come contesto del progetto.",
+        "toast.noPath": "Nessun percorso trovato",
+        "btn.deadCode": "Codice morto",
+        "btn.deadCodeTitle": "Evidenzia i file di codice che nulla importa e nessuna doc menziona",
+        "btn.untracked": "Senza regola",
+        "btn.untrackedTitle": "Evidenzia i file non coperti da una regola esplicita di graph.toml (classificati automaticamente)",
+        "faq.filters.li11": "Il pulsante <b>Senza regola</b> (nella legenda, solo quando esiste un graph.toml) delinea i file classificati dal fallback dell'autodiscovery &mdash; nessuna regola esplicita della configurazione li copre. Un suggerimento per aggiornare la configurazione con <code>--init --diff</code> / <code>--init --merge</code>.",
+        "faq.nav.li8": "<b>Shift+clic</b> su due nodi evidenzia il percorso più breve tra di loro attraverso il grafo; <kbd>Esc</kbd> lo cancella.",
+        "faq.nav.li9": "<b>Doppio clic</b> su un nodo <i>fissa</i> la sua posizione (la fisica smette di muoverlo); un altro doppio clic lo libera.",
+        "faq.filters.li10": "Il pulsante <b>Codice morto</b> (nella legenda, solo quando ci sono candidati) delinea i file di codice che nulla importa e nessuna doc menziona &mdash; potenziali obiettivi di pulizia.",
+        "faq.opening.li4": "Ogni <b>segmento di directory</b> nel percorso mostrato nel pannello informazioni è cliccabile &mdash; clic per filtrare il grafo ai nodi di quel sottoalbero (usando il filtro di ricerca).",
+        "btn.releasePinned": "Rilascia fissati",
+        "btn.releasePinnedTitle": "Libera tutti i nodi fissati con doppio clic",
+        "faq.nav.li10": "Il pulsante <b>Rilascia fissati</b> (in <i>Controlli del grafo</i> &rarr; Fisica) libera tutti i nodi fissati con doppio clic contemporaneamente. I fissati hanno priorità su <i>Ricostruisci fisica</i> &mdash; restano fissati durante la ricostruzione.",
+        "btn.copyLink": "Copia link",
+        "btn.copyLinkTitle": "Copia URL condivisibile con la vista attuale (filtri, tema, ricerca, pin)",
+        "btn.copyMermaid": "Copia come Mermaid",
+        "btn.copyMermaidTitle": "Copia il sottografo focalizzato (pin / percorso / ricerca) come diagramma Mermaid (incollare in ADR / README)",
+        "toast.nothingToExport": "Niente da esportare",
+        "legend.isolate": "Mostra solo questo tipo (toggle)"
+    },
+    fr: {
+        "search.placeholder": "Rechercher des nœuds…",
+        "btn.resetZoom": "Réinitialiser le zoom",
+        "btn.clearFilters": "Effacer les filtres",
+        "btn.orphans": "Orphelins uniquement",
+        "btn.export": "Exporter préférences",
+        "btn.import": "Importer préférences",
+        "btn.copyLlm": "Copier JSON",
+        "btn.copyLlmTitle": "Copier le graphe en JSON pour le LLM",
+        "btn.file": "Fichier ▾",
+        "btn.fileTitle": "Exporter / importer les préférences, copier le graphe en JSON",
+        "btn.paletteSaturated": "Saturée",
+        "btn.palettePastel": "Pastel",
+        "toggle.theme": "Thème",
+        "toggle.colours": "Couleurs",
+        "btn.git": "Git",
+        "btn.gitTitle": "Activer la superposition de l'état git",
+        "btn.gitNotAvailable": "Pas un dépôt git",
+        "btn.faqTitle": "Aide (?)",
+        "ide.title": "Ouvrir les liens dans l'IDE",
+        "ide.copy": "— Copier le chemin",
+        "legend.nodeTypes": "Types de nœuds",
+        "legend.edgeTypes": "Types de liens",
+        "legend.gitStatus": "État git",
+        "legend.showAll": "Tout afficher",
+        "legend.hideAll": "Tout masquer",
+        "git.added": "Ajouté",
+        "git.modified": "Modifié",
+        "git.renamed": "Renommé",
+        "git.deleted": "Supprimé",
+        "git.clean": "Inchangé",
+        "excl.title": "Exclure par nom",
+        "excl.placeholder": "ex. __init__",
+        "excl.add": "Ajouter",
+        "excl.clearAll": "Tout effacer",
+        "excl.rebuild": "Reconstruire la physique",
+        "ctrl.title": "Contrôles du graphe",
+        "ctrl.group.nodesEdges": "Nœuds et liens",
+        "ctrl.group.labels": "Étiquettes",
+        "ctrl.group.physics": "Physique",
+        "ctrl.contrast": "Contraste des couleurs",
+        "ctrl.nodeScale": "Taille des nœuds",
+        "ctrl.edgeWidth": "Épaisseur des liens",
+        "ctrl.edgeOpacity": "Opacité des liens",
+        "ctrl.fontSize": "Taille de la police",
+        "ctrl.labelZoom": "Afficher au zoom",
+        "ctrl.charge": "Répulsion",
+        "ctrl.linkForce": "Force du lien",
+        "toast.copied": "Chemin copié !",
+        "tooltip.lines": "Lignes",
+        "info.outgoing": "Sortants",
+        "info.incoming": "Entrants",
+        "info.copyTitle": "Cliquer pour copier le chemin",
+        "alert.invalidPrefs": "Fichier de préférences invalide",
+        "faq.closeTitle": "Fermer (Esc)",
+        "faq.title": "Guide du graphe",
+        "faq.section.about": "À propos du graphe",
+        "faq.section.navigation": "Navigation",
+        "faq.section.filters": "Filtres et surbrillance",
+        "faq.section.appearance": "Apparence",
+        "faq.section.openingFiles": "Ouverture des fichiers",
+        "faq.section.persistence": "Persistance",
+        "faq.section.shortcuts": "Raccourcis clavier",
+        "faq.about.li1": "<b>Les nœuds</b> représentent des fichiers : <i>docs</i> (markdown) et <i>code</i> (modules Python). La couleur correspond au type indiqué dans la légende.",
+        "faq.about.li2": "<b>Les liens</b> : <i>doc&rarr;doc</i> sont des liens markdown, <i>code&rarr;doc</i> sont des mentions d'un fichier dans du markdown, <i>code&rarr;code</i> sont des imports.",
+        "faq.about.li3": "La taille du nœud croît avec le degré (liens entrants + sortants).",
+        "faq.about.li4": "L'épaisseur du lien reflète le nombre de références entre deux fichiers.",
+        "faq.about.li5": "Les flèches indiquent le sens de la référence (source &rarr; cible).",
+        "faq.nav.li1": "Clic gauche sur un nœud &mdash; ouvre le panneau d'information avec toutes ses connexions (numéros de ligne pour les liens code).",
+        "faq.nav.li2": "Faire glisser un nœud &mdash; le déplacer (la physique ajuste le reste).",
+        "faq.nav.li3": "Molette &mdash; zoom ; glisser sur le fond vide &mdash; déplacer la vue.",
+        "faq.nav.li4": "Clic sur le fond vide &mdash; ferme le panneau d'information.",
+        "faq.filters.li1": "<b>Légende &mdash; Types de nœuds</b> : clic sur un type pour masquer / afficher tous les nœuds de ce type.",
+        "faq.filters.li2": "<b>Légende &mdash; Types de liens</b> : clic sur un type de lien pour masquer ce genre de liens ; les nœuds qui perdent toutes leurs connexions visibles (orphelins) sont également masqués.",
+        "faq.filters.li3": "<b>Recherche</b> (en haut) : atténue tout ce qui ne correspond pas ; les nœuds correspondants et leurs connexions immédiates restent en surbrillance.",
+        "faq.filters.li4": "<b>Exclure par nom</b> (panneau de gauche) : fige les nœuds par étiquette ou nom de base afin qu'ils n'interfèrent plus avec la disposition. <i>Reconstruire la physique</i> libère les nœuds visibles et range les exclus sur le côté.",
+        "faq.filters.li5": "<b>Orphelins uniquement</b> : affiche <i>uniquement</i> les nœuds sans connexions (utile pour repérer les fichiers oubliés).",
+        "faq.filters.li6": "<b>Contraste des couleurs</b> : curseur global qui sature les nœuds, les liens et les flèches.",
+        "faq.appearance.li1": "<b>Palette</b> : bascule entre <i>Pastel</i> &harr; <i>Saturée</i>.",
+        "faq.appearance.li2": "<b>Thème</b> : interrupteur clair / sombre en haut à gauche.",
+        "faq.appearance.li3": "Tous les panneaux se déplacent en saisissant leur en-tête. Le <b>panneau d'information</b> se redimensionne par son coin inférieur droit (les deux axes) ; les <b>Contrôles du graphe</b> horizontalement par leur bord droit.",
+        "faq.opening.li1": "Le panneau d'information propose un bouton d'action par fichier à côté de chaque connexion.",
+        "faq.opening.li2": "Le <b>sélecteur d'IDE</b> dans la barre choisit ce que fait ce bouton : ouvrir dans VS Code / Cursor / PyCharm, ou simplement copier le chemin.",
+        "faq.persistence.li1": "Les positions des panneaux, les valeurs des curseurs, les filtres, la palette, le thème et le choix d'IDE sont enregistrés automatiquement dans <code>localStorage</code>.",
+        "faq.persistence.li2": "<b>Exporter &darr;</b> / <b>Importer &uarr;</b> &mdash; enregistrer les préférences dans un fichier JSON ou les recharger.",
+        "faq.persistence.li3": "<b>Effacer les filtres</b> &mdash; réinitialise les filtres (types, liens, exclusions, orphelins) sans toucher aux positions des panneaux ni au thème.",
+        "faq.shortcuts.li1": "<kbd>Esc</kbd> &mdash; fermer cette boîte &rarr; fermer le panneau d'information &rarr; réinitialiser la recherche (par ordre de priorité).",
+        "faq.shortcuts.li2": "<kbd>Espace</kbd> &mdash; mettre en pause / reprendre la simulation physique.",
+        "faq.shortcuts.li3": "<kbd>Ctrl</kbd>+<kbd>K</kbd> / <kbd>⌘</kbd>+<kbd>K</kbd> &mdash; mettre le focus sur le champ de recherche.",
+        "faq.shortcuts.li4": "<kbd>B</kbd> &mdash; épingler / libérer le nœud sous le curseur (fonctionne pendant le glisser&nbsp;: faites glisser un nœud, appuyez sur B, relâchez &mdash; il reste en place).",
+        "faq.section.gitMode": "Mode git",
+        "faq.nav.li5": "Cliquer sur un nœud <b>épingle</b> la surbrillance &mdash; le nœud et ses connexions restent vifs même quand le curseur s'éloigne. Un nouveau clic sur le même nœud ou sur le fond le désépingle.",
+        "faq.nav.li6": "Avec un nœud épinglé, survoler l'un de ses voisins affiche brièvement un aperçu de second niveau &mdash; l'union des voisinages du nœud épinglé et de celui survolé.",
+        "faq.nav.li7": "Un clic sur n'importe quel élément atténué ou sur le fond vide efface toutes les sélections en cours (nœud épinglé, focus de lien, surbrillance de recherche).",
+        "faq.filters.li7": "<b>Info-bulle de lien</b> : survoler un lien pour voir son type, source &rarr; cible et les numéros de ligne (pour les liens code-doc).",
+        "faq.filters.li8": "<b>Cliquer sur un lien</b> active le mode focus &mdash; seul ce lien et ses deux extrémités restent en surbrillance ; <kbd>Esc</kbd> ou un clic sur le fond le quitte.",
+        "faq.filters.li9": "Les boutons <b>Tout afficher</b> / <b>Tout masquer</b> de la légende révèlent ou masquent tous les types d'un coup (pour les types de nœuds et les états git).",
+        "faq.appearance.li4": "Le panneau <b>Contrôles du graphe</b> regroupe les curseurs en <i>Nœuds et liens</i> (taille, épaisseur / opacité des liens), <i>Étiquettes</i> (taille de police, seuil de zoom) et <i>Physique</i> (répulsion, force du lien).",
+        "faq.appearance.li5": "<b>Afficher au zoom</b> : les étiquettes des nœuds apparaissent uniquement quand le niveau de zoom dépasse ce seuil ; abaissez-le pour les voir plus tôt.",
+        "faq.appearance.li6": "<b>Panneaux pliables</b> : un clic sur le titre des <i>Contrôles du graphe</i>, <i>Types de nœuds</i> ou <i>Exclure par nom</i> replie le panneau ; le chevron <code>▾</code> / <code>▸</code> en indique l'état.",
+        "faq.appearance.li7": "À l'intérieur de <i>Contrôles du graphe</i>, les titres de section (<i>Nœuds et liens</i> / <i>Étiquettes</i> / <i>Physique</i>) basculent les sous-groupes individuellement.",
+        "faq.appearance.li8": "Le <b>compteur</b> en bas à gauche affiche le nombre actuel de nœuds et de liens (mis à jour quand les filtres s'appliquent).",
+        "faq.opening.li3": "Les connexions du panneau d'information sont regroupées par fichier avec des en-têtes pliables <code>▾</code> / <code>▸</code> ; le bouton <code>+N</code> déploie la liste complète des lignes s'il y a plus de références que ce que peut afficher l'aperçu en ligne.",
+        "faq.git.li1": "Activer le <b>Mode git</b> depuis la barre supérieure &mdash; les couleurs des nœuds passent du type à l'état git (Ajouté / Modifié / Renommé / Supprimé / Inchangé).",
+        "faq.git.li2": "Chaque état a son propre cercle dans la section <b>État git</b> de la légende ; clic pour masquer / afficher, ou Tout afficher / Tout masquer pour basculer en bloc.",
+        "faq.git.li3": "Les <b>nœuds fantômes</b> (contour pointillé) apparaissent pour les fichiers supprimés ou pour les sources d'un renommage ; visibles uniquement en mode git.",
+        "faq.git.li4": "Les <b>liens de renommage</b> sont dessinés en pointillé sans flèche, reliant l'ancien chemin au nouveau ; ils ne figurent pas dans la légende des Types de liens.",
+        "faq.git.li5": "Les couleurs de l'état git suivent la palette active (Pastel / Saturée). Le bouton Git est désactivé si la compilation n'a pas été exécutée dans un dépôt git.",
+        "faq.persistence.li4": "<b>Copier JSON</b> dans le menu Fichier copie une représentation compacte du graphe (id, chemin, type, liens, numéros de ligne) &mdash; pratique pour la coller dans un LLM comme contexte du projet.",
+        "toast.noPath": "Aucun chemin trouvé",
+        "btn.deadCode": "Code mort",
+        "btn.deadCodeTitle": "Mettre en évidence les fichiers de code que rien n'importe et qu'aucune doc ne mentionne",
+        "btn.untracked": "Sans règle",
+        "btn.untrackedTitle": "Mettre en évidence les fichiers non couverts par une règle explicite de graph.toml (classés automatiquement)",
+        "faq.filters.li11": "Le bouton <b>Sans règle</b> (dans la légende, seulement si un graph.toml existe) entoure les fichiers classés par le repli de l'autodécouverte &mdash; aucune règle explicite de la configuration ne les couvre. Un indice pour mettre à jour la configuration via <code>--init --diff</code> / <code>--init --merge</code>.",
+        "faq.nav.li8": "<b>Shift+clic</b> sur deux nœuds met en évidence le chemin le plus court entre eux dans le graphe ; <kbd>Esc</kbd> l'efface.",
+        "faq.nav.li9": "<b>Double-clic</b> sur un nœud <i>fixe</i> sa position (la physique cesse de le déplacer) ; un nouveau double-clic le libère.",
+        "faq.filters.li10": "Le bouton <b>Code mort</b> (dans la légende, seulement s'il y a des candidats) entoure les fichiers de code que rien n'importe et qu'aucune doc ne mentionne &mdash; cibles potentielles de nettoyage.",
+        "faq.opening.li4": "Chaque <b>segment de répertoire</b> dans le chemin affiché dans le panneau d'information est cliquable &mdash; cliquez pour filtrer le graphe aux nœuds de ce sous-arbre (via le filtre de recherche).",
+        "btn.releasePinned": "Libérer les épinglés",
+        "btn.releasePinnedTitle": "Libérer tous les nœuds épinglés par double-clic",
+        "faq.nav.li10": "Le bouton <b>Libérer les épinglés</b> (dans <i>Contrôles du graphe</i> &rarr; Physique) libère d'un coup tous les nœuds épinglés par double-clic. Les épinglés ont priorité sur <i>Reconstruire la physique</i> &mdash; ils restent épinglés pendant la reconstruction.",
+        "btn.copyLink": "Copier le lien",
+        "btn.copyLinkTitle": "Copier une URL partageable avec la vue actuelle (filtres, thème, recherche, épinglage)",
+        "btn.copyMermaid": "Copier en Mermaid",
+        "btn.copyMermaidTitle": "Copier le sous-graphe ciblé (épinglage / chemin / recherche) en diagramme Mermaid (à coller dans un ADR / README)",
+        "toast.nothingToExport": "Rien à exporter",
+        "legend.isolate": "Afficher uniquement ce type (basculer)"
+    },
+    pt: {
+        "search.placeholder": "Buscar nós…",
+        "btn.resetZoom": "Redefinir zoom",
+        "btn.clearFilters": "Limpar filtros",
+        "btn.orphans": "Somente órfãos",
+        "btn.export": "Exportar prefs.",
+        "btn.import": "Importar prefs.",
+        "btn.copyLlm": "Copiar JSON",
+        "btn.copyLlmTitle": "Copiar o grafo como JSON para o LLM",
+        "btn.file": "Arquivo ▾",
+        "btn.fileTitle": "Exportar / importar prefs., copiar o grafo como JSON",
+        "btn.paletteSaturated": "Saturada",
+        "btn.palettePastel": "Pastel",
+        "toggle.theme": "Tema",
+        "toggle.colours": "Cores",
+        "btn.git": "Git",
+        "btn.gitTitle": "Alternar sobreposição do status git",
+        "btn.gitNotAvailable": "Não é um repositório git",
+        "btn.faqTitle": "Ajuda (?)",
+        "ide.title": "Abrir links no IDE",
+        "ide.copy": "— Copiar caminho",
+        "legend.nodeTypes": "Tipos de nós",
+        "legend.edgeTypes": "Tipos de arestas",
+        "legend.gitStatus": "Status git",
+        "legend.showAll": "Mostrar tudo",
+        "legend.hideAll": "Ocultar tudo",
+        "git.added": "Adicionado",
+        "git.modified": "Modificado",
+        "git.renamed": "Renomeado",
+        "git.deleted": "Excluído",
+        "git.clean": "Sem alterações",
+        "excl.title": "Excluir por nome",
+        "excl.placeholder": "ex. __init__",
+        "excl.add": "Adicionar",
+        "excl.clearAll": "Limpar tudo",
+        "excl.rebuild": "Reconstruir física",
+        "ctrl.title": "Controles do grafo",
+        "ctrl.group.nodesEdges": "Nós e arestas",
+        "ctrl.group.labels": "Rótulos",
+        "ctrl.group.physics": "Física",
+        "ctrl.contrast": "Contraste de cor",
+        "ctrl.nodeScale": "Tamanho dos nós",
+        "ctrl.edgeWidth": "Espessura das arestas",
+        "ctrl.edgeOpacity": "Opacidade das arestas",
+        "ctrl.fontSize": "Tamanho da fonte",
+        "ctrl.labelZoom": "Mostrar no zoom",
+        "ctrl.charge": "Repulsão",
+        "ctrl.linkForce": "Força do enlace",
+        "toast.copied": "Caminho copiado!",
+        "tooltip.lines": "Linhas",
+        "info.outgoing": "Saída",
+        "info.incoming": "Entrada",
+        "info.copyTitle": "Clique para copiar o caminho",
+        "alert.invalidPrefs": "Arquivo de preferências inválido",
+        "faq.closeTitle": "Fechar (Esc)",
+        "faq.title": "Guia do grafo",
+        "faq.section.about": "Sobre o grafo",
+        "faq.section.navigation": "Navegação",
+        "faq.section.filters": "Filtros e destaque",
+        "faq.section.appearance": "Aparência",
+        "faq.section.openingFiles": "Abrir arquivos",
+        "faq.section.persistence": "Persistência",
+        "faq.section.shortcuts": "Atalhos de teclado",
+        "faq.about.li1": "<b>Os nós</b> representam arquivos: <i>docs</i> (markdown) e <i>code</i> (módulos Python). A cor corresponde ao tipo na legenda.",
+        "faq.about.li2": "<b>Arestas</b>: <i>doc&rarr;doc</i> são links markdown, <i>code&rarr;doc</i> são menções a um arquivo dentro de markdown, <i>code&rarr;code</i> são imports.",
+        "faq.about.li3": "O tamanho do nó cresce com o grau (arestas de entrada + saída).",
+        "faq.about.li4": "A espessura da aresta reflete quantas referências existem entre dois arquivos.",
+        "faq.about.li5": "As setas indicam o sentido da referência (origem &rarr; destino).",
+        "faq.nav.li1": "Clique esquerdo sobre um nó &mdash; abre o painel de informações com todas as suas conexões (números de linha para arestas de código).",
+        "faq.nav.li2": "Arraste um nó &mdash; para movê-lo (a física ajustará o restante).",
+        "faq.nav.li3": "Roda &mdash; zoom; arrastar o fundo vazio &mdash; deslocar a vista.",
+        "faq.nav.li4": "Clique no fundo vazio &mdash; fecha o painel de informações.",
+        "faq.filters.li1": "<b>Legenda &mdash; Tipos de nós</b>: clique em um tipo para ocultar / mostrar todos os nós desse tipo.",
+        "faq.filters.li2": "<b>Legenda &mdash; Tipos de arestas</b>: clique em um tipo de aresta para ocultar essa categoria; os nós que perdem todas as conexões visíveis (órfãos) também são ocultados.",
+        "faq.filters.li3": "<b>Busca</b> (no topo): atenua tudo que não corresponde; os nós encontrados e suas conexões imediatas permanecem destacados.",
+        "faq.filters.li4": "<b>Excluir por nome</b> (painel à esquerda): congela nós por rótulo ou nome base para que não interfiram no layout. <i>Reconstruir física</i> libera os visíveis e fixa os excluídos ao lado.",
+        "faq.filters.li5": "<b>Somente órfãos</b>: mostra <i>somente</i> os nós sem conexões (útil para encontrar arquivos esquecidos).",
+        "faq.filters.li6": "<b>Contraste de cor</b>: deslizador global que satura nós, arestas e setas.",
+        "faq.appearance.li1": "<b>Paleta</b>: alternância entre <i>Pastel</i> &harr; <i>Saturada</i>.",
+        "faq.appearance.li2": "<b>Tema</b>: interruptor claro / escuro no canto superior esquerdo.",
+        "faq.appearance.li3": "Todos os painéis são arrastados pelo cabeçalho. O <b>painel de informações</b> é redimensionado pelo canto inferior direito (ambos os eixos); os <b>Controles do grafo</b> horizontalmente pela borda direita.",
+        "faq.opening.li1": "O painel de informações exibe um botão de ação por arquivo ao lado de cada conexão.",
+        "faq.opening.li2": "O <b>seletor de IDE</b> na barra de controles define o que esse botão faz: abrir no VS Code / Cursor / PyCharm ou simplesmente copiar o caminho.",
+        "faq.persistence.li1": "As posições dos painéis, os valores dos deslizadores, os filtros, a paleta, o tema e a escolha do IDE são salvos automaticamente em <code>localStorage</code>.",
+        "faq.persistence.li2": "<b>Exportar &darr;</b> / <b>Importar &uarr;</b> &mdash; salvar as preferências em um arquivo JSON ou recarregá-las.",
+        "faq.persistence.li3": "<b>Limpar filtros</b> &mdash; redefine os filtros (tipos, arestas, exclusões, órfãos) sem alterar posições dos painéis nem o tema.",
+        "faq.shortcuts.li1": "<kbd>Esc</kbd> &mdash; fechar este diálogo &rarr; fechar o painel de informações &rarr; redefinir a busca (em ordem de prioridade).",
+        "faq.shortcuts.li2": "<kbd>Espaço</kbd> &mdash; pausar / retomar a simulação física.",
+        "faq.shortcuts.li3": "<kbd>Ctrl</kbd>+<kbd>K</kbd> / <kbd>⌘</kbd>+<kbd>K</kbd> &mdash; foca o campo de busca.",
+        "faq.shortcuts.li4": "<kbd>B</kbd> &mdash; fixar / soltar o nó sob o cursor (funciona durante o arrasto: arraste um nó, pressione B, solte &mdash; ele permanece no lugar).",
+        "faq.section.gitMode": "Modo git",
+        "faq.nav.li5": "Clicar em um nó <b>fixa</b> o destaque &mdash; o nó e suas conexões permanecem brilhantes mesmo quando o cursor se afasta. Outro clique no mesmo nó ou no fundo libera a fixação.",
+        "faq.nav.li6": "Com um nó fixado, passar o cursor sobre um de seus vizinhos exibe brevemente uma prévia de segundo nível &mdash; a união das vizinhanças do nó fixado e do nó sob o cursor.",
+        "faq.nav.li7": "Clicar em qualquer elemento atenuado ou no fundo vazio limpa todas as seleções atuais (nó fixado, foco de aresta, destaque de busca).",
+        "faq.filters.li7": "<b>Tooltip da aresta</b>: passe o cursor sobre uma aresta para ver seu tipo, origem &rarr; destino e os números de linha (para arestas code-doc).",
+        "faq.filters.li8": "<b>Clicar em uma aresta</b> ativa o modo foco &mdash; apenas essa aresta e suas duas pontas permanecem destacadas; <kbd>Esc</kbd> ou clique no fundo encerra.",
+        "faq.filters.li9": "Os botões <b>Mostrar tudo</b> / <b>Ocultar tudo</b> na legenda exibem ou ocultam todos os tipos de uma vez (para tipos de nós e status git).",
+        "faq.appearance.li4": "O painel <b>Controles do grafo</b> agrupa os deslizadores em <i>Nós e arestas</i> (tamanho, espessura / opacidade das arestas), <i>Rótulos</i> (tamanho da fonte, limiar de zoom) e <i>Física</i> (repulsão, força do enlace).",
+        "faq.appearance.li5": "<b>Mostrar no zoom</b>: os rótulos dos nós aparecem apenas quando o nível de zoom ultrapassa esse limiar; reduza-o para ver os rótulos mais cedo.",
+        "faq.appearance.li6": "<b>Painéis recolhíveis</b>: clique no título de <i>Controles do grafo</i>, <i>Tipos de nós</i> ou <i>Excluir por nome</i> para recolher o painel; o chevron <code>▾</code> / <code>▸</code> indica o estado.",
+        "faq.appearance.li7": "Dentro de <i>Controles do grafo</i>, os títulos das seções (<i>Nós e arestas</i> / <i>Rótulos</i> / <i>Física</i>) alternam subgrupos individualmente.",
+        "faq.appearance.li8": "<b>Estatísticas</b> no canto inferior esquerdo mostra a contagem atual de nós e arestas (atualiza conforme os filtros são aplicados).",
+        "faq.opening.li3": "As conexões no painel de informações são agrupadas por arquivo com cabeçalhos recolhíveis <code>▾</code> / <code>▸</code>; o botão <code>+N</code> expande a lista completa de linhas quando há mais referências do que cabe na visualização em linha.",
+        "faq.git.li1": "Ative o <b>Modo git</b> na barra superior &mdash; as cores dos nós mudam do tipo para o status git (Adicionado / Modificado / Renomeado / Excluído / Sem alterações).",
+        "faq.git.li2": "Cada status tem seu próprio círculo na seção <b>Status git</b> da legenda; clique para ocultar / mostrar, ou use Mostrar tudo / Ocultar tudo para ação em massa.",
+        "faq.git.li3": "Os <b>nós fantasma</b> (contorno tracejado) aparecem para arquivos excluídos ou origens de renomeação; visíveis apenas no modo git.",
+        "faq.git.li4": "As <b>arestas de renomeação</b> são desenhadas pontilhadas sem seta, ligando o caminho antigo ao novo; não aparecem na legenda de Tipos de arestas.",
+        "faq.git.li5": "As cores do status git seguem a paleta ativa (Pastel / Saturada). O botão Git é desativado se a compilação não for executada dentro de um repositório git.",
+        "faq.persistence.li4": "<b>Copiar JSON</b> no menu Arquivo copia uma representação compacta do grafo (id, caminho, tipo, arestas, números de linha) &mdash; útil para colar em um LLM como contexto do projeto.",
+        "toast.noPath": "Nenhum caminho encontrado",
+        "btn.deadCode": "Código morto",
+        "btn.deadCodeTitle": "Destacar arquivos de código que nada importa e nenhuma doc menciona",
+        "btn.untracked": "Sem regra",
+        "btn.untrackedTitle": "Destacar arquivos não cobertos por uma regra explícita do graph.toml (classificados automaticamente)",
+        "faq.filters.li11": "O botão <b>Sem regra</b> (na legenda, apenas quando existe um graph.toml) contorna os arquivos classificados pelo fallback da autodescoberta &mdash; nenhuma regra explícita da configuração os cobre. Uma dica para atualizar a configuração via <code>--init --diff</code> / <code>--init --merge</code>.",
+        "faq.nav.li8": "<b>Shift+clique</b> em dois nós destaca o caminho mais curto entre eles através do grafo; <kbd>Esc</kbd> limpa.",
+        "faq.nav.li9": "<b>Duplo clique</b> em um nó <i>fixa</i> sua posição (a física para de movê-lo); outro duplo clique o libera.",
+        "faq.filters.li10": "O botão <b>Código morto</b> (na legenda, apenas quando há candidatos) contorna os arquivos de código que nada importa e nenhuma doc menciona &mdash; alvos potenciais de limpeza.",
+        "faq.opening.li4": "Cada <b>segmento de diretório</b> no caminho mostrado no painel de informações é clicável &mdash; clique para filtrar o grafo aos nós dessa subárvore (usando o filtro de busca).",
+        "btn.releasePinned": "Soltar fixados",
+        "btn.releasePinnedTitle": "Liberar todos os nós fixados com duplo clique",
+        "faq.nav.li10": "O botão <b>Soltar fixados</b> (em <i>Controles do grafo</i> &rarr; Física) libera todos os nós fixados com duplo clique de uma vez. Os fixados têm prioridade sobre <i>Reconstruir física</i> &mdash; permanecem fixados durante a reconstrução.",
+        "btn.copyLink": "Copiar link",
+        "btn.copyLinkTitle": "Copiar URL compartilhável com a visualização atual (filtros, tema, busca, fixação)",
+        "btn.copyMermaid": "Copiar como Mermaid",
+        "btn.copyMermaidTitle": "Copiar o subgrafo focado (fixação / caminho / busca) como diagrama Mermaid (colar em ADR / README)",
+        "toast.nothingToExport": "Nada para exportar",
+        "legend.isolate": "Mostrar apenas este tipo (alternar)"
+    },
+    zh: {
+        "search.placeholder": "搜索节点…",
+        "btn.resetZoom": "重置缩放",
+        "btn.clearFilters": "清除筛选",
+        "btn.orphans": "仅孤立节点",
+        "btn.export": "导出偏好",
+        "btn.import": "导入偏好",
+        "btn.copyLlm": "复制 JSON",
+        "btn.copyLlmTitle": "将图复制为 JSON 供 LLM 使用",
+        "btn.file": "文件 ▾",
+        "btn.fileTitle": "导出 / 导入偏好，将图复制为 JSON",
+        "btn.paletteSaturated": "鲜艳",
+        "btn.palettePastel": "柔和",
+        "toggle.theme": "主题",
+        "toggle.colours": "颜色",
+        "btn.git": "Git",
+        "btn.gitTitle": "切换 git 状态叠加",
+        "btn.gitNotAvailable": "不是 git 仓库",
+        "btn.faqTitle": "帮助 (?)",
+        "ide.title": "在 IDE 中打开链接",
+        "ide.copy": "— 复制路径",
+        "legend.nodeTypes": "节点类型",
+        "legend.edgeTypes": "边类型",
+        "legend.gitStatus": "Git 状态",
+        "legend.showAll": "全部显示",
+        "legend.hideAll": "全部隐藏",
+        "git.added": "新增",
+        "git.modified": "已修改",
+        "git.renamed": "已重命名",
+        "git.deleted": "已删除",
+        "git.clean": "无变更",
+        "excl.title": "按名称排除",
+        "excl.placeholder": "例如 __init__",
+        "excl.add": "添加",
+        "excl.clearAll": "全部清除",
+        "excl.rebuild": "重建物理",
+        "ctrl.title": "图控制",
+        "ctrl.group.nodesEdges": "节点与边",
+        "ctrl.group.labels": "标签",
+        "ctrl.group.physics": "物理",
+        "ctrl.contrast": "颜色对比度",
+        "ctrl.nodeScale": "节点大小",
+        "ctrl.edgeWidth": "边的粗细",
+        "ctrl.edgeOpacity": "边的透明度",
+        "ctrl.fontSize": "字体大小",
+        "ctrl.labelZoom": "显示缩放阈值",
+        "ctrl.charge": "排斥力",
+        "ctrl.linkForce": "连接强度",
+        "toast.copied": "路径已复制！",
+        "tooltip.lines": "行号",
+        "info.outgoing": "出边",
+        "info.incoming": "入边",
+        "info.copyTitle": "点击复制路径",
+        "alert.invalidPrefs": "无效的偏好文件",
+        "faq.closeTitle": "关闭 (Esc)",
+        "faq.title": "图使用指南",
+        "faq.section.about": "关于此图",
+        "faq.section.navigation": "导航",
+        "faq.section.filters": "筛选与高亮",
+        "faq.section.appearance": "外观",
+        "faq.section.openingFiles": "打开文件",
+        "faq.section.persistence": "持久化",
+        "faq.section.shortcuts": "键盘快捷键",
+        "faq.about.li1": "<b>节点</b>代表文件：<i>docs</i>（markdown）和 <i>code</i>（Python 模块）。颜色对应图例中的类型。",
+        "faq.about.li2": "<b>边</b>：<i>doc&rarr;doc</i> 是 markdown 链接，<i>code&rarr;doc</i> 是 markdown 中对文件的提及，<i>code&rarr;code</i> 是 import 关系。",
+        "faq.about.li3": "节点大小随度数（入边数 + 出边数）增长。",
+        "faq.about.li4": "边的粗细反映两个文件之间引用的数量。",
+        "faq.about.li5": "箭头表示引用方向（源 &rarr; 目标）。",
+        "faq.nav.li1": "左键点击节点 &mdash; 打开信息面板，列出全部连接（代码边显示行号）。",
+        "faq.nav.li2": "拖动节点 &mdash; 移动它（物理引擎会调整其余部分）。",
+        "faq.nav.li3": "滚轮 &mdash; 缩放；拖动空白背景 &mdash; 平移。",
+        "faq.nav.li4": "点击空白背景 &mdash; 关闭信息面板。",
+        "faq.filters.li1": "<b>图例 &mdash; 节点类型</b>：点击某种类型可隐藏 / 显示该类型的全部节点。",
+        "faq.filters.li2": "<b>图例 &mdash; 边类型</b>：点击某种边类型可隐藏该类边；失去全部可见连接的节点（孤立节点）也会随之隐藏。",
+        "faq.filters.li3": "<b>搜索</b>（顶部）：淡化所有不匹配的元素；匹配节点及其直接连接保持高亮。",
+        "faq.filters.li4": "<b>按名称排除</b>（左侧面板）：按标签或文件名根冻结节点，使其不影响布局。<i>重建物理</i> 会释放可见节点并把已排除的钉到一旁。",
+        "faq.filters.li5": "<b>仅孤立节点</b>：仅显示<i>没有连接</i>的节点（便于找出遗忘的文件）。",
+        "faq.filters.li6": "<b>颜色对比度</b>：全局滑块，可提升节点、边和箭头的饱和度。",
+        "faq.appearance.li1": "<b>调色板</b>：在 <i>柔和</i> &harr; <i>鲜艳</i> 之间切换。",
+        "faq.appearance.li2": "<b>主题</b>：左上角的明 / 暗切换开关。",
+        "faq.appearance.li3": "所有面板都可拖动其标题进行移动。<b>信息面板</b> 可从右下角双向调整大小；<b>图控制</b> 可从右边缘水平调整。",
+        "faq.opening.li1": "信息面板在每条连接旁都有一个针对该文件的操作按钮。",
+        "faq.opening.li2": "控制栏中的 <b>IDE 选择器</b> 决定该按钮的行为：在 VS Code / Cursor / PyCharm 中打开，或仅复制路径。",
+        "faq.persistence.li1": "面板位置、滑块取值、筛选、调色板、主题和 IDE 选择都会自动保存到 <code>localStorage</code>。",
+        "faq.persistence.li2": "<b>导出 &darr;</b> / <b>导入 &uarr;</b> &mdash; 将偏好保存到 JSON 文件或重新加载。",
+        "faq.persistence.li3": "<b>清除筛选</b> &mdash; 重置筛选（类型、边、排除项、孤立节点），不影响面板位置和主题。",
+        "faq.shortcuts.li1": "<kbd>Esc</kbd> &mdash; 关闭此对话框 &rarr; 关闭信息面板 &rarr; 重置搜索（按优先级顺序）。",
+        "faq.shortcuts.li2": "<kbd>Space</kbd> &mdash; 暂停 / 恢复物理模拟。",
+        "faq.shortcuts.li3": "<kbd>Ctrl</kbd>+<kbd>K</kbd> / <kbd>⌘</kbd>+<kbd>K</kbd> &mdash; 聚焦搜索框。",
+        "faq.shortcuts.li4": "<kbd>B</kbd> &mdash; 固定 / 取消固定光标下的节点（拖拽时也有效：拖动节点，按 B，松开 &mdash; 节点保持原位）。",
+        "faq.section.gitMode": "Git 模式",
+        "faq.nav.li5": "点击节点会 <b>钉住</b> 高亮 &mdash; 即使光标移开，该节点及其连接仍保持高亮。再次点击同一节点或点击背景可解除钉住。",
+        "faq.nav.li6": "钉住一个节点后，将光标悬停在其相邻节点上会短暂显示二级预览 &mdash; 即钉住节点与悬停节点邻域的并集。",
+        "faq.nav.li7": "点击任何被淡化的元素或空白背景，可清除所有当前选择（钉住节点、边焦点、搜索高亮）。",
+        "faq.filters.li7": "<b>边的提示</b>：将光标悬停在任意边上，可查看其类型、源 &rarr; 目标和行号（代码-文档边）。",
+        "faq.filters.li8": "<b>点击边</b> 进入焦点模式 &mdash; 仅该边及其两个端点保持高亮；<kbd>Esc</kbd> 或点击背景退出。",
+        "faq.filters.li9": "图例中的 <b>全部显示</b> / <b>全部隐藏</b> 按钮可一次性切换所有类型（适用于节点类型与 git 状态）。",
+        "faq.appearance.li4": "<b>图控制</b> 面板将滑块分组为 <i>节点与边</i>（大小、边的粗细 / 透明度）、<i>标签</i>（字体大小、缩放阈值）和 <i>物理</i>（排斥力、连接强度）。",
+        "faq.appearance.li5": "<b>显示缩放阈值</b>：只有当缩放级别超过该阈值时，节点标签才会显示；降低该值可让标签更早出现。",
+        "faq.appearance.li6": "<b>可折叠面板</b>：点击 <i>图控制</i>、<i>节点类型</i> 或 <i>按名称排除</i> 的标题可折叠面板；箭头 <code>▾</code> / <code>▸</code> 表示状态。",
+        "faq.appearance.li7": "在 <i>图控制</i> 内部，子标题（<i>节点与边</i> / <i>标签</i> / <i>物理</i>）可单独折叠 / 展开各子分组。",
+        "faq.appearance.li8": "左下角的 <b>统计信息</b> 显示当前节点与边的数量（随筛选应用而更新）。",
+        "faq.opening.li3": "信息面板中的连接按文件分组，标题可用 <code>▾</code> / <code>▸</code> 折叠；当引用数超过内联预览容量时，<code>+N</code> 按钮展开完整的行号列表。",
+        "faq.git.li1": "在顶部栏切换 <b>Git 模式</b> &mdash; 节点颜色从类型变为 git 状态（新增 / 已修改 / 已重命名 / 已删除 / 无变更）。",
+        "faq.git.li2": "每种状态在图例的 <b>Git 状态</b> 区有独立色块；点击可隐藏 / 显示，或用全部显示 / 全部隐藏批量切换。",
+        "faq.git.li3": "<b>幽灵节点</b>（虚线轮廓）代表已删除的文件或重命名的源端；仅在 git 模式下可见。",
+        "faq.git.li4": "<b>重命名边</b> 以虚线无箭头的形式绘制，连接旧路径与新路径；不出现在边类型图例中。",
+        "faq.git.li5": "Git 状态的颜色跟随当前调色板（柔和 / 鲜艳）。如果构建不在 git 仓库内运行，Git 按钮会被禁用。",
+        "faq.persistence.li4": "文件菜单中的 <b>复制 JSON</b> 复制图的紧凑表示（id、路径、类型、边、行号）&mdash; 便于粘贴到 LLM 作为项目上下文。",
+        "toast.noPath": "未找到路径",
+        "btn.deadCode": "死代码",
+        "btn.deadCodeTitle": "高亮没有被任何代码导入且没有文档提到的代码文件",
+        "btn.untracked": "未映射",
+        "btn.untrackedTitle": "高亮未被 graph.toml 显式规则覆盖的文件（自动分类）",
+        "faq.filters.li11": "<b>未映射</b> 按钮（位于图例，仅在存在 graph.toml 时显示）勾勒出由自动发现回退分类的文件 &mdash; 配置中没有显式规则覆盖它们。提示通过 <code>--init --diff</code> / <code>--init --merge</code> 更新配置。",
+        "faq.nav.li8": "<b>Shift+点击</b> 两个节点会高亮它们之间通过图的最短路径；<kbd>Esc</kbd> 清除。",
+        "faq.nav.li9": "<b>双击</b> 节点会<i>固定</i>其位置（物理引擎停止移动它）；再次双击解除固定。",
+        "faq.filters.li10": "<b>死代码</b> 按钮（位于图例，仅在有候选时显示）勾勒出没有任何代码导入且没有文档提到的代码文件 &mdash; 可能的清理目标。",
+        "faq.opening.li4": "信息面板中路径的每个<b>目录段</b>均可点击 &mdash; 点击可将图过滤到该子树中的节点（通过搜索过滤）。",
+        "btn.releasePinned": "释放固定",
+        "btn.releasePinnedTitle": "释放所有双击固定的节点，让物理引擎接管",
+        "faq.nav.li10": "<b>释放固定</b> 按钮（位于 <i>图控制</i> &rarr; 物理）一次性释放所有双击固定的节点。固定节点优先于 <i>重建物理</i> &mdash; 重建时它们保持固定。",
+        "btn.copyLink": "复制链接",
+        "btn.copyLinkTitle": "复制包含当前视图（筛选、主题、搜索、固定）的可分享 URL",
+        "btn.copyMermaid": "复制为 Mermaid",
+        "btn.copyMermaidTitle": "将聚焦的子图（固定 / 路径 / 搜索）复制为 Mermaid 流程图（可粘贴到 ADR / README）",
+        "toast.nothingToExport": "无内容可导出",
+        "legend.isolate": "仅显示此类型（切换）"
+    },
+    ja: {
+        "search.placeholder": "ノードを検索…",
+        "btn.resetZoom": "ズームをリセット",
+        "btn.clearFilters": "フィルターをクリア",
+        "btn.orphans": "孤立ノードのみ",
+        "btn.export": "設定をエクスポート",
+        "btn.import": "設定をインポート",
+        "btn.copyLlm": "JSON をコピー",
+        "btn.copyLlmTitle": "LLM 用にグラフを JSON としてコピー",
+        "btn.file": "ファイル ▾",
+        "btn.fileTitle": "設定のエクスポート / インポート、グラフを JSON としてコピー",
+        "btn.paletteSaturated": "鮮やか",
+        "btn.palettePastel": "パステル",
+        "toggle.theme": "テーマ",
+        "toggle.colours": "色",
+        "btn.git": "Git",
+        "btn.gitTitle": "Git ステータスの表示を切り替え",
+        "btn.gitNotAvailable": "Git リポジトリではありません",
+        "btn.faqTitle": "ヘルプ (?)",
+        "ide.title": "リンクを IDE で開く",
+        "ide.copy": "— パスをコピー",
+        "legend.nodeTypes": "ノードの種類",
+        "legend.edgeTypes": "エッジの種類",
+        "legend.gitStatus": "Git ステータス",
+        "legend.showAll": "すべて表示",
+        "legend.hideAll": "すべて非表示",
+        "git.added": "追加",
+        "git.modified": "変更",
+        "git.renamed": "リネーム",
+        "git.deleted": "削除",
+        "git.clean": "変更なし",
+        "excl.title": "名前で除外",
+        "excl.placeholder": "例 __init__",
+        "excl.add": "追加",
+        "excl.clearAll": "すべてクリア",
+        "excl.rebuild": "物理を再構築",
+        "ctrl.title": "グラフ操作",
+        "ctrl.group.nodesEdges": "ノードとエッジ",
+        "ctrl.group.labels": "ラベル",
+        "ctrl.group.physics": "物理",
+        "ctrl.contrast": "色のコントラスト",
+        "ctrl.nodeScale": "ノードサイズ",
+        "ctrl.edgeWidth": "エッジの太さ",
+        "ctrl.edgeOpacity": "エッジの不透明度",
+        "ctrl.fontSize": "フォントサイズ",
+        "ctrl.labelZoom": "ズーム時の表示",
+        "ctrl.charge": "反発力",
+        "ctrl.linkForce": "リンクの強さ",
+        "toast.copied": "パスをコピーしました！",
+        "tooltip.lines": "行",
+        "info.outgoing": "出力",
+        "info.incoming": "入力",
+        "info.copyTitle": "クリックでパスをコピー",
+        "alert.invalidPrefs": "設定ファイルが無効です",
+        "faq.closeTitle": "閉じる (Esc)",
+        "faq.title": "グラフガイド",
+        "faq.section.about": "グラフについて",
+        "faq.section.navigation": "ナビゲーション",
+        "faq.section.filters": "フィルターとハイライト",
+        "faq.section.appearance": "外観",
+        "faq.section.openingFiles": "ファイルを開く",
+        "faq.section.persistence": "永続化",
+        "faq.section.shortcuts": "キーボードショートカット",
+        "faq.about.li1": "<b>ノード</b>はファイルを表します：<i>docs</i>（markdown）と <i>code</i>（Python モジュール）。色は凡例のタイプに対応します。",
+        "faq.about.li2": "<b>エッジ</b>：<i>doc&rarr;doc</i> は markdown リンク、<i>code&rarr;doc</i> は markdown 内のファイル参照、<i>code&rarr;code</i> はインポートです。",
+        "faq.about.li3": "ノードのサイズは次数（入次数 + 出次数）に応じて大きくなります。",
+        "faq.about.li4": "エッジの太さは 2 つのファイル間の参照数を反映します。",
+        "faq.about.li5": "矢印は参照の方向を示します（ソース &rarr; ターゲット）。",
+        "faq.nav.li1": "ノードを左クリック &mdash; すべての接続を表示する情報パネルが開きます（コードエッジでは行番号も表示）。",
+        "faq.nav.li2": "ノードをドラッグ &mdash; 移動できます（物理エンジンが他を調整）。",
+        "faq.nav.li3": "スクロール &mdash; ズーム；空白の背景をドラッグ &mdash; パン。",
+        "faq.nav.li4": "空白の背景をクリック &mdash; 情報パネルを閉じる。",
+        "faq.filters.li1": "<b>凡例 &mdash; ノードの種類</b>：種類をクリックすると、その種類のノード全体を表示 / 非表示できます。",
+        "faq.filters.li2": "<b>凡例 &mdash; エッジの種類</b>：エッジ種類をクリックするとそのエッジが非表示になり、可視接続をすべて失ったノード（孤立ノード）も非表示になります。",
+        "faq.filters.li3": "<b>検索</b>（上部）：一致しないものを淡色化し、一致したノードと直接の接続だけがハイライトされます。",
+        "faq.filters.li4": "<b>名前で除外</b>（左パネル）：ラベルやベース名で固定し、レイアウトに干渉しないようにします。<i>物理を再構築</i> で可視ノードを解放し、除外したノードを脇に固定します。",
+        "faq.filters.li5": "<b>孤立ノードのみ</b>：接続のないノード<i>のみ</i>を表示します（取り残されたファイルの発見に便利）。",
+        "faq.filters.li6": "<b>色のコントラスト</b>：ノード、エッジ、矢印の彩度を上げるグローバルスライダー。",
+        "faq.appearance.li1": "<b>パレット</b>：<i>パステル</i> &harr; <i>鮮やか</i> の切り替え。",
+        "faq.appearance.li2": "<b>テーマ</b>：左上のライト / ダーク切り替え。",
+        "faq.appearance.li3": "すべてのパネルはヘッダーをドラッグして移動できます。<b>情報パネル</b> は右下隅から縦横両方向にリサイズ可能、<b>グラフ操作</b> は右端から横方向にリサイズ可能です。",
+        "faq.opening.li1": "情報パネルの各接続には、ファイルごとのアクションボタンが表示されます。",
+        "faq.opening.li2": "コントロールバーの <b>IDE セレクター</b> でそのボタンの動作を選びます：VS Code / Cursor / PyCharm で開く、またはパスをコピーするだけ。",
+        "faq.persistence.li1": "パネル位置、スライダー値、フィルター、パレット、テーマ、IDE 選択は <code>localStorage</code> に自動保存されます。",
+        "faq.persistence.li2": "<b>エクスポート &darr;</b> / <b>インポート &uarr;</b> &mdash; 設定を JSON ファイルに保存、または読み込み。",
+        "faq.persistence.li3": "<b>フィルターをクリア</b> &mdash; パネル位置やテーマを変えずに、フィルター（種類、エッジ、除外、孤立）をリセットします。",
+        "faq.shortcuts.li1": "<kbd>Esc</kbd> &mdash; このダイアログを閉じる &rarr; 情報パネルを閉じる &rarr; 検索をリセット（優先順位順）。",
+        "faq.shortcuts.li2": "<kbd>Space</kbd> &mdash; 物理シミュレーションの一時停止 / 再開。",
+        "faq.shortcuts.li3": "<kbd>Ctrl</kbd>+<kbd>K</kbd> / <kbd>⌘</kbd>+<kbd>K</kbd> &mdash; 検索フィールドにフォーカス。",
+        "faq.shortcuts.li4": "<kbd>B</kbd> &mdash; カーソル下のノードを固定 / 解除（ドラッグ中も有効：ノードをドラッグして B を押し、離すと &mdash; その場に留まります）。",
+        "faq.section.gitMode": "Git モード",
+        "faq.nav.li5": "ノードをクリックするとハイライトが <b>ピン留め</b> されます &mdash; カーソルが離れてもそのノードと接続はハイライトのまま。同じノードをもう一度クリックするか背景をクリックするとピンが外れます。",
+        "faq.nav.li6": "ノードをピン留めした状態で、その隣接ノードにカーソルを合わせると 2 段階目のピーク &mdash; ピン留めノードとホバーノードの近傍の和集合 &mdash; が一時的に表示されます。",
+        "faq.nav.li7": "淡色化された要素または空白の背景をクリックすると、現在のすべての選択（ピン留めノード、エッジフォーカス、検索ハイライト）が解除されます。",
+        "faq.filters.li7": "<b>エッジのツールチップ</b>：エッジにカーソルを合わせると、タイプ、ソース &rarr; ターゲット、行番号（code-doc エッジの場合）が表示されます。",
+        "faq.filters.li8": "<b>エッジをクリック</b> するとフォーカスモードに入り &mdash; そのエッジと両端のノードだけがハイライトされます；<kbd>Esc</kbd> または背景クリックで終了。",
+        "faq.filters.li9": "凡例の <b>すべて表示</b> / <b>すべて非表示</b> ボタンで全タイプを一括で表示または非表示にできます（ノードタイプと Git ステータスに対応）。",
+        "faq.appearance.li4": "<b>グラフ操作</b> パネルはスライダーを <i>ノードとエッジ</i>（サイズ、エッジの太さ／不透明度）、<i>ラベル</i>（フォントサイズ、ズーム閾値）、<i>物理</i>（反発力、リンクの強さ）にグループ化します。",
+        "faq.appearance.li5": "<b>ズーム時の表示</b>：ノードラベルはこのしきい値を超えたズームレベルでのみ表示されます；値を下げるとラベルが早く現れます。",
+        "faq.appearance.li6": "<b>折りたたみ可能なパネル</b>：<i>グラフ操作</i>、<i>ノードの種類</i>、<i>名前で除外</i> のタイトルをクリックするとパネルが折りたたまれます；シェブロン <code>▾</code> / <code>▸</code> が状態を示します。",
+        "faq.appearance.li7": "<i>グラフ操作</i> 内のセクション見出し（<i>ノードとエッジ</i> / <i>ラベル</i> / <i>物理</i>）で個別のサブグループを切り替えられます。",
+        "faq.appearance.li8": "左下の <b>統計情報</b> は現在のノード数とエッジ数を表示します（フィルター適用に応じて更新）。",
+        "faq.opening.li3": "情報パネルの接続はファイルごとにグループ化され、<code>▾</code> / <code>▸</code> で折りたたみ可能なヘッダーを持ちます；インラインプレビューに収まらない参照がある場合、<code>+N</code> ボタンで全行リストを展開します。",
+        "faq.git.li1": "上部バーで <b>Git モード</b> に切り替え &mdash; ノードの色がタイプ別から Git ステータス（追加 / 変更 / リネーム / 削除 / 変更なし）に変わります。",
+        "faq.git.li2": "各ステータスは凡例の <b>Git ステータス</b> セクションに独自のスウォッチを持ちます；クリックで非表示 / 表示、または「すべて表示 / すべて非表示」で一括切り替え。",
+        "faq.git.li3": "<b>ゴーストノード</b>（破線の輪郭）は削除されたファイルやリネームの元を表します；Git モード時のみ表示されます。",
+        "faq.git.li4": "<b>リネームエッジ</b> は矢印なしの点線で描かれ、旧パスと新パスを結びます；エッジタイプの凡例には含まれません。",
+        "faq.git.li5": "Git ステータスの色はアクティブなパレット（パステル / 鮮やか）に従います。ビルドが Git リポジトリ内で実行されていない場合、Git ボタンは無効になります。",
+        "faq.persistence.li4": "ファイルメニューの <b>JSON をコピー</b> はグラフのコンパクトな表現（id、パス、タイプ、エッジ、行番号）をコピーします &mdash; LLM にプロジェクトコンテキストとして貼り付けるのに便利。",
+        "toast.noPath": "経路が見つかりません",
+        "btn.deadCode": "デッドコード",
+        "btn.deadCodeTitle": "どこからもインポートされず、どのドキュメントにも言及されていないコードファイルをハイライト",
+        "btn.untracked": "未マッピング",
+        "btn.untrackedTitle": "graph.toml の明示的なルールでカバーされていないファイルをハイライト（自動分類）",
+        "faq.filters.li11": "<b>未マッピング</b> ボタン（凡例にあり、graph.toml が存在する場合のみ表示）は、オートディスカバリーのフォールバックで分類されたファイルを縁取ります &mdash; 設定の明示的なルールがカバーしていません。<code>--init --diff</code> / <code>--init --merge</code> で設定を更新するヒントです。",
+        "faq.nav.li8": "<b>Shift+クリック</b> で 2 つのノードを選ぶと、グラフ上の最短経路がハイライトされます；<kbd>Esc</kbd> でクリア。",
+        "faq.nav.li9": "<b>ダブルクリック</b> でノードの位置を<i>固定</i>できます（物理シミュレーションが動かさなくなります）；もう一度ダブルクリックで解除。",
+        "faq.filters.li10": "<b>デッドコード</b> ボタン（凡例にあり、候補がある場合のみ表示）は、どこからもインポートされず、どのドキュメントにも言及されていないコードファイルを縁取ります &mdash; クリーンアップの候補です。",
+        "faq.opening.li4": "情報パネルに表示されるパスの各 <b>ディレクトリセグメント</b> はクリック可能です &mdash; クリックすると、そのサブツリーのノードにグラフをフィルターします（検索フィルター経由）。",
+        "btn.releasePinned": "ピン留めを解除",
+        "btn.releasePinnedTitle": "ダブルクリックでピン留めしたすべてのノードを物理シミュレーションに戻す",
+        "faq.nav.li10": "<b>ピン留めを解除</b> ボタン（<i>グラフ操作</i> &rarr; 物理）はダブルクリックでピン留めしたすべてのノードを一度に解放します。ピン留めは <i>物理を再構築</i> より優先 &mdash; 再構築中もピン留めは維持されます。",
+        "btn.copyLink": "リンクをコピー",
+        "btn.copyLinkTitle": "現在のビュー（フィルター、テーマ、検索、ピン）を含む共有 URL をコピー",
+        "btn.copyMermaid": "Mermaid 形式でコピー",
+        "btn.copyMermaidTitle": "フォーカス中のサブグラフ（ピン / パス / 検索）を Mermaid フローチャートとしてコピー（ADR / README に貼り付け可）",
+        "toast.nothingToExport": "エクスポート対象がありません",
+        "legend.isolate": "このタイプのみ表示（トグル）"
+    },
+    ko: {
+        "search.placeholder": "노드 검색…",
+        "btn.resetZoom": "줌 초기화",
+        "btn.clearFilters": "필터 지우기",
+        "btn.orphans": "고립 노드만",
+        "btn.export": "환경설정 내보내기",
+        "btn.import": "환경설정 가져오기",
+        "btn.copyLlm": "JSON 복사",
+        "btn.copyLlmTitle": "그래프를 LLM용 JSON으로 복사",
+        "btn.file": "파일 ▾",
+        "btn.fileTitle": "환경설정 내보내기 / 가져오기, 그래프를 JSON으로 복사",
+        "btn.paletteSaturated": "선명함",
+        "btn.palettePastel": "파스텔",
+        "toggle.theme": "테마",
+        "toggle.colours": "색상",
+        "btn.git": "Git",
+        "btn.gitTitle": "Git 상태 오버레이 전환",
+        "btn.gitNotAvailable": "Git 저장소가 아닙니다",
+        "btn.faqTitle": "도움말 (?)",
+        "ide.title": "IDE에서 링크 열기",
+        "ide.copy": "— 경로 복사",
+        "legend.nodeTypes": "노드 유형",
+        "legend.edgeTypes": "엣지 유형",
+        "legend.gitStatus": "Git 상태",
+        "legend.showAll": "모두 표시",
+        "legend.hideAll": "모두 숨기기",
+        "git.added": "추가됨",
+        "git.modified": "변경됨",
+        "git.renamed": "이름 변경됨",
+        "git.deleted": "삭제됨",
+        "git.clean": "변경 없음",
+        "excl.title": "이름으로 제외",
+        "excl.placeholder": "예: __init__",
+        "excl.add": "추가",
+        "excl.clearAll": "모두 지우기",
+        "excl.rebuild": "물리 재구성",
+        "ctrl.title": "그래프 컨트롤",
+        "ctrl.group.nodesEdges": "노드와 엣지",
+        "ctrl.group.labels": "레이블",
+        "ctrl.group.physics": "물리",
+        "ctrl.contrast": "색상 대비",
+        "ctrl.nodeScale": "노드 크기",
+        "ctrl.edgeWidth": "엣지 두께",
+        "ctrl.edgeOpacity": "엣지 투명도",
+        "ctrl.fontSize": "글꼴 크기",
+        "ctrl.labelZoom": "줌 단계 표시",
+        "ctrl.charge": "반발력",
+        "ctrl.linkForce": "링크 강도",
+        "toast.copied": "경로가 복사되었습니다!",
+        "tooltip.lines": "줄",
+        "info.outgoing": "나가는",
+        "info.incoming": "들어오는",
+        "info.copyTitle": "클릭하여 경로 복사",
+        "alert.invalidPrefs": "잘못된 환경설정 파일",
+        "faq.closeTitle": "닫기 (Esc)",
+        "faq.title": "그래프 가이드",
+        "faq.section.about": "그래프 소개",
+        "faq.section.navigation": "탐색",
+        "faq.section.filters": "필터와 강조",
+        "faq.section.appearance": "외관",
+        "faq.section.openingFiles": "파일 열기",
+        "faq.section.persistence": "유지",
+        "faq.section.shortcuts": "키보드 단축키",
+        "faq.about.li1": "<b>노드</b>는 파일을 나타냅니다: <i>docs</i>(마크다운)와 <i>code</i>(Python 모듈). 색상은 범례의 유형에 해당합니다.",
+        "faq.about.li2": "<b>엣지</b>: <i>doc&rarr;doc</i>은 마크다운 링크, <i>code&rarr;doc</i>은 마크다운 안에서의 파일 언급, <i>code&rarr;code</i>는 임포트입니다.",
+        "faq.about.li3": "노드의 크기는 차수(들어오는 엣지 + 나가는 엣지)에 따라 커집니다.",
+        "faq.about.li4": "엣지의 두께는 두 파일 사이의 참조 수를 반영합니다.",
+        "faq.about.li5": "화살표는 참조의 방향(소스 &rarr; 타겟)을 나타냅니다.",
+        "faq.nav.li1": "노드 왼쪽 클릭 &mdash; 모든 연결을 보여주는 정보 패널이 열립니다(코드 엣지에는 줄 번호가 표시됨).",
+        "faq.nav.li2": "노드 드래그 &mdash; 이동(물리 엔진이 나머지를 조정).",
+        "faq.nav.li3": "스크롤 &mdash; 줌; 빈 배경 드래그 &mdash; 화면 이동.",
+        "faq.nav.li4": "빈 배경 클릭 &mdash; 정보 패널 닫기.",
+        "faq.filters.li1": "<b>범례 &mdash; 노드 유형</b>: 유형을 클릭하여 해당 유형의 모든 노드를 숨기거나 표시합니다.",
+        "faq.filters.li2": "<b>범례 &mdash; 엣지 유형</b>: 엣지 유형을 클릭하면 그 종류의 엣지가 숨겨지고, 보이는 연결을 모두 잃은 노드(고립 노드)도 함께 숨겨집니다.",
+        "faq.filters.li3": "<b>검색</b>(상단): 일치하지 않는 모든 것을 흐리게 처리하고, 일치하는 노드와 직접 연결만 강조 상태로 유지됩니다.",
+        "faq.filters.li4": "<b>이름으로 제외</b>(왼쪽 패널): 레이블 또는 기본 이름으로 노드를 고정하여 레이아웃에 영향을 주지 않게 합니다. <i>물리 재구성</i>은 보이는 노드를 풀어주고 제외된 노드를 옆에 고정합니다.",
+        "faq.filters.li5": "<b>고립 노드만</b>: 연결이 없는 노드<i>만</i> 표시합니다(잊혀진 파일 찾기에 유용).",
+        "faq.filters.li6": "<b>색상 대비</b>: 노드, 엣지, 화살표의 채도를 높이는 전역 슬라이더.",
+        "faq.appearance.li1": "<b>팔레트</b>: <i>파스텔</i> &harr; <i>선명함</i> 전환.",
+        "faq.appearance.li2": "<b>테마</b>: 왼쪽 상단의 라이트 / 다크 전환.",
+        "faq.appearance.li3": "모든 패널은 헤더를 드래그하여 이동할 수 있습니다. <b>정보 패널</b>은 오른쪽 아래 모서리에서 양방향으로 크기를 조정할 수 있고, <b>그래프 컨트롤</b>은 오른쪽 가장자리에서 수평으로 조정할 수 있습니다.",
+        "faq.opening.li1": "정보 패널의 각 연결 옆에는 파일별 동작 버튼이 있습니다.",
+        "faq.opening.li2": "컨트롤 바의 <b>IDE 선택기</b>가 그 버튼의 동작을 결정합니다: VS Code / Cursor / PyCharm에서 열기, 또는 단순히 경로 복사.",
+        "faq.persistence.li1": "패널 위치, 슬라이더 값, 필터, 팔레트, 테마, IDE 선택은 <code>localStorage</code>에 자동 저장됩니다.",
+        "faq.persistence.li2": "<b>내보내기 &darr;</b> / <b>가져오기 &uarr;</b> &mdash; 환경설정을 JSON 파일로 저장하거나 다시 불러옵니다.",
+        "faq.persistence.li3": "<b>필터 지우기</b> &mdash; 패널 위치나 테마를 건드리지 않고 필터(유형, 엣지, 제외 항목, 고립 노드)를 초기화합니다.",
+        "faq.shortcuts.li1": "<kbd>Esc</kbd> &mdash; 이 대화창 닫기 &rarr; 정보 패널 닫기 &rarr; 검색 초기화(우선순위 순).",
+        "faq.shortcuts.li2": "<kbd>Space</kbd> &mdash; 물리 시뮬레이션 일시정지 / 재개.",
+        "faq.shortcuts.li3": "<kbd>Ctrl</kbd>+<kbd>K</kbd> / <kbd>⌘</kbd>+<kbd>K</kbd> &mdash; 검색 필드에 포커스.",
+        "faq.shortcuts.li4": "<kbd>B</kbd> &mdash; 커서 아래 노드를 고정 / 해제 (드래그 중에도 동작: 노드를 끌고 B를 누른 뒤 놓으면 &mdash; 제자리에 고정됩니다).",
+        "faq.section.gitMode": "Git 모드",
+        "faq.nav.li5": "노드를 클릭하면 강조가 <b>고정</b>됩니다 &mdash; 커서가 떠나도 해당 노드와 연결이 밝게 유지됩니다. 같은 노드를 다시 클릭하거나 배경을 클릭하면 고정이 해제됩니다.",
+        "faq.nav.li6": "노드가 고정된 상태에서 인접 노드 위로 커서를 올리면 2단계 미리보기 &mdash; 고정 노드와 호버 노드의 이웃 집합의 합집합 &mdash; 이 잠시 표시됩니다.",
+        "faq.nav.li7": "흐리게 표시된 요소 또는 빈 배경을 클릭하면 현재의 모든 선택(고정 노드, 엣지 포커스, 검색 강조)이 지워집니다.",
+        "faq.filters.li7": "<b>엣지 툴팁</b>: 엣지 위로 커서를 올리면 유형, 소스 &rarr; 타겟, 줄 번호(code-doc 엣지)가 표시됩니다.",
+        "faq.filters.li8": "<b>엣지 클릭</b> 으로 포커스 모드 진입 &mdash; 해당 엣지와 양 끝 노드만 강조 상태로 유지됩니다; <kbd>Esc</kbd> 또는 배경 클릭으로 종료.",
+        "faq.filters.li9": "범례의 <b>모두 표시</b> / <b>모두 숨기기</b> 버튼으로 모든 유형을 한 번에 표시하거나 숨길 수 있습니다(노드 유형과 Git 상태에 적용).",
+        "faq.appearance.li4": "<b>그래프 컨트롤</b> 패널은 슬라이더를 <i>노드와 엣지</i>(크기, 엣지 두께 / 투명도), <i>레이블</i>(글꼴 크기, 줌 임계값), <i>물리</i>(반발력, 링크 강도)로 묶습니다.",
+        "faq.appearance.li5": "<b>줌 단계 표시</b>: 노드 레이블은 줌 레벨이 이 임계값을 넘었을 때만 표시됩니다; 값을 낮추면 레이블이 더 일찍 나타납니다.",
+        "faq.appearance.li6": "<b>접을 수 있는 패널</b>: <i>그래프 컨트롤</i>, <i>노드 유형</i>, <i>이름으로 제외</i> 의 제목을 클릭하면 패널이 접힙니다; 갈매기 표식 <code>▾</code> / <code>▸</code> 이 상태를 나타냅니다.",
+        "faq.appearance.li7": "<i>그래프 컨트롤</i> 내부의 섹션 제목(<i>노드와 엣지</i> / <i>레이블</i> / <i>물리</i>)으로 개별 하위 그룹을 토글할 수 있습니다.",
+        "faq.appearance.li8": "왼쪽 하단의 <b>통계</b> 는 현재 노드와 엣지 수를 표시합니다(필터 적용에 따라 업데이트).",
+        "faq.opening.li3": "정보 패널의 연결은 파일별로 그룹화되며 <code>▾</code> / <code>▸</code> 로 접을 수 있는 헤더를 가집니다; 인라인 미리보기에 다 담을 수 없는 참조가 있을 경우 <code>+N</code> 버튼으로 전체 줄 목록을 펼칩니다.",
+        "faq.git.li1": "상단 바에서 <b>Git 모드</b> 전환 &mdash; 노드 색상이 유형 대신 Git 상태(추가됨 / 변경됨 / 이름 변경됨 / 삭제됨 / 변경 없음)로 바뀝니다.",
+        "faq.git.li2": "각 상태는 범례의 <b>Git 상태</b> 섹션에 자체 색상 표식을 가집니다; 클릭하여 숨기거나 표시할 수 있고, 모두 표시 / 모두 숨기기로 일괄 전환할 수 있습니다.",
+        "faq.git.li3": "<b>고스트 노드</b>(점선 윤곽)는 삭제된 파일이나 이름 변경의 원본을 나타냅니다; Git 모드에서만 표시됩니다.",
+        "faq.git.li4": "<b>이름 변경 엣지</b> 는 화살표 없이 점선으로 그려지며 이전 경로와 새 경로를 연결합니다; 엣지 유형 범례에는 포함되지 않습니다.",
+        "faq.git.li5": "Git 상태의 색상은 활성 팔레트(파스텔 / 선명함)를 따릅니다. 빌드가 Git 저장소 내에서 실행되지 않은 경우 Git 버튼은 비활성화됩니다.",
+        "faq.persistence.li4": "파일 메뉴의 <b>JSON 복사</b> 는 그래프의 간결한 표현(id, 경로, 유형, 엣지, 줄 번호)을 복사합니다 &mdash; LLM에 프로젝트 컨텍스트로 붙여넣기에 편리합니다.",
+        "toast.noPath": "경로를 찾을 수 없습니다",
+        "btn.deadCode": "데드 코드",
+        "btn.deadCodeTitle": "어떤 코드도 임포트하지 않고 어떤 문서에서도 언급되지 않는 코드 파일을 강조",
+        "btn.untracked": "미매핑",
+        "btn.untrackedTitle": "graph.toml의 명시적 규칙으로 지정되지 않은 파일을 강조 (자동 분류)",
+        "faq.filters.li11": "<b>미매핑</b> 버튼(범례에 있으며 graph.toml이 존재할 때만 표시됨)은 자동 탐색 폴백으로 분류된 파일을 표시합니다 &mdash; 설정의 명시적 규칙이 이를 다루지 않습니다. <code>--init --diff</code> / <code>--init --merge</code>로 설정을 갱신하라는 힌트입니다.",
+        "faq.nav.li8": "<b>Shift+클릭</b>으로 두 노드를 선택하면 그래프상 두 노드 사이의 최단 경로가 강조됩니다; <kbd>Esc</kbd> 로 해제.",
+        "faq.nav.li9": "<b>더블 클릭</b>으로 노드 위치를 <i>고정</i>합니다(물리 엔진이 더 이상 움직이지 않음); 다시 더블 클릭하면 해제됩니다.",
+        "faq.filters.li10": "<b>데드 코드</b> 버튼(범례에 있으며 후보가 있을 때만 표시됨)은 어떤 코드도 임포트하지 않고 어떤 문서에서도 언급되지 않는 코드 파일을 표시합니다 &mdash; 정리 대상 후보입니다.",
+        "faq.opening.li4": "정보 패널에 표시된 경로의 각 <b>디렉터리 세그먼트</b>는 클릭 가능합니다 &mdash; 클릭하면 해당 하위 트리의 노드로 그래프가 필터링됩니다(검색 필터 사용).",
+        "btn.releasePinned": "고정 해제",
+        "btn.releasePinnedTitle": "더블 클릭으로 고정된 모든 노드를 물리 엔진으로 되돌리기",
+        "faq.nav.li10": "<b>고정 해제</b> 버튼(<i>그래프 컨트롤</i> &rarr; 물리)은 더블 클릭으로 고정된 모든 노드를 한 번에 해제합니다. 고정 노드는 <i>물리 재구성</i>보다 우선 &mdash; 재구성 중에도 고정 상태를 유지합니다.",
+        "btn.copyLink": "링크 복사",
+        "btn.copyLinkTitle": "현재 뷰(필터, 테마, 검색, 고정)가 포함된 공유 가능한 URL 복사",
+        "btn.copyMermaid": "Mermaid로 복사",
+        "btn.copyMermaidTitle": "포커스된 부분 그래프(고정 / 경로 / 검색)를 Mermaid 플로우차트로 복사(ADR / README에 붙여넣기 가능)",
+        "toast.nothingToExport": "내보낼 항목이 없습니다",
+        "legend.isolate": "이 유형만 표시(토글)"
+    }
+};
+
+function pluralRu(n, one, few, many) {
+    const mod10 = n % 10, mod100 = n % 100;
+    if (mod10 === 1 && mod100 !== 11) return one;
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+    return many;
+}
+const FORMATTERS = {
+    en: {
+        connectionCount: n => n + " connection" + (n !== 1 ? "s" : ""),
+        stats: (nodes, edges) => nodes + " nodes · " + edges + " edges"
+    },
+    ru: {
+        connectionCount: n => n + " " + pluralRu(n, "связь", "связи", "связей"),
+        stats: (nodes, edges) => nodes + " " + pluralRu(nodes, "узел", "узла", "узлов")
+            + " · " + edges + " " + pluralRu(edges, "связь", "связи", "связей")
+    },
+    de: {
+        connectionCount: n => n + " " + (n === 1 ? "Verbindung" : "Verbindungen"),
+        stats: (nodes, edges) => nodes + " Knoten · "
+            + edges + " " + (edges === 1 ? "Kante" : "Kanten")
+    },
+    es: {
+        connectionCount: n => n + " " + (n === 1 ? "conexión" : "conexiones"),
+        stats: (nodes, edges) => nodes + " " + (nodes === 1 ? "nodo" : "nodos")
+            + " · " + edges + " " + (edges === 1 ? "arista" : "aristas")
+    },
+    it: {
+        connectionCount: n => n + " " + (n === 1 ? "connessione" : "connessioni"),
+        stats: (nodes, edges) => nodes + " " + (nodes === 1 ? "nodo" : "nodi")
+            + " · " + edges + " " + (edges === 1 ? "arco" : "archi")
+    },
+    fr: {
+        // French: 0 and 1 take the singular form
+        connectionCount: n => n + " " + (n <= 1 ? "connexion" : "connexions"),
+        stats: (nodes, edges) => nodes + " " + (nodes <= 1 ? "nœud" : "nœuds")
+            + " · " + edges + " " + (edges <= 1 ? "lien" : "liens")
+    },
+    pt: {
+        connectionCount: n => n + " " + (n === 1 ? "conexão" : "conexões"),
+        stats: (nodes, edges) => nodes + " " + (nodes === 1 ? "nó" : "nós")
+            + " · " + edges + " " + (edges === 1 ? "aresta" : "arestas")
+    },
+    zh: {
+        connectionCount: n => n + " 个连接",
+        stats: (nodes, edges) => nodes + " 个节点 · " + edges + " 条边"
+    },
+    ja: {
+        connectionCount: n => n + " 件の接続",
+        stats: (nodes, edges) => nodes + " ノード · " + edges + " エッジ"
+    },
+    ko: {
+        connectionCount: n => n + "개 연결",
+        stats: (nodes, edges) => nodes + " 노드 · " + edges + " 엣지"
+    }
+};
+
+let currentLang = "en";
+function t(key) {
+    return (I18N[currentLang] && I18N[currentLang][key]) || I18N.en[key] || key;
+}
+function tFmt(key, ...args) {
+    const fmt = (FORMATTERS[currentLang] || FORMATTERS.en)[key]
+        || FORMATTERS.en[key];
+    return fmt ? fmt(...args) : "";
+}
+function applyI18n(lang) {
+    if (!I18N[lang]) lang = "en";
+    currentLang = lang;
+    document.documentElement.lang = lang;
+    document.querySelectorAll("[data-i18n]").forEach(el => {
+        el.textContent = t(el.dataset.i18n);
+    });
+    document.querySelectorAll("[data-i18n-html]").forEach(el => {
+        el.innerHTML = t(el.dataset.i18nHtml);
+    });
+    document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+        el.placeholder = t(el.dataset.i18nPlaceholder);
+    });
+    document.querySelectorAll("[data-i18n-title]").forEach(el => {
+        el.title = t(el.dataset.i18nTitle);
+    });
+    const langSel = document.getElementById("select-lang");
+    if (langSel) langSel.value = lang;
+    // Stats / info-panel are guarded — applyI18n is called before some `let`
+    // bindings are initialized (TDZ would throw on direct access).
+    try {
+        const statsEl = document.getElementById("stats");
+        if (statsEl && nodes && links) {
+            statsEl.textContent = tFmt("stats", nodes.length, links.length);
+        }
+    } catch (_) {}
+    try {
+        if (activeNodeData && infoPanel
+            && !infoPanel.classList.contains("hidden")
+            && typeof renderInfoPanel === "function") {
+            renderInfoPanel(activeNodeData);
+        }
+    } catch (_) {}
+}
+
+// === WIDTH LOCKING ===
+// Lock min-width on i18n elements so RU/EN switch doesn't reflow the UI.
+// Measures each element with every locale's text, picks the max width.
+let _i18nWidthsLocked = false;
+function lockAllI18nWidths() {
+    if (_i18nWidthsLocked) return;
+    _i18nWidthsLocked = true;
+    const measure = (el, candidates) => {
+        const original = el.textContent;
+        let maxW = 0;
+        candidates.forEach(text => {
+            el.textContent = text;
+            const w = el.getBoundingClientRect().width;
+            if (w > maxW) maxW = w;
+        });
+        el.textContent = original;
+        el.style.minWidth = Math.ceil(maxW) + "px";
+    };
+    // Static data-i18n elements (skip FAQ modal — its width is fixed;
+    // skip #controls-left because it's a resizable panel and a baked-in
+    // min-width from the longest locale (DE/IT) would lock its content
+    // way wider than English/RU need, fighting the user's resize).
+    document.querySelectorAll("[data-i18n]").forEach(el => {
+        if (el.closest("#faq-overlay")) return;
+        if (el.closest("#controls-left")) return;
+        if (getComputedStyle(el).display === "inline") return;
+        const key = el.dataset.i18n;
+        const candidates = Object.keys(I18N).map(lang =>
+            (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key);
+        measure(el, candidates);
+    });
+    // Stats — formatter output for each locale at current node/edge counts
+    const statsEl = document.getElementById("stats");
+    if (statsEl && typeof nodes !== "undefined" && typeof links !== "undefined") {
+        const candidates = Object.keys(FORMATTERS).map(lang =>
+            FORMATTERS[lang].stats(nodes.length, links.length));
+        measure(statsEl, candidates);
+    }
+    // Node-types Show/Hide pair — equalize widths
+    const sa = document.getElementById("btn-legend-show-all");
+    const ha = document.getElementById("btn-legend-hide-all");
+    if (sa && ha) {
+        const w = Math.max(
+            parseFloat(sa.style.minWidth) || sa.getBoundingClientRect().width,
+            parseFloat(ha.style.minWidth) || ha.getBoundingClientRect().width);
+        sa.style.minWidth = Math.ceil(w) + "px";
+        ha.style.minWidth = Math.ceil(w) + "px";
+        // Git-legend Show/Hide pair lives inside a hidden section until git
+        // mode is on, so its boundingRect reads as 0 here. Mirror the widths
+        // from the node-types pair (same i18n keys, same content widths).
+        const gsa = document.getElementById("btn-git-show-all");
+        const gha = document.getElementById("btn-git-hide-all");
+        if (gsa && gha) {
+            gsa.style.minWidth = sa.style.minWidth;
+            gha.style.minWidth = ha.style.minWidth;
+        }
+    }
+}
+
+// === PALETTE & GLOBAL STATE ===
+let activeColors = NODE_COLORS;
+let currentPalette = "pastel";
+
+const nodes = GRAPH_DATA.nodes;
+const links = GRAPH_DATA.links;
+
+const canvas = document.getElementById("graph");
+const ctx = canvas.getContext("2d");
+const canvasSel = d3.select(canvas);
+let width = window.innerWidth;
+let height = window.innerHeight;
+// Current pan/zoom — applied as a canvas transform inside draw().
+let transform = d3.zoomIdentity;
+
+function resizeCanvas() {
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+}
+resizeCanvas();
+
+const zoom = d3.zoom()
+    .scaleExtent([0.1, 8])
+    .filter(event => {
+        // Default zoom guards (primary button, no ctrl+drag), plus: a
+        // mousedown / dblclick that lands on a node belongs to node drag /
+        // sticky toggle — not to pan / dblclick-zoom.
+        if (event.type === "wheel") return !event.button;
+        if (event.ctrlKey || event.button) return false;
+        if ((event.type === "mousedown" || event.type === "dblclick")
+            && pickNodeAtEvent(event)) return false;
+        return true;
+    })
+    .on("zoom", (event) => {
+        transform = event.transform;
+        requestDraw();
+    });
+
+// Fine-grained wheel zoom — direct transform for performance
+function bindCanvasZoom() {
+    canvasSel.call(zoom);
+    canvasSel.on("wheel.zoom", function(event) {
+        event.preventDefault();
+        const delta = event.deltaY *
+            (event.deltaMode === 1 ? 20 : event.deltaMode === 2 ? 400 : 1);
+        const factor = Math.pow(2, -delta / 800);
+        const t = d3.zoomTransform(this);
+        const [mx, my] = d3.pointer(event);
+        const newK = Math.max(0.1, Math.min(8, t.k * factor));
+        const tx = mx - (newK / t.k) * (mx - t.x);
+        const ty = my - (newK / t.k) * (my - t.y);
+        canvasSel.call(zoom.transform,
+            d3.zoomIdentity.translate(tx, ty).scale(newK));
+    }, { passive: false });
+}
+
+d3.select("#reset-zoom").on("click", () =>
+    canvasSel.transition().duration(500)
+       .call(zoom.transform, d3.zoomIdentity)
+);
+
+// Build before simulation mutates l.source/l.target to node objects
+// === NEIGHBOR MAP & SIMULATION ===
+const neighborMap = new Map();
+nodes.forEach(n => neighborMap.set(n.id, new Set([n.id])));
+links.forEach(l => {
+    neighborMap.get(l.source)?.add(l.target);
+    neighborMap.get(l.target)?.add(l.source);
+});
+
+// Dead-code candidates: code-typed nodes with zero incoming code->code edges
+// (no one imports them) AND zero adjacent code->doc edges (not mentioned in
+// any doc). Computed once at init from the still-string-id'd link refs.
+// `deadNodes` is declared here (not later with the rest of the selection
+// state) because this computation must run before D3 mutates link.source /
+// link.target into node objects, and we need the binding visible already.
+const deadNodes = new Set();
+{
+    const importedTargets = new Set();
+    const docTouched = new Set();
+    links.forEach(l => {
+        if (l.type === "code->code") importedTargets.add(l.target);
+        else if (l.type === "code->doc") {
+            docTouched.add(l.source);
+            docTouched.add(l.target);
+        }
+    });
+    nodes.forEach(n => {
+        // deadExempt: build-time flag for files that legitimately have no
+        // incoming imports (__init__.py, conftest.py, entry points, tests,
+        // migrations; extendable via [dead_code].exempt in graph.toml).
+        // Only .py participates: "nothing imports it" is an import-graph
+        // concept — templates, static JS/CSS and fixtures can't be imported,
+        // so the heuristic would flag all of them.
+        if (n.type && n.type.startsWith("code/")
+            && n.path.endsWith(".py")
+            && !n.deadExempt
+            && !importedTargets.has(n.id)
+            && !docTouched.has(n.id)) {
+            deadNodes.add(n.id);
+        }
+    });
+}
+
+// Unmapped nodes: classified by autodiscovery fallback while a graph.toml
+// exists — "not covered by an explicit rule". Build-time flag.
+const untrackedNodes = new Set();
+nodes.forEach(n => {
+    if (n.untracked && !n.ghost) untrackedNodes.add(n.id);
+});
+
+const simulation = d3.forceSimulation(nodes)
+    .force("link", d3.forceLink(links).id(d => d.id)
+        .distance(d => d.type === "code->doc" ? 120 : 80)
+        .strength(0.3))
+    .force("charge",
+        d3.forceManyBody().strength(-300).distanceMax(400))
+    .force("center",
+        d3.forceCenter(width / 2, height / 2))
+    // iterations(2): with 800+ nodes the dense clusters oscillate when a
+    // single collide pass fights the link force in antiphase every tick —
+    // visible as node "vibration" at full canvas frame rate (the old SVG
+    // renderer masked it by lagging). A second pass damps the tug-of-war.
+    .force("collide",
+        d3.forceCollide().radius(d => d.size + 4).iterations(2))
+    .force("x", d3.forceX(width / 2).strength(0.05))
+    .force("y", d3.forceY(height / 2).strength(0.05))
+    // High velocityDecay kills idle jitter. Higher alphaMin means the
+    // simulation stops earlier — no perpetual micro-vibration once the
+    // graph has settled. Re-tuned for the 800+ node graph (0.7/0.01 was
+    // calibrated at ~200 nodes and lets dense clusters buzz): more
+    // friction per tick + an earlier sleep threshold.
+    .alphaDecay(0.012)
+    .velocityDecay(0.8)
+    .alphaMin(0.02);
+
+// Orphans (degree === 0) — pinned via fx/fy on a ring that's recomputed
+// every tick to track the live cluster's actual size and centre.
+// Each orphan keeps its `_ringAngle`; tickRefitOrphanRing() picks up cluster
+// bounds and damped-lerps fx/fy toward the slot on the current ring.
+(function assignOrphanAngles() {
+    const orphans = nodes.filter(n => n.degree === 0);
+    if (!orphans.length) return;
+    const ringR = Math.min(width, height) * 0.42;
+    const cx = width / 2, cy = height / 2;
+    orphans.forEach((n, i) => {
+        const angle = (i / orphans.length) * 2 * Math.PI - Math.PI / 2;
+        n._ringAngle = angle;
+        // Initial positions so the first tick has something sensible
+        n.fx = cx + ringR * Math.cos(angle);
+        n.fy = cy + ringR * Math.sin(angle);
+    });
+})();
+
+// Window resize: re-centre forces and bump alpha so the cluster (and
+// orphan ring) re-fits the new viewport.
+window.addEventListener("resize", () => {
+    width = window.innerWidth;
+    height = window.innerHeight;
+    resizeCanvas();
+    simulation
+        .force("center", d3.forceCenter(width / 2, height / 2))
+        .force("x", d3.forceX(width / 2).strength(0.05))
+        .force("y", d3.forceY(height / 2).strength(0.05))
+        .alpha(0.3).restart();
+    requestDraw();
+});
+
+function tickRefitOrphanRing() {
+    let live = 0;
+    let cx = 0, cy = 0;
+    nodes.forEach(n => {
+        if (n.degree > 0 && Number.isFinite(n.x)) {
+            cx += n.x; cy += n.y; live += 1;
+        }
+    });
+    if (live === 0) return;
+    cx /= live; cy /= live;
+    let maxR = 0;
+    nodes.forEach(n => {
+        if (n.degree > 0 && Number.isFinite(n.x)) {
+            const dx = n.x - cx, dy = n.y - cy;
+            const r = Math.hypot(dx, dy) + (n.size || 0);
+            if (r > maxR) maxR = r;
+        }
+    });
+    const minR = Math.min(width, height) * 0.22;
+    const ringR = Math.max(maxR + 50, minR);
+    // Lower damping → orphans glide instead of snapping (matches the slower
+    // simulation); after drag-end the return takes ~0.5–1s.
+    const damp = 0.08;
+    nodes.forEach(n => {
+        if (n.degree !== 0 || n._ringAngle === undefined || n._dragging) return;
+        const tx = cx + ringR * Math.cos(n._ringAngle);
+        const ty = cy + ringR * Math.sin(n._ringAngle);
+        const fx = n.fx ?? tx, fy = n.fy ?? ty;
+        n.fx = fx + (tx - fx) * damp;
+        n.fy = fy + (ty - fy) * damp;
+    });
+}
+
+// === RENDER STATE & CANVAS ENGINE ===
+let isDragging = false;
+let nodeScale = 1.0;
+let labelZoom = 1.74;
+let labelFontSize = 10;
+let nodeContrast = 0;
+let edgeOpacity = 0.28;
+let edgeWidth = 0.75;
+let activeNodeData = null;
+let activeEdge = null;
+// Path mode (shift+click two nodes to highlight the shortest path between
+// them in the undirected adjacency graph).
+let pathStart = null;
+let pathEnd = null;
+let pathNodeIds = new Set();
+let pathLinks = new Set();
+// Dead-code highlight toggle (draw() renders the red ring + glow; the
+// body class only drives the legend button state).
+// `deadNodes` itself is declared earlier — see the dead-code computation
+// block right after neighborMap.
+let showDead = false;
+// "Unmapped" highlight toggle — nodes classified by autodiscovery fallback
+// (no explicit graph.toml rule covers them). Set is filled at build time
+// via the node.untracked flag.
+let showUntracked = false;
+// Git overlay state — declared before currentNodeColor() so draw() doesn't
+// hit the TDZ for these `let` bindings.
+const GIT_COLORS_PASTEL = {
+    added:    "#a5d6a7",
+    modified: "#ffd180",
+    renamed:  "#ce93d8",
+    deleted:  "#ef9a9a",
+    clean:    "#bbb"
+};
+const GIT_COLORS_SATURATED = {
+    added:    "#00b86b",
+    modified: "#f5a524",
+    renamed:  "#9b59b6",
+    deleted:  "#e74c3c",
+    clean:    "#888"
+};
+let activeGitColors = GIT_COLORS_PASTEL;
+let gitMode = false;
+const hiddenGitStatuses = new Set();
+function currentNodeColor(d) {
+    if (gitMode && d.gitStatus) return activeGitColors[d.gitStatus] || "#999";
+    return activeColors[d.type] || "#999";
+}
+let searchQuery = "";
+let searchMatching = new Set();
+let showAll = false;
+let orphansOnly = false;
+let ideScheme = "vscode";
+
+// Visual overlay predicates — the canvas replacement for the CSS classes
+// that used to be toggled on SVG elements ("dimmed", stroke-opacity: 1).
+// Every selection mode (hover / pin / peek / edge focus / path / search)
+// installs its own predicates; draw() consults them per element.
+let dimNode = null;   // (n) => true when the node is faded out
+let dimEdge = null;   // (l) => true when the edge is faded out
+let hotEdge = null;   // (l) => true when the edge is highlighted (alpha 1)
+let hoverNode = null; // node under cursor — gets the brightness bump
+let dragNode = null;  // node currently being dragged — target for the B hotkey
+
+// Theme-dependent colors read from CSS variables. Cached — calling
+// getComputedStyle per frame would force a style recalc on every tick.
+let themeFg = "#eee";
+let themeNodeText = "#ccc";
+function refreshThemeColors() {
+    const cs = getComputedStyle(document.body);
+    themeFg = (cs.getPropertyValue("--fg") || "").trim() || "#eee";
+    themeNodeText = (cs.getPropertyValue("--node-text") || "").trim() || "#ccc";
+    requestDraw();
+}
+
+// Contrast-shaded color memo: base hex → [fill, stroke]. Cleared when the
+// contrast slider changes (palette switches change the base strings, so
+// stale entries are unreachable anyway). Avoids d3.color().darker() per
+// node per frame.
+const _shadeMemo = new Map();
+function shadedPair(base) {
+    let pair = _shadeMemo.get(base);
+    if (!pair) {
+        const fill = nodeContrast > 0
+            ? d3.color(base).darker(nodeContrast).formatHex() : base;
+        const stroke = d3.color(fill).darker(0.6).formatHex();
+        pair = [fill, stroke];
+        _shadeMemo.set(base, pair);
+    }
+    return pair;
+}
+
+// Render-side smoothing factor: drawn positions chase the physics
+// positions through an exponential lerp (per frame). In dense clusters
+// the collide and link forces flip direction almost every tick, so raw
+// positions buzz at frame rate — the smoothed ones glide. 1 = no
+// smoothing; lower = calmer but laggier. 0.18 ≈ 10x attenuation of
+// per-tick oscillation, time constant ~5 frames — floaty but calm.
+const RENDER_SMOOTH = 0.18;
+
+// Dash patterns per edge type — mirrors the old CSS .link.* rules.
+const EDGE_DASH = {
+    "code->doc": [5, 3],
+    "docstring": [1, 3],
+    "type-only": [3, 4],
+    "rename":    [2, 3]
+};
+
+// === DRAW LOOP ===
+// All graph rendering happens in one rAF-coalesced pass over the canvas.
+// State changes never touch the DOM — they update predicates/flags and
+// call requestDraw(). When the simulation is asleep and nothing changes,
+// nothing is drawn at all.
+let _drawQueued = false;
+function requestDraw() {
+    if (_drawQueued) return;
+    _drawQueued = true;
+    requestAnimationFrame(() => { _drawQueued = false; draw(); });
+}
+
+// Forced labels: path nodes and edge-focus endpoints keep their label
+// visible regardless of zoom level (old CSS class "label-forced").
+function isLabelForced(n) {
+    if (pathActive() && pathNodeIds.has(n.id)) return true;
+    if (activeEdge && (n.id === activeEdge.source.id
+        || n.id === activeEdge.target.id)) return true;
+    return false;
+}
+
+function draw() {
+    const dpr = window.devicePixelRatio || 1;
+    const k = transform.k;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+    ctx.translate(transform.x, transform.y);
+    ctx.scale(k, k);
+
+    // World-space viewport (with margin) for culling.
+    const pad = 50;
+    const vx0 = -transform.x / k - pad, vy0 = -transform.y / k - pad;
+    const vx1 = (width - transform.x) / k + pad;
+    const vy1 = (height - transform.y) / k + pad;
+
+    // Arrowheads: 0 at reset (k=1), max 0.45 at k≈1.74 (~4 scrolls).
+    // Labels: fade in from k≈labelZoom over ~0.27 of zoom.
+    const labelFade = Math.max(0, Math.min(1, (k - labelZoom) / 0.27));
+    const arrowFade = Math.max(0, Math.min(0.45, (k - 1) / 0.74 * 0.45));
+    const pinned = _pinActive() ? activeNodeData : null;
+
+    // --- render-side smoothing: update drawn coordinates (_rx/_ry).
+    // Dragged nodes snap 1:1 so the cursor never lags behind. ---
+    let settling = false;
+    for (const n of nodes) {
+        if (n._rx === undefined || n._dragging) {
+            n._rx = n.x; n._ry = n.y;
+            continue;
+        }
+        const sdx = n.x - n._rx, sdy = n.y - n._ry;
+        if (Math.abs(sdx) + Math.abs(sdy) < 0.05) {
+            n._rx = n.x; n._ry = n.y;
+            continue;
+        }
+        n._rx += sdx * RENDER_SMOOTH;
+        n._ry += sdy * RENDER_SMOOTH;
+        settling = true;
+    }
+    // Keep animating until the drawn positions converge on the physics
+    // ones (the simulation may already have gone to sleep).
+    if (settling) requestDraw();
+
+    // --- edges: batched by resolved style (color / alpha / width / dash),
+    // one beginPath+stroke per bucket instead of one per edge ---
+    const buckets = new Map();
+    const arrows = [];
+    for (const l of links) {
+        if (l._vis === false) continue;
+        const sx = l.source._rx, sy = l.source._ry;
+        const txx = l.target._rx, tyy = l.target._ry;
+        if ((sx < vx0 && txx < vx0) || (sx > vx1 && txx > vx1)
+            || (sy < vy0 && tyy < vy0) || (sy > vy1 && tyy > vy1)) continue;
+        const dx = txx - sx, dy = tyy - sy;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        const srcR = l.source.size * nodeScale;
+        const tgtR = l.target.size * nodeScale;
+        const x1 = dist > srcR ? sx + dx * (srcR / dist) : sx;
+        const y1 = dist > srcR ? sy + dy * (srcR / dist) : sy;
+        const x2 = dist > tgtR + 2 ? txx - dx * ((tgtR + 2) / dist) : sx;
+        const y2 = dist > tgtR + 2 ? tyy - dy * ((tgtR + 2) / dist) : sy;
+
+        const isPath = pathLinks.has(l);
+        let color, strokeAlpha, w, dash;
+        // Element opacity channel (old CSS `opacity` on .link): dimmed
+        // and dead-mode multiply; stroke-opacity channel sits on top.
+        let elemAlpha = 1;
+        if (dimEdge && dimEdge(l)) elemAlpha *= 0.1;
+        if (showDead && !isPath) elemAlpha *= 0.1;
+        if (showUntracked && !isPath) elemAlpha *= 0.1;
+        if (isPath) {
+            color = "#a855f7"; strokeAlpha = 0.9; w = 3; dash = null;
+        } else {
+            color = shadedPair(EDGE_COLORS[l.type] || "#999")[0];
+            w = edgeWidth;
+            dash = EDGE_DASH[l.type] || null;
+            strokeAlpha = (hotEdge && hotEdge(l)) ? 1.0
+                : (l.type === "rename" ? 0.6 : edgeOpacity);
+        }
+        const alpha = elemAlpha * strokeAlpha;
+        if (alpha < 0.004) continue;
+
+        const key = color + "|" + alpha.toFixed(3) + "|" + w + "|"
+            + (dash ? dash.join(",") : "");
+        let b = buckets.get(key);
+        if (!b) {
+            b = { color, alpha, width: w, dash, pts: [] };
+            buckets.set(key, b);
+        }
+        b.pts.push(x1, y1, x2, y2);
+
+        if (arrowFade > 0 && l.type !== "rename") {
+            const aAlpha = arrowFade * elemAlpha;
+            if (aAlpha > 0.01) {
+                arrows.push({
+                    x: x2, y: y2, ux: dx / dist, uy: dy / dist,
+                    color, alpha: aAlpha
+                });
+            }
+        }
+    }
+    ctx.lineCap = "butt";
+    for (const b of buckets.values()) {
+        ctx.globalAlpha = b.alpha;
+        ctx.strokeStyle = b.color;
+        ctx.lineWidth = b.width;
+        ctx.setLineDash(b.dash || []);
+        ctx.beginPath();
+        const p = b.pts;
+        for (let i = 0; i < p.length; i += 4) {
+            ctx.moveTo(p[i], p[i + 1]);
+            ctx.lineTo(p[i + 2], p[i + 3]);
+        }
+        ctx.stroke();
+    }
+    ctx.setLineDash([]);
+
+    // --- arrowheads: open chevron at the trimmed target end ---
+    if (arrows.length) {
+        ctx.lineWidth = 1;
+        ctx.lineJoin = "round";
+        for (const a of arrows) {
+            ctx.globalAlpha = a.alpha;
+            ctx.strokeStyle = a.color;
+            const bx = a.x - a.ux * 4, by = a.y - a.uy * 4;
+            const px = -a.uy * 1.5, py = a.ux * 1.5;
+            ctx.beginPath();
+            ctx.moveTo(bx + px, by + py);
+            ctx.lineTo(a.x, a.y);
+            ctx.lineTo(bx - px, by - py);
+            ctx.stroke();
+        }
+    }
+
+    // --- nodes ---
+    for (const n of nodes) {
+        if (n._vis === false) continue;
+        const r = n.size * nodeScale;
+        if (n._rx < vx0 - r || n._rx > vx1 + r
+            || n._ry < vy0 - r || n._ry > vy1 + r) continue;
+        const isDead = deadNodes.has(n.id);
+        const isUntracked = untrackedNodes.has(n.id);
+        const isEndpoint = n === pathStart || n === pathEnd;
+        const isPinned = pinned !== null && n.id === pinned.id;
+        let circleAlpha = (dimNode && dimNode(n)) ? 0.2 : 1;
+        if (showDead && !isDead && !isPinned && !isEndpoint) {
+            circleAlpha = Math.min(circleAlpha, 0.22);
+        }
+        if (showUntracked && !isUntracked && !isPinned && !isEndpoint) {
+            circleAlpha = Math.min(circleAlpha, 0.22);
+        }
+        if (circleAlpha < 0.004) continue;
+        const pair = shadedPair(currentNodeColor(n));
+        let fill = pair[0];
+        if (n === hoverNode) {
+            fill = d3.color(fill).brighter(0.4).formatHex();
+        }
+        // Ring override priority mirrors the old CSS specificity:
+        // dead (in dead-mode) > path endpoint > pinned > sticky > base.
+        let ringColor = pair[1], ringWidth = 1.5;
+        let ringDash = n.ghost ? [3, 2] : null;
+        if (showDead && isDead) {
+            ringColor = "#ef4444"; ringWidth = 3; ringDash = null;
+        } else if (showUntracked && isUntracked) {
+            ringColor = "#f59e0b"; ringWidth = 3; ringDash = [4, 3];
+        } else if (isEndpoint) {
+            ringColor = "#a855f7"; ringWidth = 3; ringDash = null;
+        } else if (isPinned) {
+            ringColor = themeFg; ringWidth = 2.5;
+            if (n._sticky) ringDash = [3, 2];
+        } else if (n._sticky) {
+            ringColor = themeFg; ringWidth = 2; ringDash = [3, 2];
+        }
+        ctx.globalAlpha = circleAlpha;
+        ctx.beginPath();
+        ctx.arc(n._rx, n._ry, r, 0, 2 * Math.PI);
+        ctx.fillStyle = fill;
+        if (showDead && isDead) {
+            // Soft red glow (old CSS drop-shadow). Shadow params live in
+            // device space — scale by zoom and DPR manually.
+            ctx.shadowColor = "rgba(239, 68, 68, 0.7)";
+            ctx.shadowBlur = 3 * k * dpr;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        } else {
+            ctx.fill();
+        }
+        ctx.strokeStyle = ringColor;
+        ctx.lineWidth = ringWidth;
+        ctx.setLineDash(ringDash || []);
+        ctx.stroke();
+    }
+    ctx.setLineDash([]);
+
+    // --- labels ---
+    if (labelFade > 0 || pathActive() || activeEdge) {
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.font = labelFontSize
+            + "px 'Comic Relief', system-ui, sans-serif";
+        ctx.fillStyle = themeNodeText;
+        for (const n of nodes) {
+            if (n._vis === false) continue;
+            if (n._rx < vx0 || n._rx > vx1
+                || n._ry < vy0 || n._ry > vy1) continue;
+            let a;
+            if (isLabelForced(n)) {
+                a = 1;
+            } else {
+                a = labelFade;
+                if (dimNode && dimNode(n)) a = 0;
+                else if (showDead && !deadNodes.has(n.id)
+                    && !(pinned !== null && n.id === pinned.id)
+                    && n !== pathStart && n !== pathEnd) {
+                    a = Math.min(a, 0.10);
+                }
+                else if (showUntracked && !untrackedNodes.has(n.id)
+                    && !(pinned !== null && n.id === pinned.id)
+                    && n !== pathStart && n !== pathEnd) {
+                    a = Math.min(a, 0.10);
+                }
+            }
+            if (a > 0.01) {
+                ctx.globalAlpha = a;
+                ctx.fillText(n.label,
+                    n._rx + n.size * nodeScale + 3, n._ry);
+            }
+        }
+    }
+
+    // --- sticky markers: pin emoji whose needle tip sits at the node
+    // center; offsets tuned for Segoe UI Emoji / Twemoji proportions ---
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.globalAlpha = 1;
+    for (const n of nodes) {
+        if (!n._sticky || n._vis === false) continue;
+        const fs = Math.max(12, n.size * 1.6);
+        ctx.font = fs + "px 'Segoe UI Emoji', sans-serif";
+        ctx.fillText("📌", n._rx + fs * 0.38, n._ry - fs * 0.42);
+    }
+    ctx.globalAlpha = 1;
+}
+
+// === HIT TESTING ===
+function pickNode(wx, wy) {
+    const grace = 2 / transform.k;
+    let best = null, bestD2 = Infinity;
+    // Iterate in reverse so the top-most drawn node wins ties.
+    for (let i = nodes.length - 1; i >= 0; i--) {
+        const n = nodes[i];
+        if (n._vis === false) continue;
+        const r = n.size * nodeScale + grace;
+        // Test against the DRAWN (smoothed) position — that's what the
+        // user is aiming at; falls back to physics coords pre-first-draw.
+        const dx = wx - (n._rx ?? n.x), dy = wy - (n._ry ?? n.y);
+        const d2 = dx * dx + dy * dy;
+        if (d2 <= r * r && d2 < bestD2) { best = n; bestD2 = d2; }
+    }
+    return best;
+}
+
+function pickEdge(wx, wy) {
+    // 5 world units each side — matches the old invisible 10-wide
+    // hit-area strokes (they scaled with zoom too).
+    const tol = 5;
+    let best = null, bestD = Infinity;
+    for (const l of links) {
+        if (l._vis === false) continue;
+        const x1 = l.source._rx ?? l.source.x, y1 = l.source._ry ?? l.source.y;
+        const x2 = l.target._rx ?? l.target.x, y2 = l.target._ry ?? l.target.y;
+        if (wx < Math.min(x1, x2) - tol || wx > Math.max(x1, x2) + tol
+            || wy < Math.min(y1, y2) - tol || wy > Math.max(y1, y2) + tol)
+            continue;
+        const ddx = x2 - x1, ddy = y2 - y1;
+        const len2 = ddx * ddx + ddy * ddy || 1;
+        let t = ((wx - x1) * ddx + (wy - y1) * ddy) / len2;
+        t = Math.max(0, Math.min(1, t));
+        const px = x1 + t * ddx, py = y1 + t * ddy;
+        const d = Math.hypot(wx - px, wy - py);
+        if (d <= tol && d < bestD) { best = l; bestD = d; }
+    }
+    return best;
+}
+
+function pickNodeAtEvent(event) {
+    const [px, py] = d3.pointer(event, canvas);
+    const [wx, wy] = transform.invert([px, py]);
+    return pickNode(wx, wy);
+}
+
+// === DRAG (nodes) ===
+const drag = d3.drag()
+    .container(canvas)
+    .subject(event => pickNodeAtEvent(event.sourceEvent || event))
+    .on("start", (event) => {
+        const d = event.subject;
+        isDragging = true;
+        dragNode = d;
+        d._dragging = true;
+        // Drop any hover dim while dragging (old behavior).
+        dimNode = null; dimEdge = null; hotEdge = null;
+        const [wx, wy] = transform.invert(
+            d3.pointer(event.sourceEvent, canvas));
+        // Keep the grab offset so the node doesn't snap to the cursor.
+        d._grabDx = d.x - wx;
+        d._grabDy = d.y - wy;
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x; d.fy = d.y;
+        requestDraw();
+    })
+    .on("drag", (event) => {
+        const d = event.subject;
+        const [wx, wy] = transform.invert(
+            d3.pointer(event.sourceEvent, canvas));
+        d.fx = wx + d._grabDx;
+        d.fy = wy + d._grabDy;
+    })
+    .on("end", (event) => {
+        const d = event.subject;
+        isDragging = false;
+        dragNode = null;
+        d._dragging = false;
+        if (activeNodeData && !infoPanel.classList.contains("hidden")) {
+            applyPinDim(activeNodeData);
+        }
+        if (!event.active) simulation.alphaTarget(0);
+        // Zero velocity at release → no whip on snap-back.
+        d.vx = 0; d.vy = 0;
+        // Orphans: fx/fy stays — tickRefitOrphanRing() will lerp them back.
+        // Sticky (double-click pinned) nodes: fx/fy stays — that's the point.
+        // Otherwise release back to the simulation.
+        if (d.degree !== 0 && !d._sticky) {
+            d.fx = null; d.fy = null;
+        }
+        requestDraw();
+    });
+// Drag binds its mousedown first and claims node hits (stops propagation);
+// zoom's filter additionally rejects node hits for dblclick-zoom.
+canvasSel.call(drag);
+bindCanvasZoom();
+
+// === POINTER DISPATCH (hover / click / dblclick) ===
+// One set of listeners on the canvas replaces per-element SVG handlers.
+// Priority mirrors the old DOM stacking: nodes on top, then edges, then
+// the background.
+let _lastHoverEdge = null;
+canvas.addEventListener("mousemove", (event) => {
+    if (isDragging) return;
+    const [wx, wy] = transform.invert(d3.pointer(event, canvas));
+    const n = pickNode(wx, wy);
+    const l = n ? null : pickEdge(wx, wy);
+    canvas.style.cursor = n ? "pointer" : (l ? "help" : "default");
+    if (n !== hoverNode) {
+        if (hoverNode) onNodeLeave();
+        hoverNode = n;
+        if (n) onNodeEnter(n);
+        requestDraw();
+    }
+    if (l !== _lastHoverEdge) {
+        _lastHoverEdge = l;
+        if (l) showEdgeTooltip(event, l);
+        else hideEdgeTooltip();
+    } else if (l) {
+        moveEdgeTooltip(event);
+    }
+});
+canvas.addEventListener("mouseleave", () => {
+    if (hoverNode) {
+        onNodeLeave();
+        hoverNode = null;
+        requestDraw();
+    }
+    if (_lastHoverEdge) {
+        hideEdgeTooltip();
+        _lastHoverEdge = null;
+    }
+    canvas.style.cursor = "default";
+});
+canvas.addEventListener("click", (event) => {
+    const [wx, wy] = transform.invert(d3.pointer(event, canvas));
+    const n = pickNode(wx, wy);
+    if (n) { onNodeClick(event, n); return; }
+    const l = pickEdge(wx, wy);
+    if (l) { onEdgeClick(l); return; }
+    dropAllSelections();
+});
+canvas.addEventListener("dblclick", (event) => {
+    const n = pickNodeAtEvent(event);
+    if (!n) return;  // background dblclick → d3.zoom's dblclick-zoom
+    onNodeDblClick(n);
+});
+
+// Edge click: focus the edge, or drop selections when it's faded.
+function onEdgeClick(d) {
+    if (isEdgeFaded(d)) {
+        dropAllSelections();
+        return;
+    }
+    if (!isEdgeVisuallyVisible(d)) return;
+    clearPinDim();
+    infoPanel.classList.add("hidden");
+    applyEdgeFocus(d);
+    hideEdgeTooltip();
+}
+
+// === HOVER ===
+// Hover: debounced highlight to prevent flicker during rapid mouse moves
+let hoverTimer = null;
+
+// === PIN / EDGE FOCUS / DIM ===
+// Restore the search dim (or clear all dims) — shared tail of every
+// clear* function below; replaces the repeated SVG class resets.
+function restoreSearchDim() {
+    if (searchQuery) {
+        dimNode = n => !searchMatching.has(n.id);
+        dimEdge = l =>
+            !searchMatching.has(l.source.id) &&
+            !searchMatching.has(l.target.id);
+    } else {
+        dimNode = null;
+        dimEdge = null;
+    }
+    hotEdge = null;
+}
+
+function applyPinDim(d) {
+    const nb = neighborMap.get(d.id) || new Set([d.id]);
+    dimNode = n => !nb.has(n.id);
+    dimEdge = l => l.source.id !== d.id && l.target.id !== d.id;
+    hotEdge = l => l.source.id === d.id || l.target.id === d.id;
+    requestDraw();
+}
+
+function clearPinDim() {
+    activeNodeData = null;
+    restoreSearchDim();
+    requestDraw();
+}
+
+// Edge focus: click on a link → keep source/target nodes + the edge,
+// dim everything else. No info-panel is opened.
+function applyEdgeFocus(d) {
+    activeEdge = d;
+    activeNodeData = null;
+    infoPanel.classList.add("hidden");
+    dimNode = n => n.id !== d.source.id && n.id !== d.target.id;
+    dimEdge = l => l !== d;
+    hotEdge = l => l === d;
+    requestDraw();
+}
+function clearEdgeFocus() {
+    if (!activeEdge) return;
+    activeEdge = null;
+    restoreSearchDim();
+    requestDraw();
+}
+function _pinActive() {
+    return activeNodeData && !infoPanel.classList.contains("hidden");
+}
+
+// === PATH MODE (shift+click two nodes) ===
+// BFS over the undirected adjacency built into neighborMap. Returns an
+// array of node ids from `from` to `to` (inclusive), or [] if unreachable.
+function bfsPath(fromId, toId) {
+    if (fromId === toId) return [fromId];
+    const parent = new Map();
+    parent.set(fromId, null);
+    const queue = [fromId];
+    while (queue.length) {
+        const cur = queue.shift();
+        const nb = neighborMap.get(cur);
+        if (!nb) continue;
+        for (const next of nb) {
+            if (next === cur || parent.has(next)) continue;
+            parent.set(next, cur);
+            if (next === toId) {
+                const path = [];
+                let n = toId;
+                while (n !== null) { path.unshift(n); n = parent.get(n); }
+                return path;
+            }
+            queue.push(next);
+        }
+    }
+    return [];
+}
+function applyPath(fromNode, toNode) {
+    const ids = bfsPath(fromNode.id, toNode.id);
+    if (!ids.length) {
+        showToast(t("toast.noPath"));
+        return false;
+    }
+    pathStart = fromNode;
+    pathEnd = toNode;
+    pathNodeIds = new Set(ids);
+    pathLinks = new Set();
+    // Build edge set: for each consecutive pair in the path, find a link
+    // connecting them in either direction.
+    for (let i = 0; i + 1 < ids.length; i++) {
+        const a = ids[i], b = ids[i + 1];
+        const link = links.find(l => {
+            const s = l.source.id ?? l.source;
+            const tg = l.target.id ?? l.target;
+            return (s === a && tg === b) || (s === b && tg === a);
+        });
+        if (link) pathLinks.add(link);
+    }
+    // Visual: dim everything outside the path; endpoints, path edges and
+    // forced labels are resolved inside draw() from the path state.
+    dimNode = n => !pathNodeIds.has(n.id);
+    dimEdge = l => !pathLinks.has(l);
+    hotEdge = null;
+    requestDraw();
+    return true;
+}
+function clearPath() {
+    if (!pathStart && !pathEnd) return;
+    pathStart = null;
+    pathEnd = null;
+    pathNodeIds = new Set();
+    pathLinks = new Set();
+    restoreSearchDim();
+    requestDraw();
+}
+function pathActive() { return pathStart !== null && pathEnd !== null; }
+function pathPending() { return pathStart !== null && pathEnd === null; }
+
+// Toast (shared with copy-toast element).
+let _genericToastTimer = null;
+function showToast(msg) {
+    const toast = document.getElementById("copy-toast");
+    if (!toast) return;
+    toast.textContent = msg;
+    toast.classList.add("visible");
+    clearTimeout(_genericToastTimer);
+    _genericToastTimer = setTimeout(
+        () => toast.classList.remove("visible"), 1600);
+}
+function onNodeEnter(d) {
+    if (isDragging || activeEdge) return;
+    // Path mode owns the dim state — hover must not touch it.
+    if (pathActive() || pathPending()) return;
+    // Pin mode: peek second-level neighbors when hovering an in-set node;
+    // ignore hover on faded nodes (don't break the pin highlight).
+    if (_pinActive()) {
+        const pinNb = neighborMap.get(activeNodeData.id)
+            || new Set([activeNodeData.id]);
+        if (!pinNb.has(d.id)) return;  // hovered node is faded
+        clearTimeout(hoverTimer);
+        hoverTimer = setTimeout(() => {
+            if (isDragging || activeEdge || !_pinActive()) return;
+            const pinId = activeNodeData.id;
+            const pinNbNow = neighborMap.get(pinId) || new Set([pinId]);
+            if (!pinNbNow.has(d.id)) return;
+            const hoverNb = neighborMap.get(d.id) || new Set([d.id]);
+            const showSet = new Set([...pinNbNow, ...hoverNb]);
+            const isPinEdge = l =>
+                l.source.id === pinId || l.target.id === pinId;
+            const isHoverEdge = l =>
+                l.source.id === d.id || l.target.id === d.id;
+            dimNode = n => !showSet.has(n.id);
+            dimEdge = l => !(isPinEdge(l) || isHoverEdge(l));
+            hotEdge = l => isPinEdge(l) || isHoverEdge(l);
+            requestDraw();
+        }, 80);
+        return;
+    }
+    // No active selection — original hover-highlight behavior
+    clearTimeout(hoverTimer);
+    hoverTimer = setTimeout(() => {
+        if (isDragging || activeEdge || _pinActive()) return;
+        const nb = neighborMap.get(d.id) || new Set([d.id]);
+        dimNode = n => !nb.has(n.id);
+        dimEdge = l => l.source.id !== d.id && l.target.id !== d.id;
+        hotEdge = l => l.source.id === d.id || l.target.id === d.id;
+        requestDraw();
+    }, 80);
+}
+
+function onNodeLeave() {
+    if (isDragging || activeEdge) return;
+    // Path mode owns the dim state — keep it intact on mouseout.
+    if (pathActive() || pathPending()) return;
+    clearTimeout(hoverTimer);
+    // Pin mode: drop the hover-peek layer, keep pin highlight intact.
+    if (_pinActive()) {
+        applyPinDim(activeNodeData);
+        return;
+    }
+    hoverTimer = setTimeout(() => {
+        if (isDragging || activeEdge || _pinActive()) return;
+        restoreSearchDim();
+        requestDraw();
+    }, 80);
+}
+
+// === UTILS & INFO-PANEL ===
+function esc(s) {
+    return String(s)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function buildFileHref(filePath, line) {
+    const abs = PROJECT_ROOT + "/" + filePath;
+    if (ideScheme === "vscode")
+        return "vscode://file/" + abs + (line ? ":" + line : "");
+    if (ideScheme === "cursor")
+        return "cursor://file/" + abs + (line ? ":" + line : "");
+    if (ideScheme === "pycharm") {
+        const q = line ? "&line=" + line : "";
+        return "pycharm://open?file=" + abs + q;
+    }
+    return null; // copy mode
+}
+
+// Info panel
+const infoPanel    = document.getElementById("info-panel");
+const infoTitle    = document.getElementById("info-title");
+const infoPath     = document.getElementById("info-path");
+const infoConns    = document.getElementById("info-connections");
+infoConns.addEventListener("click", e => {
+    const btn = e.target.closest(".conn-more");
+    if (!btn) return;
+    e.stopPropagation();
+    const extra = btn.closest("li").querySelector(".conn-extra");
+    if (!extra) return;
+    const isOpen = extra.style.display !== "none";
+    extra.style.display = isOpen ? "none" : "";
+    const arrow = btn.querySelector(".conn-arrow");
+    if (arrow) arrow.textContent = isOpen ? "▸" : "▾";
+});
+// Clickable breadcrumb segments in #info-path: clicking a directory
+// segment writes its prefix into the search box, so the existing search
+// machinery dims everything outside that subtree.
+document.getElementById("info-path").addEventListener("click", e => {
+    const seg = e.target.closest(".bc-seg");
+    if (!seg) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const prefix = seg.dataset.prefix;
+    const searchEl = document.getElementById("search");
+    searchEl.value = prefix;
+    searchEl.dispatchEvent(new Event("input"));
+});
+const infoTypeEl   = document.getElementById("info-type");
+const infoConnCnt  = document.getElementById("info-conn-count");
+
+function renderInfoPanel(d) {
+    const connected = [];
+    links.forEach(l => {
+        const cd = l.type === "code->doc";
+        if (l.source.id === d.id)
+            connected.push({
+                node: l.target, dir: cd ? "←" : "→", type: l.type, edge: l});
+        if (l.target.id === d.id)
+            connected.push({
+                node: l.source, dir: cd ? "→" : "←", type: l.type, edge: l});
+    });
+    infoTitle.textContent = d.label;
+    // Path as clickable breadcrumbs: each directory segment becomes a span
+    // that, on click, filters the graph by that path prefix (via the search
+    // box). The filename segment keeps its IDE-open / copy-path behavior.
+    const segs = d.path.split("/");
+    const filename = segs.pop();
+    let bc = "";
+    let acc = "";
+    segs.forEach((seg, i) => {
+        acc = i === 0 ? seg : acc + "/" + seg;
+        bc += '<span class="bc-seg" data-prefix="' + esc(acc) + '" title="'
+            + esc(acc) + '">' + esc(seg) + '</span>'
+            + '<span class="bc-sep">/</span>';
+    });
+    const pathHref = buildFileHref(d.path, null);
+    const fileLink = pathHref
+        ? '<a href="' + esc(pathHref) + '" class="conn-link">'
+            + esc(filename) + "</a>"
+        : '<span class="conn-link conn-copy" data-copy="'
+            + esc(PROJECT_ROOT + "/" + d.path)
+            + '" title="' + esc(t("info.copyTitle")) + '">'
+            + esc(filename) + "</span>";
+    infoPath.innerHTML = bc + fileLink;
+    const typeColor = activeColors[d.type] || "#999";
+    infoTypeEl.innerHTML =
+        '<span style="display:inline-block;width:9px;height:9px;'
+        + 'border-radius:50%;background:' + esc(typeColor)
+        + ';margin-right:6px;flex-shrink:0"></span>'
+        + esc(d.type);
+    infoTypeEl.style.color = "";
+    const outgoing = connected.filter(c => c.dir === "→");
+    const incoming = connected.filter(c => c.dir === "←");
+    const n = connected.length;
+    infoConnCnt.textContent = tFmt("connectionCount", n);
+
+    function renderConnItem(c, isOutgoing, displayLabel) {
+        const lns = c.edge.lines || [];
+        const firstLine = lns.length ? lns[0] : null;
+        const rest = lns.slice(1);
+        const filePath = (isOutgoing && firstLine !== null) ? d.path : c.node.path;
+        const href = buildFileHref(filePath, firstLine);
+        const labelText = displayLabel(c) + (firstLine !== null ? ":" + firstLine : "");
+        const inner = esc(labelText);
+        const copyPath = PROJECT_ROOT + "/" + filePath
+            + (firstLine !== null ? ":" + firstLine : "");
+        const linkEl = href
+            ? '<a href="' + esc(href) + '" class="conn-link">' + inner + "</a>"
+            : '<span class="conn-link conn-copy" data-copy="' + esc(copyPath)
+                + '" title="' + esc(t("info.copyTitle")) + '">' + inner + "</span>";
+        let moreBtn = "";
+        let extraList = "";
+        if (rest.length) {
+            moreBtn = ' <button class="conn-more"><span class="conn-arrow">▸</span> +'
+                + rest.length + "</button>";
+            const extraItems = rest.map(ln => {
+                const lhref = buildFileHref(filePath, ln);
+                const ec = PROJECT_ROOT + "/" + filePath + ":" + ln;
+                return lhref
+                    ? '<li><a class="conn-extra-ln" href="'
+                        + esc(lhref) + '">:' + ln + "</a></li>"
+                    : '<li><span class="conn-extra-ln conn-copy" data-copy="'
+                        + esc(ec) + '">:' + ln + "</span></li>";
+            }).join("");
+            extraList = '<ul class="conn-extra" style="display:none">'
+                + extraItems + "</ul>";
+        }
+        return "<li>" + linkEl + " "
+            + '<span class="conn-type">[' + esc(c.type) + "]</span>"
+            + moreBtn + extraList + "</li>";
+    }
+
+    function buildGroup(label, items, isOutgoing) {
+        if (!items.length) return "";
+        const counts = new Map();
+        items.forEach(c =>
+            counts.set(c.node.label, (counts.get(c.node.label) || 0) + 1));
+        const displayLabel = c => {
+            if ((counts.get(c.node.label) || 0) > 1) {
+                const parts = c.node.path.split("/");
+                if (parts.length >= 2)
+                    return parts[parts.length - 2] + "/" + c.node.label;
+            }
+            return c.node.label;
+        };
+        const sorted = items.slice().sort(
+            (a, b) => a.node.label.localeCompare(b.node.label)
+                || (a.edge.lines[0] || 0) - (b.edge.lines[0] || 0));
+        const rows = sorted.map(c => renderConnItem(c, isOutgoing, displayLabel));
+        return '<div class="conn-group">'
+            + '<div class="conn-group-hdr">' + label
+            + ' <span class="conn-count">(' + items.length + ")</span></div>"
+            + "<ul>" + rows.join("") + "</ul></div>";
+    }
+
+    infoConns.innerHTML =
+        buildGroup(t("info.outgoing"), outgoing, true)
+        + buildGroup(t("info.incoming"), incoming, false);
+
+    infoConns.querySelectorAll(".conn-group-hdr").forEach(hdr => {
+        hdr.addEventListener("click", () => {
+            const ul = hdr.nextElementSibling;
+            const isCollapsed = ul.style.display === "none";
+            ul.style.display = isCollapsed ? "" : "none";
+            hdr.classList.toggle("collapsed", !isCollapsed);
+        });
+    });
+    applyPinDim(d);
+    infoPanel.classList.remove("hidden");
+    if (typeof updateUrlState === "function") updateUrlState();
+}
+
+// === CLICK HANDLERS ===
+function dropAllSelections() {
+    infoPanel.classList.add("hidden");
+    clearPinDim();
+    clearEdgeFocus();
+    clearPath();
+    hideEdgeTooltip();
+    if (typeof updateUrlState === "function") updateUrlState();
+}
+
+// True when a node is faded out by the active pin/edge/path selection.
+function isNodeFaded(d) {
+    if (pathActive()) return !pathNodeIds.has(d.id);
+    if (activeNodeData && !infoPanel.classList.contains("hidden")) {
+        const nb = neighborMap.get(activeNodeData.id);
+        return !(nb && nb.has(d.id));
+    }
+    if (activeEdge) {
+        return d.id !== activeEdge.source.id && d.id !== activeEdge.target.id;
+    }
+    return false;
+}
+// True when an edge is faded out by the active pin/edge/path selection.
+function isEdgeFaded(d) {
+    if (pathActive()) return !pathLinks.has(d);
+    if (activeNodeData && !infoPanel.classList.contains("hidden")) {
+        return d.source.id !== activeNodeData.id
+            && d.target.id !== activeNodeData.id;
+    }
+    if (activeEdge) {
+        return d !== activeEdge;
+    }
+    return false;
+}
+
+function onNodeClick(event, d) {
+    // Shift+click — path mode: pick endpoints, draw shortest BFS path
+    if (event.shiftKey) {
+        if (!pathStart) {
+            // First endpoint — the endpoint ring is drawn from pathStart
+            clearPinDim();
+            clearEdgeFocus();
+            infoPanel.classList.add("hidden");
+            pathStart = d;
+            requestDraw();
+        } else if (pathStart === d) {
+            // Toggling off the start
+            clearPath();
+        } else {
+            // Second endpoint — compute and show
+            applyPath(pathStart, d);
+        }
+        return;
+    }
+    // A normal click while in path-pending mode cancels the pending start
+    if (pathPending() || pathActive()) {
+        clearPath();
+    }
+    if (isNodeFaded(d)) {
+        dropAllSelections();
+        return;
+    }
+    clearEdgeFocus();
+    activeNodeData = d;
+    renderInfoPanel(d);
+}
+
+// Double-click: toggle "sticky" — pin the node's position via fx/fy so the
+// physics simulation stops moving it. Use a dedicated `_sticky` flag instead
+// of inferring from fx/fy directly, because orphans already have fx/fy set
+// permanently by the orphan-ring layout (tickRefitOrphanRing). For orphans
+// the ring layout wins and a manual sticky would be lerped back over time —
+// skip them.
+function onNodeDblClick(d) {
+    if (d.degree === 0) return;  // orphan: ring layout owns fx/fy
+    if (d._sticky) {
+        d._sticky = false;
+        d.fx = null;
+        d.fy = null;
+    } else {
+        d._sticky = true;
+        d.fx = d.x;
+        d.fy = d.y;
+    }
+    requestDraw();
+}
+document.getElementById("info-close").addEventListener("click", () => {
+    infoPanel.classList.add("hidden");
+    clearPinDim();
+});
+let _copyToastTimer = null;
+function showCopyToast() {
+    const toast = document.getElementById("copy-toast");
+    toast.classList.add("visible");
+    clearTimeout(_copyToastTimer);
+    _copyToastTimer = setTimeout(() => toast.classList.remove("visible"), 1600);
+}
+
+infoPanel.addEventListener("click", e => {
+    const el = e.target.closest(".conn-copy");
+    if (!el) return;
+    e.stopPropagation();
+    const text = el.dataset.copy || "";
+    try {
+        navigator.clipboard.writeText(text)
+            .then(showCopyToast)
+            .catch(() => prompt("Copy path:", text));
+    } catch(_) { prompt("Copy path:", text); }
+});
+
+// === VISIBILITY FILTER ===
+// Visibility filter: legend types + name exclusions + edge types
+const hiddenTypes = new Set();
+const excludedNames = new Set();
+const hiddenEdgeTypes = new Set();
+
+function baseNodeVisible(n) {
+    // Ghost nodes exist only in git mode (was a CSS display rule).
+    if (!gitMode && n.ghost) return false;
+    if (gitMode && n.gitStatus && hiddenGitStatuses.has(n.gitStatus))
+        return false;
+    return !hiddenTypes.has(n.type)
+        && !excludedNames.has(n.label)
+        && !excludedNames.has(n.stem);
+}
+function isNodeVisible(n) { return baseNodeVisible(n); }
+
+// Ghost links and rename edges exist only in git mode (was CSS too).
+function linkGhostOk(l) {
+    return gitMode || !(l.ghost || l.type === "rename");
+}
+
+// Recompute the `_vis` flag on every node and link; draw() and the
+// hit-testing helpers consult the flags. Replaces the SVG display attrs.
+function applyAllFilters() {
+    if (showAll) {
+        nodes.forEach(n => { n._vis = gitMode || !n.ghost; });
+        links.forEach(l => { l._vis = linkGhostOk(l); });
+        requestDraw();
+        return;
+    }
+    if (orphansOnly) {
+        nodes.forEach(n => {
+            n._vis = n.degree === 0 && (gitMode || !n.ghost);
+        });
+        links.forEach(l => { l._vis = false; });
+        requestDraw();
+        return;
+    }
+    // When an edge-type filter is active, also hide nodes that no longer
+    // participate in any visible edge — otherwise "isolate docstring"
+    // leaves a swarm of disconnected blobs around the actual subgraph.
+    const hasEdgeFilter = hiddenEdgeTypes.size > 0;
+    let connectedIds = null;
+    if (hasEdgeFilter) {
+        connectedIds = new Set();
+        links.forEach(l => {
+            if (hiddenEdgeTypes.has(l.type)) return;
+            if (!baseNodeVisible(l.source) || !baseNodeVisible(l.target)) return;
+            connectedIds.add(l.source.id);
+            connectedIds.add(l.target.id);
+        });
+    }
+    nodes.forEach(n => {
+        n._vis = baseNodeVisible(n)
+            && (!hasEdgeFilter || connectedIds.has(n.id));
+    });
+    links.forEach(l => {
+        l._vis = linkGhostOk(l)
+            && !hiddenEdgeTypes.has(l.type)
+            && baseNodeVisible(l.source) && baseNodeVisible(l.target);
+    });
+    requestDraw();
+}
+
+function deactivateShowAll() {
+    showAll = false;
+    document.getElementById("btn-show-all")
+        .classList.remove("active");
+}
+
+// Preferences: auto-save to localStorage + manual export/import
+// === PREFS ===
+const PREF_KEY = "graph-prefs-v2";
+let _prefLoading = false;
+
+function savePrefs() {
+    if (_prefLoading) return;
+    const panelIds = [
+        "controls-left", "legend", "exclude-panel",
+        "info-panel", "controls", "theme-toggle", "help-panel"
+    ];
+    const panels = {};
+    panelIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && (el.style.left || el.style.width || el.style.height)) {
+            // Persist desired position when set — so a clamp from a small
+            // viewport doesn't permanently move the panel toward the edge.
+            const left = el.dataset.desiredLeft !== undefined
+                ? el.dataset.desiredLeft + "px" : el.style.left;
+            const top = el.dataset.desiredTop !== undefined
+                ? el.dataset.desiredTop + "px" : el.style.top;
+            panels[id] = {
+                left: left, top: top,
+                right: el.style.right, bottom: el.style.bottom,
+                transform: el.style.transform,
+                width: el.style.width,
+                height: el.style.height
+            };
+        }
+    });
+    const sliderIds = [
+        "ctrl-contrast", "ctrl-node-scale", "ctrl-edge-width",
+        "ctrl-edge-opacity", "ctrl-font-size", "ctrl-label-zoom",
+        "ctrl-charge", "ctrl-link"
+    ];
+    const sliders = {};
+    sliderIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) sliders[id] = el.value;
+    });
+    const collapsedPanels = ["controls-left", "legend", "exclude-panel"]
+        .filter(id => {
+            const el = document.getElementById(id);
+            return el && el.classList.contains("collapsed");
+        });
+    try {
+        localStorage.setItem(PREF_KEY, JSON.stringify({
+            sliders,
+            hiddenTypes: [...hiddenTypes],
+            hiddenEdgeTypes: [...hiddenEdgeTypes],
+            theme: document.body.classList.contains("light"),
+            palette: currentPalette,
+            ide: ideScheme,
+            lang: currentLang,
+            gitMode,
+            hiddenGitStatuses: [...hiddenGitStatuses],
+            panels,
+            collapsedPanels,
+            showDead,
+            showUntracked
+        }));
+    } catch(e) {}
+    updateUrlState();
+}
+
+// === URL STATE (shareable view via location.hash) ===
+// Whitelist of shareable fields — only "view-defining" state, NOT per-user
+// preferences (panel positions, sliders, IDE, collapsed panels). The hash
+// is human-readable: `#theme=dark&hidden=docs,tests&pin=path/to/file`.
+// On load, hash overrides equivalents from localStorage so a shared link
+// preserves the recipient's panel layout but applies the sender's view.
+function getShareableState() {
+    return {
+        lang: currentLang !== "en" ? currentLang : null,
+        theme: document.body.classList.contains("light") ? "light" : null,
+        palette: currentPalette === "saturated" ? "sat" : null,
+        gitMode: gitMode ? "1" : null,
+        showDead: showDead ? "1" : null,
+        showUnmapped: showUntracked ? "1" : null,
+        hiddenTypes: hiddenTypes.size ? [...hiddenTypes].join(",") : null,
+        hiddenEdges: hiddenEdgeTypes.size
+            ? [...hiddenEdgeTypes].join(",") : null,
+        hiddenGit: hiddenGitStatuses.size
+            ? [...hiddenGitStatuses].join(",") : null,
+        search: searchQuery || null,
+        pin: (activeNodeData && !infoPanel.classList.contains("hidden"))
+            ? activeNodeData.id : null,
+    };
+}
+function encodeStateHash(state) {
+    const parts = [];
+    Object.entries(state).forEach(([k, v]) => {
+        if (v === null || v === "" || v === undefined) return;
+        parts.push(encodeURIComponent(k) + "=" + encodeURIComponent(v));
+    });
+    return parts.length ? "#" + parts.join("&") : "";
+}
+function decodeStateHash(hash) {
+    const out = {};
+    if (!hash || hash === "#") return out;
+    const raw = hash.startsWith("#") ? hash.slice(1) : hash;
+    raw.split("&").forEach(pair => {
+        if (!pair) return;
+        const eq = pair.indexOf("=");
+        if (eq === -1) return;
+        const k = decodeURIComponent(pair.slice(0, eq));
+        const v = decodeURIComponent(pair.slice(eq + 1));
+        out[k] = v;
+    });
+    return out;
+}
+let _suppressUrlUpdate = false;
+function updateUrlState() {
+    if (_suppressUrlUpdate) return;
+    if (_prefLoading) return;
+    const hash = encodeStateHash(getShareableState());
+    // replaceState avoids spamming browser history with every toggle
+    history.replaceState(null, "", location.pathname + location.search
+        + (hash || "#"));
+    if (!hash) {
+        // Strip the trailing "#" entirely if state is empty
+        history.replaceState(null, "", location.pathname + location.search);
+    }
+}
+function applyShareableState(s) {
+    if (!s || !Object.keys(s).length) return;
+    _suppressUrlUpdate = true;
+    try {
+        if (s.lang && I18N[s.lang]) {
+            applyI18n(s.lang);
+            const sel = document.getElementById("select-lang");
+            if (sel) sel.value = s.lang;
+        }
+        if (s.theme === "light") {
+            document.body.classList.add("light");
+            const cb = document.getElementById("theme-check");
+            if (cb) cb.checked = true;
+        }
+        if (s.palette === "sat") {
+            const chk = document.getElementById("palette-check");
+            if (chk && !chk.checked) {
+                chk.checked = true;
+                chk.dispatchEvent(new Event("change"));
+            }
+        }
+        if (s.hiddenTypes) {
+            hiddenTypes.clear();
+            s.hiddenTypes.split(",").forEach(t => hiddenTypes.add(t));
+            document.querySelectorAll("[data-legend-type]").forEach(el => {
+                el.classList.toggle("hidden-type",
+                    hiddenTypes.has(el.getAttribute("data-legend-type")));
+            });
+        }
+        if (s.hiddenEdges) {
+            hiddenEdgeTypes.clear();
+            s.hiddenEdges.split(",").forEach(t => hiddenEdgeTypes.add(t));
+            document.querySelectorAll("[data-edge-type]").forEach(el => {
+                el.classList.toggle("hidden-type",
+                    hiddenEdgeTypes.has(el.getAttribute("data-edge-type")));
+            });
+        }
+        if (s.hiddenGit) {
+            hiddenGitStatuses.clear();
+            s.hiddenGit.split(",").forEach(t => hiddenGitStatuses.add(t));
+            document.querySelectorAll("[data-git-status]").forEach(el => {
+                el.classList.toggle("hidden-type",
+                    hiddenGitStatuses.has(el.getAttribute("data-git-status")));
+            });
+        }
+        if (s.gitMode === "1" && GIT_DATA) applyGitMode(true);
+        if (s.showDead === "1" && deadNodes.size > 0) {
+            showDead = true;
+            document.body.classList.add("show-dead");
+            const btn = document.getElementById("btn-dead");
+            if (btn) btn.classList.add("active");
+        }
+        if (s.showUnmapped === "1" && untrackedNodes.size > 0) {
+            showUntracked = true;
+            const btn = document.getElementById("btn-untracked");
+            if (btn) btn.classList.add("active");
+        }
+        if (s.search) {
+            const searchEl = document.getElementById("search");
+            if (searchEl) {
+                searchEl.value = s.search;
+                applySearch(s.search.toLowerCase().trim());
+            }
+        }
+        if (s.pin) {
+            const node = nodes.find(n => n.id === s.pin);
+            if (node) {
+                activeNodeData = node;
+                renderInfoPanel(node);
+            }
+        }
+        applyAllFilters();
+    } finally {
+        _suppressUrlUpdate = false;
+    }
+    updateUrlState();
+}
+
+function loadPrefs() {
+    let prefs;
+    try {
+        const raw = localStorage.getItem(PREF_KEY);
+        if (!raw) return;
+        prefs = JSON.parse(raw);
+    } catch(e) { return; }
+    _prefLoading = true;
+    // Language (apply early so the rest of UI updates pick it up implicitly)
+    if (prefs.lang && I18N[prefs.lang]) {
+        applyI18n(prefs.lang);
+    }
+    // Theme
+    if (prefs.theme) {
+        document.getElementById("theme-check").checked = true;
+        document.body.classList.add("light");
+    }
+    // Hidden node types
+    if (prefs.hiddenTypes) {
+        prefs.hiddenTypes.forEach(t => {
+            hiddenTypes.add(t);
+            const el = document.querySelector(
+                '[data-legend-type="' + t + '"]');
+            if (el) el.classList.add("hidden-type");
+        });
+    }
+    // Hidden edge types
+    if (prefs.hiddenEdgeTypes) {
+        prefs.hiddenEdgeTypes.forEach(t => {
+            hiddenEdgeTypes.add(t);
+            const el = document.querySelector(
+                '[data-edge-type="' + t + '"]');
+            if (el) el.classList.add("hidden-type");
+        });
+    }
+    // Sliders
+    if (prefs.sliders) {
+        Object.entries(prefs.sliders).forEach(([id, val]) => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.value = val;
+                el.dispatchEvent(new Event("input"));
+            }
+        });
+    }
+    // Panel positions
+    if (prefs.panels) {
+        Object.entries(prefs.panels).forEach(([id, pos]) => {
+            const el = document.getElementById(id);
+            if (el && pos) {
+                if (pos.left)  el.style.left = pos.left;
+                if (pos.top)   el.style.top  = pos.top;
+                el.style.right     = pos.right     || "auto";
+                el.style.bottom    = pos.bottom    || "auto";
+                el.style.transform = pos.transform || "none";
+                if (pos.width) el.style.width = pos.width;
+                if (pos.height) el.style.height = pos.height;
+                // Mirror saved position into desired-* so clamp can restore
+                // it if the viewport later grows.
+                if (pos.left) el.dataset.desiredLeft = parseFloat(pos.left);
+                if (pos.top)  el.dataset.desiredTop  = parseFloat(pos.top);
+            }
+        });
+    }
+    // Palette
+    if (prefs.palette === "saturated") {
+        const chk = document.getElementById("palette-check");
+        if (chk) {
+            chk.checked = true;
+            chk.dispatchEvent(new Event("change"));
+        }
+    }
+    // Git overlay state
+    if (prefs.hiddenGitStatuses) {
+        prefs.hiddenGitStatuses.forEach(s => {
+            hiddenGitStatuses.add(s);
+            const el = document.querySelector(
+                '[data-git-status="' + s + '"]');
+            if (el) el.classList.add("hidden-type");
+        });
+    }
+    if (prefs.gitMode && GIT_DATA) {
+        applyGitMode(true);
+    }
+    // IDE scheme
+    if (prefs.ide) {
+        ideScheme = prefs.ide;
+        const sel = document.getElementById("ide-select");
+        if (sel) sel.value = ideScheme;
+    }
+    // Collapsed panels
+    if (Array.isArray(prefs.collapsedPanels)) {
+        prefs.collapsedPanels.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add("collapsed");
+        });
+    }
+    if (prefs.showDead) {
+        showDead = true;
+        document.body.classList.add("show-dead");
+        const btn = document.getElementById("btn-dead");
+        if (btn) btn.classList.add("active");
+    }
+    if (prefs.showUntracked) {
+        showUntracked = true;
+        const btn = document.getElementById("btn-untracked");
+        if (btn) btn.classList.add("active");
+    }
+    _prefLoading = false;
+    applyAllFilters();
+    // Theme may have changed (initial load or prefs import at runtime).
+    refreshThemeColors();
+}
+
+// === LEGEND ===
+// Lucide-style icon helper. iconPathsHtml is the inner SVG markup (paths,
+// circles, etc.); the outer <svg> is shared. Returns a string ready for
+// `.html()`. The data-i18n key is on the inner span — applyI18n updates
+// only that, leaving the SVG and any post-i18n suffix intact.
+//
+// All icon constants and helpers live BEFORE the legend creation loops
+// because const declarations are in TDZ until executed; the loops below
+// invoke `attachIsolateBtn` which dereferences these constants.
+const _SVG_OPEN = '<svg class="btn-icon-svg lucide" viewBox="0 0 24 24" '
+    + 'fill="none" stroke="currentColor" stroke-width="2" '
+    + 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+function iconBtnHtml(iconInner, i18nKey, label, suffix) {
+    return _SVG_OPEN + iconInner + '</svg>'
+        + '<span data-i18n="' + i18nKey + '">' + label + '</span>'
+        + (suffix || "");
+}
+const ICON_EYE = '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>'
+    + '<circle cx="12" cy="12" r="3"/>';
+const ICON_EYE_OFF = '<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>'
+    + '<path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7'
+    + 'a13.16 13.16 0 0 1-1.67 2.68"/>'
+    + '<path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7'
+    + 'a9.74 9.74 0 0 0 5.39-1.61"/>'
+    + '<line x1="2" x2="22" y1="2" y2="22"/>';
+const ICON_CIRCLE_DASHED =
+    '<circle cx="12" cy="12" r="9" stroke-dasharray="4 3"/>';
+const ICON_SKULL = '<circle cx="9" cy="12" r="1"/>'
+    + '<circle cx="15" cy="12" r="1"/>'
+    + '<path d="M8 20v2h8v-2"/>'
+    + '<path d="m12.5 17-.5-1-.5 1h1z"/>'
+    + '<path d="M16 20a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0'
+    + 'A2 2 0 0 0 8 20"/>';
+// Target / crosshair — used as "isolate this type" button in legend items.
+const ICON_TARGET = '<circle cx="12" cy="12" r="10"/>'
+    + '<circle cx="12" cy="12" r="6"/>'
+    + '<circle cx="12" cy="12" r="2"/>';
+// Circle-help (Lucide) — "unmapped" legend button.
+const ICON_UNMAPPED = '<circle cx="12" cy="12" r="10"/>'
+    + '<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>'
+    + '<path d="M12 17h.01"/>';
+
+// Attaches a small "isolate" target-icon button to a legend item. Click
+// hides every type EXCEPT this one (re-click on the same one restores
+// all). `getAllTypes()` returns the full set of types in this category;
+// `hiddenSet` is the existing Set this section already tracks.
+function attachIsolateBtn(item, currentType, getAllTypes, hiddenSet, applyAndSave) {
+    const btn = item.append("button")
+        .attr("class", "legend-isolate btn-icon")
+        .attr("data-i18n-title", "legend.isolate")
+        .attr("title", t("legend.isolate"))
+        .html(_SVG_OPEN + ICON_TARGET + "</svg>");
+    btn.on("click", function(event) {
+        event.stopPropagation();
+        const all = getAllTypes();
+        const isOnlyOthersHidden = hiddenSet.size === all.length - 1
+            && all.every(tt => tt === currentType || hiddenSet.has(tt));
+        hiddenSet.clear();
+        if (!isOnlyOthersHidden) {
+            all.forEach(tt => {
+                if (tt !== currentType) hiddenSet.add(tt);
+            });
+        }
+        applyAndSave();
+    });
+}
+// Refresh `.legend-isolate.active` and `.legend-item.hidden-type` classes
+// across all three legend sections to reflect the current hidden* sets.
+function refreshLegendState() {
+    document.querySelectorAll(".legend-item[data-legend-type]").forEach(el => {
+        const type = el.getAttribute("data-legend-type");
+        el.classList.toggle("hidden-type", hiddenTypes.has(type));
+        const all = Object.keys(activeColors);
+        const isolated = !hiddenTypes.has(type)
+            && hiddenTypes.size === all.length - 1
+            && all.every(tt => tt === type || hiddenTypes.has(tt));
+        const btn = el.querySelector(".legend-isolate");
+        if (btn) btn.classList.toggle("active", isolated);
+    });
+    document.querySelectorAll(".legend-item[data-edge-type]").forEach(el => {
+        const type = el.getAttribute("data-edge-type");
+        el.classList.toggle("hidden-type", hiddenEdgeTypes.has(type));
+        const all = ["doc->doc", "code->doc", "code->code",
+                     "docstring", "type-only"];
+        const isolated = !hiddenEdgeTypes.has(type)
+            && hiddenEdgeTypes.size === all.length - 1
+            && all.every(tt => tt === type || hiddenEdgeTypes.has(tt));
+        const btn = el.querySelector(".legend-isolate");
+        if (btn) btn.classList.toggle("active", isolated);
+    });
+    document.querySelectorAll(".legend-item[data-git-status]").forEach(el => {
+        const type = el.getAttribute("data-git-status");
+        el.classList.toggle("hidden-type", hiddenGitStatuses.has(type));
+        const all = ["added", "modified", "renamed", "deleted", "clean"];
+        const isolated = !hiddenGitStatuses.has(type)
+            && hiddenGitStatuses.size === all.length - 1
+            && all.every(tt => tt === type || hiddenGitStatuses.has(tt));
+        const btn = el.querySelector(".legend-isolate");
+        if (btn) btn.classList.toggle("active", isolated);
+    });
+}
+
+// Legend: node type swatches — click to toggle visibility.
+// Items live in a scroll container capped at ~10 rows — autodiscovery can
+// mint 20+ categories and the panel must not swallow the screen.
+const legendEl = d3.select("#legend");
+const nodeTypeList = legendEl.append("div").attr("id", "legend-node-types");
+
+Object.entries(activeColors).forEach(([type, color]) => {
+    const item = nodeTypeList.append("div")
+        .attr("class", "legend-item")
+        .attr("data-legend-type", type);
+    item.append("div")
+        .attr("class", "legend-swatch")
+        .style("background", color);
+    item.append("span").text(type);
+    attachIsolateBtn(
+        item, type,
+        () => Object.keys(activeColors),
+        hiddenTypes,
+        () => {
+            refreshLegendState();
+            deactivateShowAll(); applyAllFilters(); savePrefs();
+        },
+    );
+    item.on("click", () => {
+        if (hiddenTypes.has(type)) {
+            hiddenTypes.delete(type);
+        } else {
+            hiddenTypes.add(type);
+        }
+        refreshLegendState();
+        deactivateShowAll(); applyAllFilters(); savePrefs();
+    });
+});
+
+// Legend: bulk-toggle for node types — Show all / Hide all
+const legendActions = legendEl.append("div").attr("class", "legend-actions");
+legendActions.append("button")
+    .attr("id", "btn-legend-show-all")
+    .attr("class", "btn btn--sm btn--ghost btn-icon-only")
+    .attr("data-i18n-title", "legend.showAll")
+    .attr("title", t("legend.showAll"))
+    .html(_SVG_OPEN + ICON_EYE + "</svg>")
+    .on("click", () => {
+        hiddenTypes.clear();
+        legendEl.selectAll("[data-legend-type]")
+            .classed("hidden-type", false);
+        deactivateShowAll(); applyAllFilters(); savePrefs();
+    });
+legendActions.append("button")
+    .attr("id", "btn-legend-hide-all")
+    .attr("class", "btn btn--sm btn--ghost btn-icon-only")
+    .attr("data-i18n-title", "legend.hideAll")
+    .attr("title", t("legend.hideAll"))
+    .html(_SVG_OPEN + ICON_EYE_OFF + "</svg>")
+    .on("click", () => {
+        legendEl.selectAll("[data-legend-type]").each(function() {
+            const type = this.getAttribute("data-legend-type");
+            hiddenTypes.add(type);
+            d3.select(this).classed("hidden-type", true);
+        });
+        deactivateShowAll(); applyAllFilters(); savePrefs();
+    });
+
+// Legend: edge type section — click to toggle edge visibility + orphans
+legendEl.append("div").attr("class", "legend-sep");
+legendEl.append("h4")
+    .attr("data-i18n", "legend.edgeTypes")
+    .text(t("legend.edgeTypes"));
+[
+    ["doc → doc",   null,  "doc->doc"],
+    ["code → doc",  "5,3", "code->doc"],
+    ["code → code", null,  "code->code"],
+    ["docstring",   "1,3", "docstring"],
+    ["type-only",   "3,4", "type-only"],
+].forEach(([label, dash, edgeType]) => {
+    const item = legendEl.append("div")
+        .attr("class", "legend-item")
+        .attr("data-edge-type", edgeType);
+    const s = item.append("svg")
+        .attr("width", 26).attr("height", 12)
+        .style("flex-shrink", "0");
+    const ln = s.append("svg:line")
+        .attr("x1", 0).attr("y1", 6).attr("x2", 26).attr("y2", 6)
+        .attr("stroke", EDGE_COLORS[edgeType] || "#999")
+        .attr("stroke-width", 1.5)
+        .attr("stroke-opacity", 0.8);
+    if (dash) ln.attr("stroke-dasharray", dash);
+    item.append("span").text(label);
+    attachIsolateBtn(
+        item, edgeType,
+        () => ["doc->doc", "code->doc", "code->code", "docstring", "type-only"],
+        hiddenEdgeTypes,
+        () => {
+            refreshLegendState();
+            deactivateShowAll(); applyAllFilters(); savePrefs();
+        },
+    );
+    item.on("click", () => {
+        if (hiddenEdgeTypes.has(edgeType)) {
+            hiddenEdgeTypes.delete(edgeType);
+        } else {
+            hiddenEdgeTypes.add(edgeType);
+        }
+        refreshLegendState();
+        deactivateShowAll(); applyAllFilters(); savePrefs();
+    });
+});
+
+// Orphans-only toggle — sits under the edge-types section since it's
+// conceptually the inverse of "show edges" (show only nodes without any).
+legendEl.append("button")
+    .attr("id", "btn-orphans")
+    .attr("class", "btn btn--sm btn--block btn--ghost view-btn btn-with-icon")
+    .style("margin-top", "6px")
+    .html(iconBtnHtml(ICON_CIRCLE_DASHED, "btn.orphans", t("btn.orphans")));
+
+// Dead-code highlight toggle — only visible if there are any candidates.
+// Count is appended OUTSIDE the data-i18n span so applyI18n doesn't strip it.
+if (deadNodes.size > 0) {
+    legendEl.append("button")
+        .attr("id", "btn-dead")
+        .attr("class", "btn btn--sm btn--block btn--ghost view-btn btn-with-icon")
+        .attr("data-i18n-title", "btn.deadCodeTitle")
+        .attr("title", t("btn.deadCodeTitle"))
+        .style("margin-top", "4px")
+        .html(iconBtnHtml(
+            ICON_SKULL,
+            "btn.deadCode",
+            t("btn.deadCode"),
+            " (" + deadNodes.size + ")"
+        ));
+}
+
+// Unmapped highlight toggle — nodes not covered by an explicit graph.toml
+// rule (autodiscovery fallback). Only visible when the build flagged any.
+if (untrackedNodes.size > 0) {
+    legendEl.append("button")
+        .attr("id", "btn-untracked")
+        .attr("class", "btn btn--sm btn--block btn--ghost view-btn btn-with-icon")
+        .attr("data-i18n-title", "btn.untrackedTitle")
+        .attr("title", t("btn.untrackedTitle"))
+        .style("margin-top", "4px")
+        .html(iconBtnHtml(
+            ICON_UNMAPPED,
+            "btn.untracked",
+            t("btn.untracked"),
+            " (" + untrackedNodes.size + ")"
+        ));
+}
+
+function updateLegendSwatches(colors) {
+    document.querySelectorAll("[data-legend-type]").forEach(el => {
+        const type = el.getAttribute("data-legend-type");
+        const sw = el.querySelector(".legend-swatch");
+        if (!sw) return;
+        const c = colors[type] || "#999";
+        sw.style.background = nodeContrast > 0
+            ? d3.color(c).darker(nodeContrast).formatHex() : c;
+    });
+}
+
+function updateEdgeLegendSwatches() {
+    document.querySelectorAll("[data-edge-type]").forEach(el => {
+        const type = el.getAttribute("data-edge-type");
+        const ln = el.querySelector("line");
+        if (!ln) return;
+        const c = EDGE_COLORS[type] || "#999";
+        ln.setAttribute("stroke", nodeContrast > 0
+            ? d3.color(c).darker(nodeContrast).formatHex() : c);
+    });
+}
+
+document.getElementById("ide-select").addEventListener("change", function() {
+    ideScheme = this.value;
+    savePrefs();
+    if (activeNodeData && !infoPanel.classList.contains("hidden"))
+        renderInfoPanel(activeNodeData);
+});
+
+document.getElementById("select-lang").addEventListener("change", e => {
+    applyI18n(e.target.value);
+    savePrefs();
+});
+
+document.getElementById("palette-check").addEventListener("change", function() {
+    if (this.checked) {
+        currentPalette = "saturated";
+        activeColors = NODE_COLORS_SATURATED;
+        activeGitColors = GIT_COLORS_SATURATED;
+        EDGE_COLORS = EDGE_COLORS_SATURATED;
+    } else {
+        currentPalette = "pastel";
+        activeColors = NODE_COLORS;
+        activeGitColors = GIT_COLORS_PASTEL;
+        EDGE_COLORS = EDGE_COLORS_PASTEL;
+    }
+    updateLegendSwatches(activeColors);
+    updateGitLegendSwatches();
+    // applyNodeContrast clears the shade memo and queues a redraw with
+    // the new active palettes; legend swatches are refreshed above.
+    applyNodeContrast(nodeContrast);
+    savePrefs();
+});
+
+// =============================================================================
+// === GIT OVERLAY ===
+// Git overlay: separate "view mode" — recolours nodes by git status,
+// shows ghost (deleted/renamed-old) nodes and rename edges.
+// State (GIT_COLORS / gitMode / hiddenGitStatuses / currentNodeColor) is
+// declared earlier so initial node render doesn't hit a TDZ.
+// =============================================================================
+function setupGitButton() {
+    const btn = document.getElementById("btn-git");
+    if (!GIT_DATA) {
+        btn.classList.add("disabled");
+        // Switch tooltip key so applyI18n keeps the right text on language change.
+        btn.dataset.i18nTitle = "btn.gitNotAvailable";
+        btn.title = t("btn.gitNotAvailable");
+        return;
+    }
+    btn.addEventListener("click", () => {
+        if (btn.classList.contains("disabled")) return;
+        applyGitMode(!gitMode);
+        savePrefs();
+    });
+}
+
+function applyGitMode(on) {
+    if (!GIT_DATA && on) return;
+    gitMode = on;
+    document.body.classList.toggle("git-mode", on);
+    document.getElementById("btn-git").classList.toggle("active", on);
+    if (on) updateGitLegendCounts();
+    applyAllFilters();
+}
+
+function buildGitLegend() {
+    if (!GIT_DATA) return;
+    const order = ["added", "modified", "renamed", "deleted", "clean"];
+    const container = legendEl.append("div").attr("id", "legend-git");
+    container.append("div").attr("class", "legend-sep");
+    const gitH4 = container.append("h4")
+        .attr("data-i18n", "legend.gitStatus")
+        .text(t("legend.gitStatus"));
+    // Drag-bind: must happen here because main makeDraggable section runs
+    // before buildGitLegend, so the h4 didn't exist back then.
+    if (typeof makeDraggable === "function") {
+        makeDraggable(document.getElementById("legend"), gitH4.node());
+    }
+    order.forEach(status => {
+        const item = container.append("div")
+            .attr("class", "legend-item")
+            .attr("data-git-status", status);
+        item.append("div")
+            .attr("class", "legend-swatch")
+            .style("background", activeGitColors[status]);
+        const label = item.append("span")
+            .attr("class", "git-label")
+            .attr("data-i18n", "git." + status);
+        label.text(t("git." + status));
+        item.append("span")
+            .attr("class", "git-count")
+            .style("color", "var(--muted)")
+            .style("font-size", "10px");
+        attachIsolateBtn(
+            item, status,
+            () => ["added", "modified", "renamed", "deleted", "clean"],
+            hiddenGitStatuses,
+            () => { refreshLegendState(); applyAllFilters(); savePrefs(); },
+        );
+        item.on("click", () => {
+            if (hiddenGitStatuses.has(status)) {
+                hiddenGitStatuses.delete(status);
+            } else {
+                hiddenGitStatuses.add(status);
+            }
+            refreshLegendState();
+            applyAllFilters();
+            savePrefs();
+        });
+    });
+    // Show all / Hide all bulk toggles for git statuses
+    const actions = container.append("div").attr("class", "legend-actions");
+    actions.append("button")
+        .attr("id", "btn-git-show-all")
+        .attr("class", "btn btn--sm btn--ghost btn-icon-only")
+        .attr("data-i18n-title", "legend.showAll")
+        .attr("title", t("legend.showAll"))
+        .html(_SVG_OPEN + ICON_EYE + "</svg>")
+        .on("click", () => {
+            hiddenGitStatuses.clear();
+            container.selectAll("[data-git-status]")
+                .classed("hidden-type", false);
+            applyAllFilters(); savePrefs();
+        });
+    actions.append("button")
+        .attr("id", "btn-git-hide-all")
+        .attr("class", "btn btn--sm btn--ghost btn-icon-only")
+        .attr("data-i18n-title", "legend.hideAll")
+        .attr("title", t("legend.hideAll"))
+        .html(_SVG_OPEN + ICON_EYE_OFF + "</svg>")
+        .on("click", () => {
+            container.selectAll("[data-git-status]").each(function() {
+                const s = this.getAttribute("data-git-status");
+                hiddenGitStatuses.add(s);
+                d3.select(this).classed("hidden-type", true);
+            });
+            applyAllFilters(); savePrefs();
+        });
+}
+
+function updateGitLegendSwatches() {
+    document.querySelectorAll("[data-git-status]").forEach(el => {
+        const status = el.getAttribute("data-git-status");
+        const sw = el.querySelector(".legend-swatch");
+        if (sw) sw.style.background = activeGitColors[status] || "#999";
+    });
+}
+
+function updateGitLegendCounts() {
+    if (!GIT_DATA) return;
+    const counts = { added: 0, modified: 0, renamed: 0, deleted: 0, clean: 0 };
+    nodes.forEach(n => {
+        const s = n.gitStatus || "clean";
+        if (s in counts) counts[s] += 1;
+    });
+    Object.entries(counts).forEach(([status, n]) => {
+        const item = document.querySelector(
+            '[data-git-status="' + status + '"]');
+        if (!item) return;
+        const c = item.querySelector(".git-count");
+        if (c) c.textContent = "(" + n + ")";
+    });
+}
+
+// Color contrast — darken nodes, edges and arrows uniformly. The graph
+// itself picks the shading up from the memo inside draw().
+function applyNodeContrast(v) {
+    nodeContrast = v;
+    _shadeMemo.clear();
+    updateEdgeLegendSwatches();
+    updateLegendSwatches(activeColors);
+    if (activeNodeData && !infoPanel.classList.contains("hidden")) {
+        const c = activeColors[activeNodeData.type] || "#999";
+        const col = v > 0 ? d3.color(c).darker(v).formatHex() : c;
+        const sp = infoTypeEl.querySelector("span");
+        if (sp) sp.style.background = col;
+    }
+    requestDraw();
+}
+
+// === TOP-BAR HANDLERS (theme / search / exclude) ===
+// Theme toggle
+document.getElementById("theme-check").addEventListener("change", function() {
+    document.body.classList.toggle("light", this.checked);
+    refreshThemeColors();
+    savePrefs();
+});
+
+// Search box: dim non-matching nodes; state persists across hover
+function applySearch(q) {
+    searchQuery = q;
+    if (q && activeEdge) clearEdgeFocus();
+    const clearBtn = document.getElementById("search-clear");
+    if (!q) {
+        searchMatching = new Set();
+        dimNode = null;
+        dimEdge = null;
+        clearBtn.style.display = "none";
+        if (typeof updateUrlState === "function") updateUrlState();
+        requestDraw();
+        return;
+    }
+    clearBtn.style.display = "inline";
+    searchMatching = new Set(
+        nodes
+            .filter(n =>
+                n.id.toLowerCase().includes(q) ||
+                n.label.toLowerCase().includes(q) ||
+                (n.path && n.path.toLowerCase().includes(q)))
+            .map(n => n.id)
+    );
+    dimNode = n => !searchMatching.has(n.id);
+    dimEdge = l =>
+        !searchMatching.has(l.source.id) &&
+        !searchMatching.has(l.target.id);
+    if (typeof updateUrlState === "function") updateUrlState();
+    requestDraw();
+}
+// Debounced input — recomputing the match set on every keystroke made
+// typing stutter on large graphs.
+let _searchDebounce = null;
+document.getElementById("search").addEventListener("input", e => {
+    clearTimeout(_searchDebounce);
+    const v = e.target.value.toLowerCase().trim();
+    _searchDebounce = setTimeout(() => applySearch(v), 150);
+});
+document.getElementById("search-clear").addEventListener("click", () => {
+    document.getElementById("search").value = "";
+    applySearch("");
+});
+
+// FAQ modal: open via "?" button, close via ✕, backdrop click, or Esc
+const faqOverlay = document.getElementById("faq-overlay");
+function openFaq() { faqOverlay.classList.add("visible"); }
+function closeFaq() { faqOverlay.classList.remove("visible"); }
+function isFaqOpen() { return faqOverlay.classList.contains("visible"); }
+document.getElementById("btn-faq").addEventListener("click", openFaq);
+document.getElementById("faq-close").addEventListener("click", closeFaq);
+faqOverlay.addEventListener("click", e => {
+    if (e.target === faqOverlay) closeFaq();
+});
+
+// Keyboard shortcuts: Esc (close FAQ / info-panel / reset search),
+// Space (toggle physics), Ctrl/Cmd+K (focus search)
+let physicsPaused = false;
+function togglePhysics() {
+    physicsPaused = !physicsPaused;
+    if (physicsPaused) {
+        simulation.stop();
+    } else {
+        simulation.alpha(0.3).restart();
+    }
+}
+document.addEventListener("keydown", e => {
+    const t = e.target;
+    const inField = t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA"
+        || t.isContentEditable);
+
+    if (e.key === "Escape") {
+        const fileMenu = document.getElementById("file-menu");
+        if (fileMenu && !fileMenu.classList.contains("hidden")) {
+            fileMenu.classList.add("hidden");
+            e.preventDefault();
+            return;
+        }
+        if (isFaqOpen()) {
+            closeFaq();
+            e.preventDefault();
+            return;
+        }
+        if (!infoPanel.classList.contains("hidden")) {
+            infoPanel.classList.add("hidden");
+            clearPinDim();
+            e.preventDefault();
+            return;
+        }
+        if (pathStart || pathActive()) {
+            clearPath();
+            e.preventDefault();
+            return;
+        }
+        if (activeEdge) {
+            clearEdgeFocus();
+            e.preventDefault();
+            return;
+        }
+        const searchEl = document.getElementById("search");
+        if (searchEl.value) {
+            searchEl.value = "";
+            applySearch("");
+            searchEl.blur();
+            e.preventDefault();
+        }
+        return;
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        const searchEl = document.getElementById("search");
+        searchEl.focus();
+        searchEl.select();
+        return;
+    }
+    if (e.key === " " && !inField) {
+        e.preventDefault();
+        togglePhysics();
+        return;
+    }
+    // B ("block") — pin/unpin the node being dragged or hovered. e.code is
+    // layout-independent (works on non-Latin keyboard layouts too). Mid-drag
+    // press marks the node sticky, so drag-end keeps its fx/fy in place.
+    if (e.code === "KeyB" && !inField
+        && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const n = dragNode || hoverNode;
+        if (n) {
+            e.preventDefault();
+            onNodeDblClick(n);
+        }
+        return;
+    }
+});
+
+// Exclusion filter: hide nodes by label or stem
+function renderExcludeList() {
+    const ul = document.getElementById("exclude-list");
+    ul.innerHTML = [...excludedNames]
+        .map(name =>
+            '<li><span class="excl-name">' + esc(name) + '</span>'
+            + '<button class="excl-rm" data-name="'
+            + esc(name) + '">\xd7</button></li>')
+        .join("");
+    ul.querySelectorAll(".excl-rm").forEach(btn => {
+        btn.addEventListener("click", () => {
+            excludedNames.delete(btn.dataset.name);
+            renderExcludeList();
+            deactivateShowAll(); applyAllFilters();
+        });
+    });
+    document.getElementById("exclude-clear").style.display =
+        excludedNames.size > 0 ? "block" : "none";
+}
+
+function addExclusion() {
+    const input = document.getElementById("exclude-input");
+    const val = input.value.trim();
+    if (!val) return;
+    const exists = nodes.some(n => n.label === val || n.stem === val);
+    if (!exists) {
+        input.style.borderColor = "#e74c3c";
+        setTimeout(() => { input.style.borderColor = ""; }, 1200);
+        return;
+    }
+    input.style.borderColor = "";
+    excludedNames.add(val);
+    input.value = "";
+    renderExcludeList();
+    deactivateShowAll(); applyAllFilters(); savePrefs();
+}
+
+document.getElementById("exclude-add")
+    .addEventListener("click", addExclusion);
+document.getElementById("exclude-input")
+    .addEventListener("keydown", e => {
+        if (e.key === "Enter") addExclusion();
+    });
+document.getElementById("exclude-clear")
+    .addEventListener("click", () => {
+        excludedNames.clear();
+        renderExcludeList();
+        deactivateShowAll(); applyAllFilters();
+    });
+renderExcludeList();
+
+// Rebuild physics — freeze hidden nodes, unfreeze visible ones.
+// Sticky (double-click pinned) nodes have priority over both branches:
+// their fx/fy stays regardless of visibility, and the only way to free
+// them is the explicit "Release pinned" button.
+document.getElementById("exclude-rebuild").addEventListener("click", () => {
+    nodes.forEach(d => {
+        if (d._sticky) return;
+        if (!isNodeVisible(d)) {
+            d.fx = d.x; d.fy = d.y;
+        } else {
+            d.fx = null; d.fy = null;
+        }
+    });
+    simulation.alpha(0.5).restart();
+});
+
+// Release pinned — drop all double-click sticky pins, keep everything else
+// (excluded-frozen nodes stay frozen, orphan ring positions untouched).
+document.getElementById("btn-release-pinned").addEventListener("click", () => {
+    let released = 0;
+    nodes.forEach(d => {
+        if (d._sticky) {
+            d._sticky = false;
+            d.fx = null;
+            d.fy = null;
+            released++;
+        }
+    });
+    if (released) {
+        simulation.alpha(0.3).restart();
+        requestDraw();
+    }
+});
+
+// Draggable panels — drag by header, skip button clicks
+// === DRAG (makeDraggable + bindings) ===
+// Each panel has a "desired" position (set by drag or saved prefs) and a
+// rendered position. clampPanelToViewport pulls a panel inside the visible
+// area when the viewport shrinks, but never overrides the desired position —
+// so when the viewport grows back, the panel returns to where the user put it.
+function clampPanelToViewport(panel) {
+    const margin = 4;
+    const w = panel.offsetWidth, h = panel.offsetHeight;
+    const maxX = Math.max(margin, window.innerWidth - w - margin);
+    const maxY = Math.max(margin, window.innerHeight - h - margin);
+
+    let targetLeft, targetTop;
+    if (panel.dataset.desiredLeft !== undefined) {
+        targetLeft = parseFloat(panel.dataset.desiredLeft);
+        targetTop  = parseFloat(panel.dataset.desiredTop);
+    } else if (panel.style.left) {
+        targetLeft = parseFloat(panel.style.left);
+        targetTop  = parseFloat(panel.style.top);
+    } else {
+        const r = panel.getBoundingClientRect();
+        targetLeft = r.left;
+        targetTop  = r.top;
+    }
+
+    const left = Math.min(Math.max(margin, targetLeft), maxX);
+    const top  = Math.min(Math.max(margin, targetTop),  maxY);
+    panel.style.left = left + "px";
+    panel.style.top  = top  + "px";
+    panel.style.right  = "auto";
+    panel.style.bottom = "auto";
+    panel.style.transform = "none";
+}
+
+function clampAllPanels() {
+    [
+        "controls-left", "legend", "exclude-panel", "info-panel",
+        "controls", "theme-toggle", "help-panel"
+    ].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) clampPanelToViewport(el);
+    });
+}
+window.addEventListener("resize", clampAllPanels);
+
+function makeDraggable(panel, handle, onClick) {
+    let ox = 0, oy = 0, sx = 0, sy = 0;
+    handle.addEventListener("mousedown", e => {
+        if (["BUTTON", "INPUT", "SELECT"].includes(e.target.tagName)) return;
+        e.preventDefault();
+        const r = panel.getBoundingClientRect();
+        sx = e.clientX; sy = e.clientY;
+        ox = r.left;    oy = r.top;
+        let moved = false;
+        function onMove(ev) {
+            const dx = ev.clientX - sx, dy = ev.clientY - sy;
+            if (!moved && Math.hypot(dx, dy) < 4) return;
+            if (!moved) {
+                // First significant movement — pin panel to absolute coords
+                moved = true;
+                panel.style.left = ox + "px";
+                panel.style.top  = oy + "px";
+                panel.style.right  = "auto";
+                panel.style.bottom = "auto";
+                panel.style.transform = "none";
+            }
+            const margin = 4;
+            const w = panel.offsetWidth, h = panel.offsetHeight;
+            const maxX = Math.max(margin, window.innerWidth - w - margin);
+            const maxY = Math.max(margin, window.innerHeight - h - margin);
+            const newLeft = ox + ev.clientX - sx;
+            const newTop  = oy + ev.clientY - sy;
+            // Remember where the user wanted the panel, even if it gets
+            // clamped right now — restore on viewport growth.
+            panel.dataset.desiredLeft = newLeft;
+            panel.dataset.desiredTop  = newTop;
+            panel.style.left = Math.min(Math.max(margin, newLeft), maxX) + "px";
+            panel.style.top  = Math.min(Math.max(margin, newTop),  maxY) + "px";
+        }
+        function onUp() {
+            document.removeEventListener("mousemove", onMove);
+            document.removeEventListener("mouseup", onUp);
+            if (moved) {
+                savePrefs();
+            } else if (onClick) {
+                onClick(e);
+            }
+        }
+        document.addEventListener("mousemove", onMove);
+        document.addEventListener("mouseup", onUp);
+    });
+}
+
+function togglePanelCollapsed(panelId) {
+    const el = document.getElementById(panelId);
+    if (!el) return;
+    el.classList.toggle("collapsed");
+    savePrefs();
+}
+makeDraggable(
+    document.getElementById("controls-left"),
+    document.querySelector("#controls-left h4"),
+    () => togglePanelCollapsed("controls-left"));
+// Drag-bind for the Node types h4. Git status h4 is bound inside
+// buildGitLegend() since it's created later than this section runs.
+// Click on the primary h4 toggles the entire legend; secondary h4s
+// (Edge types, Git status) are drag-only.
+makeDraggable(
+    document.getElementById("legend"),
+    document.querySelector("#legend > h4:first-of-type"),
+    () => togglePanelCollapsed("legend"));
+makeDraggable(
+    document.getElementById("exclude-panel"),
+    document.querySelector("#exclude-panel h4"),
+    () => togglePanelCollapsed("exclude-panel"));
+makeDraggable(
+    document.getElementById("info-panel"),
+    document.getElementById("info-header"));
+// Also drag the top bar, theme toggle and help-panel
+makeDraggable(
+    document.getElementById("controls"),
+    document.getElementById("controls"));
+makeDraggable(
+    document.getElementById("theme-toggle"),
+    document.getElementById("theme-toggle"));
+makeDraggable(
+    document.getElementById("help-panel"),
+    document.getElementById("help-panel"));
+if (window.ResizeObserver) {
+    const ro = new ResizeObserver(() => { if (!_prefLoading) savePrefs(); });
+    ro.observe(document.getElementById("info-panel"));
+    ro.observe(document.getElementById("controls-left"));
+}
+
+// View mode: Show all (reset all filters) / Orphans only
+document.getElementById("btn-show-all").addEventListener("click", () => {
+    // Reset all visibility filters
+    hiddenTypes.clear();
+    hiddenEdgeTypes.clear();
+    excludedNames.clear();
+    // Update legend UI
+    document.querySelectorAll("[data-legend-type]").forEach(el =>
+        el.classList.remove("hidden-type"));
+    document.querySelectorAll("[data-edge-type]").forEach(el =>
+        el.classList.remove("hidden-type"));
+    renderExcludeList();
+    // Deactivate orphans mode
+    orphansOnly = false;
+    document.getElementById("btn-orphans").classList.remove("active");
+    applyAllFilters();
+    savePrefs();
+});
+document.getElementById("btn-orphans").addEventListener("click", () => {
+    showAll = false;
+    document.getElementById("btn-show-all").classList.remove("active");
+    orphansOnly = !orphansOnly;
+    document.getElementById("btn-orphans")
+        .classList.toggle("active", orphansOnly);
+    applyAllFilters();
+});
+const btnDead = document.getElementById("btn-dead");
+if (btnDead) {
+    btnDead.addEventListener("click", () => {
+        showDead = !showDead;
+        document.body.classList.toggle("show-dead", showDead);
+        btnDead.classList.toggle("active", showDead);
+        savePrefs();
+        requestDraw();
+    });
+}
+const btnUntracked = document.getElementById("btn-untracked");
+if (btnUntracked) {
+    btnUntracked.addEventListener("click", () => {
+        showUntracked = !showUntracked;
+        btnUntracked.classList.toggle("active", showUntracked);
+        savePrefs();
+        requestDraw();
+    });
+}
+
+// Collapsible sections in graph controls
+document.querySelectorAll(".ctrl-group-title").forEach(title => {
+    const arrow = document.createElement("span");
+    arrow.textContent = " ▾";
+    arrow.style.cssText = "font-size:9px;opacity:0.7";
+    title.appendChild(arrow);
+    let collapsed = false;
+    title.addEventListener("click", () => {
+        collapsed = !collapsed;
+        arrow.textContent = collapsed ? " ▸" : " ▾";
+        let el = title.nextElementSibling;
+        while (el && !el.classList.contains("ctrl-group-title")) {
+            el.style.display = collapsed ? "none" : "";
+            el = el.nextElementSibling;
+        }
+    });
+});
+
+// === TICK ===
+// The canvas draws everything from node positions directly — a tick only
+// needs to refit the orphan ring and queue one rAF-coalesced redraw.
+simulation.on("tick", () => {
+    tickRefitOrphanRing();
+    requestDraw();
+});
+
+// === EDGE TOOLTIP ===
+// Edge tooltip: type + source/target + line numbers
+const edgeTooltip = document.getElementById("edge-tooltip");
+function isEdgeVisuallyVisible(d) {
+    if (d._vis === false) return false;
+    if (dimEdge && dimEdge(d)) return false;
+    return true;
+}
+function showEdgeTooltip(event, d) {
+    // Suppress on dimmed (pin/search) or hidden (filter) edges
+    if (!isEdgeVisuallyVisible(d)) {
+        hideEdgeTooltip();
+        return;
+    }
+    const lns = (d.lines && d.lines.length)
+        ? '<div class="et-lines">' + esc(t("tooltip.lines")) + ": "
+            + d.lines.join(", ") + '</div>'
+        : "";
+    edgeTooltip.innerHTML =
+        '<div class="et-type">' + esc(d.type) + "</div>"
+        + '<div class="et-files"><b>' + esc(d.source.label) + "</b>"
+        + '<span class="et-arrow">→</span><b>' + esc(d.target.label) + "</b></div>"
+        + lns;
+    edgeTooltip.classList.remove("hidden");
+    moveEdgeTooltip(event);
+}
+function moveEdgeTooltip(event) {
+    const x = event.clientX + 14;
+    const y = event.clientY + 14;
+    const rect = edgeTooltip.getBoundingClientRect();
+    const maxX = window.innerWidth - rect.width - 8;
+    const maxY = window.innerHeight - rect.height - 8;
+    edgeTooltip.style.left = Math.min(x, maxX) + "px";
+    edgeTooltip.style.top  = Math.min(y, maxY) + "px";
+}
+function hideEdgeTooltip() {
+    edgeTooltip.classList.add("hidden");
+}
+
+// Left-panel sliders
+function bindSlider(id, valId, format, onChange) {
+    const slider = document.getElementById(id);
+    const valEl  = document.getElementById(valId);
+    slider.addEventListener("input", () => {
+        valEl.textContent = format(+slider.value);
+        onChange(+slider.value);
+        savePrefs();
+    });
+}
+// Nodes & Edges group
+bindSlider("ctrl-contrast", "val-contrast",
+    v => v.toFixed(1),
+    v => applyNodeContrast(v));
+bindSlider("ctrl-node-scale", "val-node-scale",
+    v => v.toFixed(2),
+    v => {
+        nodeScale = v;
+        simulation.force("collide").radius(d => d.size * nodeScale + 4);
+        simulation.alpha(0.1).restart();
+        requestDraw();
+    });
+bindSlider("ctrl-edge-width", "val-edge-width",
+    v => v.toFixed(2),
+    v => { edgeWidth = +v; requestDraw(); });
+bindSlider("ctrl-edge-opacity", "val-edge-opacity",
+    v => v.toFixed(2),
+    v => { edgeOpacity = +v; requestDraw(); });
+// Labels group
+bindSlider("ctrl-font-size", "val-font-size",
+    v => v + "px",
+    v => { labelFontSize = +v; requestDraw(); });
+bindSlider("ctrl-label-zoom", "val-label-zoom",
+    v => v.toFixed(2),
+    v => { labelZoom = +v; requestDraw(); });
+// Physics group
+bindSlider("ctrl-charge", "val-charge",
+    v => (v < 0 ? "−" : "") + Math.abs(v),
+    v => { simulation.force("charge").strength(v); simulation.alpha(0.3).restart(); });
+bindSlider("ctrl-link", "val-link",
+    v => v.toFixed(2),
+    v => { simulation.force("link").strength(v); simulation.alpha(0.3).restart(); });
+
+// === INIT ===
+// Watermark with version + author (set once on load — values injected by Python).
+// Author name is wrapped in an <a> linking to the author's repo; the link
+// re-enables pointer-events (the watermark itself disables them via CSS).
+(function setWatermark() {
+    const el = document.getElementById("watermark");
+    if (!el) return;
+    el.innerHTML = "v" + esc(APP_VERSION) + " · by "
+        + '<a href="' + esc(APP_AUTHOR_URL) + '" target="_blank" '
+        + 'rel="noopener noreferrer">' + esc(APP_AUTHOR) + "</a>";
+})();
+
+// Build git legend + bind git button BEFORE applyI18n so labels get translated
+// and BEFORE loadPrefs so saved gitMode state can be restored.
+buildGitLegend();
+updateGitLegendCounts();
+setupGitButton();
+
+// Apply default language (RU) to all data-i18n* elements before loadPrefs
+// may overwrite it. The stats line uses tFmt — set after applyI18n.
+applyI18n(currentLang);
+document.getElementById("stats").textContent =
+    tFmt("stats", nodes.length, links.length);
+lockAllI18nWidths();
+
+// Export / import preferences
+// File menu — popup with Export / Import / Copy JSON
+(function setupFileMenu() {
+    const btn = document.getElementById("btn-file-menu");
+    const menu = document.getElementById("file-menu");
+    if (!btn || !menu) return;
+    btn.addEventListener("click", e => {
+        e.stopPropagation();
+        menu.classList.toggle("hidden");
+    });
+    // Click on any popup item closes the menu (the item's own listener still fires)
+    menu.addEventListener("click", () => {
+        menu.classList.add("hidden");
+    });
+    // Click outside closes too
+    document.addEventListener("click", e => {
+        if (!menu.classList.contains("hidden")
+            && !menu.contains(e.target) && e.target !== btn) {
+            menu.classList.add("hidden");
+        }
+    });
+})();
+
+document.getElementById("btn-export-prefs").addEventListener("click", () => {
+    const data = localStorage.getItem(PREF_KEY) || "{}";
+    const blob = new Blob([data], {type: "application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "graph-prefs.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+});
+
+// LLM-export: compact JSON snapshot of the graph copied to clipboard.
+// Drops UI-only fields (size, x/y); keeps id/path/type/degree/gitStatus +
+// edge source/target/type/lines so a model can reason about structure.
+document.getElementById("btn-copy-llm").addEventListener("click", () => {
+    const cleanNode = n => {
+        const out = {
+            id: n.id, label: n.label, path: n.path,
+            type: n.type, degree: n.degree
+        };
+        if (n.gitStatus) out.gitStatus = n.gitStatus;
+        if (n.ghost) out.ghost = true;
+        return out;
+    };
+    const cleanEdge = e => {
+        const src = typeof e.source === "object" ? e.source.id : e.source;
+        const tgt = typeof e.target === "object" ? e.target.id : e.target;
+        const out = { source: src, target: tgt, type: e.type };
+        if (e.lines && e.lines.length) out.lines = e.lines;
+        if (e.weight && e.weight !== 1) out.weight = e.weight;
+        if (e.ghost) out.ghost = true;
+        return out;
+    };
+    const cats = [...new Set(nodes.map(n => n.type).filter(Boolean))].sort();
+    const eTypes = [...new Set(links.map(l => l.type).filter(Boolean))].sort();
+    const data = {
+        schema_version: "1.0",
+        project_root: PROJECT_ROOT,
+        stats: {
+            node_count: nodes.length,
+            edge_count: links.length,
+            categories: cats,
+            edge_types: eTypes,
+            git_available: !!GIT_DATA
+        },
+        nodes: nodes.map(cleanNode),
+        edges: links.map(cleanEdge)
+    };
+    const text = JSON.stringify(data, null, 2);
+    const fallback = () => {
+        // Fallback: if Clipboard API isn't available, dump as a download.
+        const blob = new Blob([text], {type: "application/json"});
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "graph-data.json";
+        a.click();
+        URL.revokeObjectURL(a.href);
+    };
+    try {
+        navigator.clipboard.writeText(text)
+            .then(showCopyToast)
+            .catch(fallback);
+    } catch (_) { fallback(); }
+});
+// Mermaid export — flowchart LR over the FOCUSED subgraph (whatever the
+// user is actually looking at), not the full visible set. Priority order:
+//   - path between nodes  → path nodes + path edges only
+//   - edge focus          → two endpoints + the focused edge
+//   - pinned info-panel   → pin + immediate neighbors
+//   - search active       → matched nodes (edges between them only)
+//   - nothing focused     → "" (caller shows toast)
+// Mermaid IDs must be alphanumeric, so we alias real ids to n0/n1/... and
+// put the label in [..]. Edge styles encode the edge type:
+//   doc->doc   -->   (solid)
+//   code->doc  -.->  (dashed)
+//   code->code ==>   (thick)
+// Rename edges (git overlay only) are dropped.
+function generateMermaid() {
+    let focusIds = null;
+    let focusEdges = null;
+    if (pathActive() && pathNodeIds.size) {
+        focusIds = pathNodeIds;
+        focusEdges = pathLinks;
+    } else if (activeEdge) {
+        focusIds = new Set([activeEdge.source.id, activeEdge.target.id]);
+        focusEdges = new Set([activeEdge]);
+    } else if (activeNodeData && !infoPanel.classList.contains("hidden")) {
+        focusIds = neighborMap.get(activeNodeData.id)
+            || new Set([activeNodeData.id]);
+    } else if (searchQuery && searchMatching.size) {
+        focusIds = searchMatching;
+    } else {
+        return "";
+    }
+    const visible = nodes.filter(n => focusIds.has(n.id));
+    if (!visible.length) return "";
+    const idMap = new Map();
+    visible.forEach((n, i) => idMap.set(n.id, "n" + i));
+    const safeLabel = s => '"' + String(s).replace(/"/g, "&quot;") + '"';
+    const safeClass = type => type.replace(/[^a-z0-9_]/gi, "_");
+    const lines = ["flowchart LR"];
+    // Inline class assignment via `:::cls` is more portable across Mermaid
+    // versions than the standalone `class id1,id2 cls` statement, which
+    // some parsers reject on indentation / comma-spacing edge cases.
+    visible.forEach(n => {
+        const cls = n.type ? safeClass(n.type) : null;
+        let line = "    " + idMap.get(n.id) + "[" + safeLabel(n.label) + "]";
+        if (cls) line += ":::" + cls;
+        lines.push(line);
+    });
+    let edges;
+    if (focusEdges) {
+        edges = Array.from(focusEdges);
+    } else {
+        edges = links.filter(l => {
+            const s = typeof l.source === "object" ? l.source.id : l.source;
+            const tg = typeof l.target === "object" ? l.target.id : l.target;
+            return focusIds.has(s) && focusIds.has(tg)
+                && !hiddenEdgeTypes.has(l.type)
+                && l.type !== "rename";
+        });
+    }
+    const arrowFor = type =>
+        type === "code->doc"  ? "-.->" :
+        type === "code->code" ? "==>" :
+        "-->";
+    edges.forEach(e => {
+        const s = typeof e.source === "object" ? e.source.id : e.source;
+        const tg = typeof e.target === "object" ? e.target.id : e.target;
+        lines.push("    " + idMap.get(s) + " " + arrowFor(e.type)
+            + " " + idMap.get(tg));
+    });
+    // One classDef per unique type; nodes already reference them inline.
+    const seenTypes = new Set();
+    visible.forEach(n => {
+        if (!n.type || seenTypes.has(n.type)) return;
+        seenTypes.add(n.type);
+        const fill = activeColors[n.type] || "#888";
+        lines.push("    classDef " + safeClass(n.type)
+            + " fill:" + fill + ",stroke:#444,color:#000");
+    });
+    return lines.join("\n");
+}
+document.getElementById("btn-copy-mermaid").addEventListener("click", () => {
+    const text = generateMermaid();
+    if (!text) {
+        showToast(t("toast.nothingToExport"));
+        return;
+    }
+    const fallback = () => {
+        const blob = new Blob([text], {type: "text/plain"});
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "graph.mmd";
+        a.click();
+        URL.revokeObjectURL(a.href);
+    };
+    try {
+        navigator.clipboard.writeText(text)
+            .then(showCopyToast).catch(fallback);
+    } catch (_) { fallback(); }
+});
+
+// Copy link — current URL with hash-encoded shareable view state. Receiver
+// gets the same view (filters, theme, language, pin, search) but keeps
+// their own panel positions / sliders / IDE preference.
+document.getElementById("btn-copy-link").addEventListener("click", () => {
+    const hash = encodeStateHash(getShareableState());
+    const url = location.origin + location.pathname + location.search + hash;
+    const fallback = () => {
+        const ta = document.createElement("textarea");
+        ta.value = url;
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand("copy"); } catch (_) {}
+        document.body.removeChild(ta);
+    };
+    try {
+        navigator.clipboard.writeText(url)
+            .then(showCopyToast)
+            .catch(() => { fallback(); showCopyToast(); });
+    } catch (_) { fallback(); showCopyToast(); }
+});
+document.getElementById("btn-import-prefs").addEventListener("click", () => {
+    document.getElementById("import-file").click();
+});
+document.getElementById("import-file").addEventListener("change", e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        try {
+            JSON.parse(ev.target.result);
+            localStorage.setItem(PREF_KEY, ev.target.result);
+            loadPrefs();
+        } catch(err) { alert(t("alert.invalidPrefs")); }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+});
+
+loadPrefs();
+// Apply URL hash state on top of loaded prefs (shared link wins for the
+// view-defining subset, but recipient's panel layout etc. is preserved).
+if (location.hash && location.hash.length > 1) {
+    applyShareableState(decodeStateHash(location.hash));
+}
+// In case saved panel positions were captured at a larger viewport
+// (or a different zoom level), pull anything sticking out back inside.
+clampAllPanels();
+// Match legend width to exclude-panel so they look balanced on the right side.
+// (theme-toggle & help-panel widths are pinned via CSS.)
+(function syncLegendWidth() {
+    const exclude = document.getElementById("exclude-panel");
+    const legend = document.getElementById("legend");
+    if (exclude && legend) {
+        legend.style.width = exclude.getBoundingClientRect().width + "px";
+    }
+})();
+
+// === WARMUP & FIRST PAINT ===
+// Make sure every node/link carries a `_vis` flag even when no prefs
+// or hash state triggered applyAllFilters above (ghosts must hide).
+applyAllFilters();
+// Pre-settle the simulation headlessly so the first painted frame is a
+// calm, already-untangled graph instead of the initial explosion.
+// simulation.tick() doesn't fire tick events, so nothing renders during
+// the loop. On very large graphs, freeze physics entirely after settling
+// — Space (or the sliders) re-enables it.
+(function warmupAndStart() {
+    const FREEZE_THRESHOLD = 2000;
+    let guard = 300;
+    while (simulation.alpha() > 0.05 && guard-- > 0) {
+        tickRefitOrphanRing();
+        simulation.tick();
+    }
+    if (nodes.length > FREEZE_THRESHOLD) {
+        simulation.stop();
+        physicsPaused = true;
+    }
+    refreshThemeColors();  // reads CSS vars + queues the first draw
+})();

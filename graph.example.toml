@@ -1,0 +1,86 @@
+# graph.example.toml — sample configuration for build-graph.
+#
+# The config is OPTIONAL and override-only: with no graph.toml at all the
+# graph is built entirely from autodiscovery. The recommended start is:
+#
+#     build-graph --init          # pin the discovered structure to graph.toml
+#     build-graph --init --diff   # later: report drift without touching it
+#     build-graph --init --merge  # append coverage for new folders
+#
+# Copy this file to graph.toml and edit if you prefer a manual start.
+# All paths are relative to the project root (where you run build-graph).
+
+[scan]
+# Extra exclude globs (matched against project-relative paths).
+exclude = []
+
+[dead_code]
+# Globs exempt from dead-code detection, on top of built-in defaults
+# (__init__.py, conftest.py, main.py, test_*.py, alembic/versions/).
+exempt = []
+
+[output]
+path = "docs/graph.html"
+
+[docs]
+dir = "docs"
+# Subdirectories of the docs dir to exclude from the graph.
+exclude = []
+# Fallback type for docs that don't match any category below.
+default_type = "doc/reference"
+
+# Doc categories: checked in order, first matching prefix wins.
+# (Diátaxis layout shown; adjust to your docs structure.)
+[[docs.categories]]
+prefix = "explanation/adr"
+type   = "doc/explanation/adr"
+
+[[docs.categories]]
+prefix = "explanation"
+type   = "doc/explanation"
+
+[[docs.categories]]
+prefix = "how-to"
+type   = "doc/how-to"
+
+[[docs.categories]]
+prefix = "reference"
+type   = "doc/reference"
+
+[[docs.categories]]
+prefix = "tutorials"
+type   = "doc/tutorials"
+
+# Code directories: checked in order, first matching prefix wins.
+# More specific paths must come before broader ones.
+[[code]]
+dir  = "src/mypkg/core"
+type = "code/core"
+
+[[code]]
+dir  = "src/mypkg"
+type = "code/core"
+
+[[code]]
+dir  = "tests"
+type = "code/tests"
+
+# Extra rules for anything outside docs/ and the code dirs above.
+# `kind` (code | doc | config | locale) is optional — omit to match any kind.
+[[rules]]
+dir  = "scripts"
+kind = "code"
+type = "code/scripts"
+
+# Colour pins (hex). Categories without a pin get a deterministic procedural
+# colour. Pastel and saturated palettes are hue-aligned: keep the same colour
+# family in both so the palette toggle stays consistent.
+[colors]
+"doc/explanation" = "#a0c4ff"
+"code/core"       = "#ffadad"
+"code/tests"      = "#d4d4d8"
+
+[colors_saturated]
+"doc/explanation" = "#2563eb"
+"code/core"       = "#dc2626"
+"code/tests"      = "#6b7280"

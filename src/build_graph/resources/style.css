@@ -1,0 +1,693 @@
+:root {
+    --bg: #1a1a2e;
+    --fg: #eee;
+    --ctrl-bg: rgba(0,0,0,0.65);
+    --panel-bg: rgba(0,0,0,0.7);
+    --panel-bg-heavy: rgba(10,10,28,0.92);
+    --input-bg: #14141e;
+    --input-border: #444;
+    --btn-bg: #2a2a3e;
+    --btn-hover-bg: #3a3a5e;
+    --btn-color: #ccc;
+    --btn-hover-color: #fff;
+    --border-color: #333;
+    --border-faint: #222;
+    --muted: #888;
+    --dim: #aaa;
+    --subdued: #777;
+    --conn-dir: #666;
+    --node-text: #ccc;
+}
+body.light {
+    --bg: #f0f2f5;
+    --fg: #1a1a2e;
+    --ctrl-bg: rgba(255,255,255,0.88);
+    --panel-bg: rgba(255,255,255,0.88);
+    --panel-bg-heavy: rgba(255,255,255,0.97);
+    --input-bg: #e8ecf2;
+    --input-border: #bbb;
+    --btn-bg: #fff;
+    --btn-hover-bg: #e0e4f0;
+    --btn-color: #444;
+    --btn-hover-color: #111;
+    --border-color: #ccc;
+    --border-faint: #e8e8e8;
+    --muted: #666;
+    --dim: #555;
+    --subdued: #999;
+    --conn-dir: #999;
+    --node-text: #222;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Comic Relief', system-ui, -apple-system, sans-serif;
+    background: var(--bg); color: var(--fg); overflow: hidden;
+}
+canvas#graph { width: 100vw; height: 100vh; display: block; }
+#brand {
+    position: fixed; top: 14px; left: 18px; z-index: 5;
+    display: flex; align-items: center; gap: 12px;
+    color: var(--muted); opacity: 0.55;
+    font-size: 22px; letter-spacing: 0.6px;
+    user-select: none; pointer-events: none;
+    text-transform: uppercase;
+}
+#brand svg { flex-shrink: 0; width: 40px; height: 26px; }
+#watermark {
+    position: fixed; bottom: 10px; right: 14px; z-index: 5;
+    color: var(--muted); opacity: 0.45;
+    font-size: 14px; letter-spacing: 0.4px;
+    user-select: none; pointer-events: none;
+}
+#watermark a {
+    color: inherit;
+    text-decoration: none;
+    pointer-events: auto;
+}
+#watermark a:hover {
+    text-decoration: underline;
+    color: var(--fg);
+}
+#theme-toggle {
+    position: fixed; top: 60px; left: 12px; z-index: 10;
+    display: grid;
+    grid-template-columns: auto auto auto;
+    align-items: center;
+    justify-items: center;
+    column-gap: 8px; row-gap: 5px;
+    background: var(--panel-bg);
+    padding: 7px 12px 7px 22px;
+    border-radius: 8px; backdrop-filter: blur(6px);
+    width: 140px !important;
+}
+#theme-toggle::before {
+    position: absolute;
+    left: 7px;
+    top: 50%;
+    transform: translateY(-50%);
+    margin: 0;
+}
+.toggle-row { display: contents; }
+.theme-switch {
+    position: relative; width: 36px; height: 20px;
+    display: inline-block; cursor: pointer; flex-shrink: 0;
+}
+.theme-switch input { display: none; }
+.theme-track {
+    position: absolute; inset: 0; border-radius: 10px;
+    background: #555; transition: background 0.25s; pointer-events: none;
+}
+.theme-thumb {
+    position: absolute; width: 14px; height: 14px; border-radius: 50%;
+    background: #fff; top: 3px; left: 3px;
+    transition: transform 0.25s; pointer-events: none;
+}
+.theme-switch input:checked ~ .theme-track { background: #5a8fc5; }
+.theme-switch input:checked ~ .theme-thumb { transform: translateX(16px); }
+.theme-icon { font-size: 15px; line-height: 1; user-select: none; }
+.palette-icon {
+    width: 14px; height: 14px; border-radius: 50%;
+    flex-shrink: 0;
+}
+#controls {
+    position: fixed; top: 44px; left: 50%;
+    transform: translateX(-50%); z-index: 10;
+    display: flex; gap: 8px; align-items: center;
+    background: var(--ctrl-bg); padding: 7px 14px;
+    border-radius: 8px; backdrop-filter: blur(6px);
+}
+.menu-wrap { position: relative; }
+.popup-menu {
+    position: absolute; top: calc(100% + 6px); left: 0; z-index: 30;
+    background: var(--panel-bg-heavy);
+    border: 1px solid var(--input-border);
+    border-radius: 6px;
+    padding: 4px;
+    min-width: 140px;
+    display: flex; flex-direction: column; gap: 2px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+}
+.popup-menu.hidden { display: none; }
+.popup-item {
+    text-align: left; white-space: nowrap;
+    padding: 5px 10px;
+    background: none; border: none; color: var(--fg);
+    font-size: 13px; cursor: pointer; border-radius: 4px;
+}
+.popup-item:hover { background: var(--btn-hover-bg); color: var(--btn-hover-color); }
+#search-wrap { position: relative; display: inline-flex; align-items: center; }
+.bar-divider {
+    width: 1px; height: 18px;
+    background: var(--border-faint);
+    opacity: 0.7;
+    flex-shrink: 0;
+}
+.search-icon-inset {
+    position: absolute; left: 9px; top: 50%;
+    transform: translateY(-50%);
+    width: 13px; height: 13px;
+    color: var(--muted); pointer-events: none;
+}
+#search {
+    width: 220px; padding: 5px 28px 5px 28px; border-radius: 5px;
+    border: 1px solid var(--input-border); background: var(--input-bg);
+    color: var(--fg); font-size: 13px; outline: none;
+}
+#search:focus { border-color: #6699cc; }
+button, input { font-family: inherit; }
+button { cursor: pointer; }
+/* Unified button system: .btn = standard, modifiers stack on top.
+   .btn-icon = borderless icon-only (close ✕, search-clear). */
+.btn {
+    padding: 5px 12px;
+    border-radius: 5px;
+    border: 1px solid var(--input-border);
+    background: var(--btn-bg);
+    color: var(--btn-color);
+    font-size: 13px;
+}
+.btn:hover { background: var(--btn-hover-bg); color: var(--btn-hover-color); }
+.btn-with-icon {
+    display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-icon-svg {
+    width: 13px; height: 13px;
+    flex-shrink: 0;
+}
+.btn-icon-only {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 5px 9px;
+}
+.btn-icon-only .btn-icon-svg { width: 14px; height: 14px; }
+.btn--sm { padding: 3px 8px; font-size: 11px; border-radius: 4px; }
+.btn--block { display: block; width: 100%; }
+.btn--ghost { color: var(--dim); }
+.btn--ghost:hover { color: var(--fg); }
+.btn-icon {
+    background: none; border: none;
+    color: var(--muted);
+    padding: 0; line-height: 1;
+}
+.btn-icon:hover { color: var(--fg); }
+#search-clear {
+    position: absolute; right: 7px;
+    font-size: 15px;
+    display: none;
+}
+.view-btn.active {
+    background: #4a7a9b; color: #fff;
+    border-color: #4a7a9b;
+}
+.view-btn.active:hover { background: #3d6b8a; }
+#stats {
+    position: fixed; bottom: 10px; left: 18px; z-index: 5;
+    color: var(--muted); opacity: 0.55;
+    font-size: 14px; letter-spacing: 0.4px;
+    white-space: nowrap;
+    user-select: none; pointer-events: none;
+}
+#legend {
+    position: fixed; top: 64px; right: 12px; z-index: 10;
+    background: var(--panel-bg); padding: 12px 16px;
+    border-radius: 8px; font-size: 12px; backdrop-filter: blur(6px);
+}
+#help-panel {
+    position: fixed; top: 12px; right: 12px; z-index: 10;
+    display: flex; align-items: center; gap: 6px;
+    background: var(--panel-bg); padding: 7px 12px 7px 22px;
+    border-radius: 8px; backdrop-filter: blur(6px);
+    width: 138px !important;
+}
+#help-panel::before {
+    content: "";
+    position: absolute;
+    left: 7px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 7px; height: 11px;
+    background-image: radial-gradient(circle, var(--muted) 1px, transparent 1.5px);
+    background-size: 3px 3px;
+    background-position: center;
+    opacity: 0.6;
+}
+#help-panel:hover::before { opacity: 1; }
+.lang-wrap { position: relative; display: inline-flex; align-items: center; }
+.lang-wrap .lang-icon {
+    position: absolute; left: 7px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 13px; line-height: 1;
+    pointer-events: none; user-select: none;
+}
+.lang-wrap #select-lang { padding-left: 26px; }
+#legend h4 {
+    color: var(--dim); font-size: 11px; margin-bottom: 8px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+}
+.legend-item {
+    display: flex; align-items: center; gap: 8px;
+    margin: 5px 0; cursor: pointer; user-select: none;
+    transition: opacity 0.2s;
+}
+.legend-item:hover { opacity: 0.8; }
+.legend-item.hidden-type { opacity: 0.3; }
+/* Node-types scroll container: ~10 rows visible, the rest scrolls —
+ * autodiscovery can mint 20+ categories. */
+#legend-node-types {
+    display: flex; flex-direction: column;
+    max-height: 262px; overflow-y: auto;
+    padding-right: 2px;
+}
+.legend-swatch { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+/* Isolate-this-type button — appears on legend-item hover, pushes to the
+ * right edge via margin-left:auto, stays visible when active. */
+.legend-isolate {
+    margin-left: auto;
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    padding: 1px 2px;
+    color: var(--muted);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s;
+}
+.legend-isolate .btn-icon-svg { width: 12px; height: 12px; }
+.legend-item:hover .legend-isolate { opacity: 0.55; }
+.legend-isolate:hover { opacity: 1 !important; color: var(--fg); }
+.legend-isolate.active {
+    opacity: 1 !important;
+    color: var(--fg);
+}
+.legend-sep { border-top: 1px solid var(--border-color); margin: 10px 0 6px; }
+#info-panel {
+    position: fixed; bottom: 20px; left: 20px; z-index: 10;
+    background: var(--panel-bg); padding: 16px 18px;
+    border-radius: 10px; width: 320px; min-width: 200px; max-width: 800px;
+    min-height: 100px; max-height: calc(100vh - 40px);
+    overflow-y: auto; overflow-x: hidden;
+    backdrop-filter: blur(6px);
+    resize: both;
+    --fg: #cfcfd6;
+    color: var(--fg);
+    letter-spacing: 0.02em;
+}
+body.light #info-panel { --fg: #3a3a4a; }
+#info-panel.hidden { display: none; }
+#info-header {
+    display: flex; justify-content: space-between;
+    align-items: flex-start; gap: 8px; margin-bottom: 6px;
+}
+#info-title {
+    font-size: 14px; font-weight: 600;
+    word-break: break-all; line-height: 1.3;
+}
+#info-close { font-size: 20px; flex-shrink: 0; }
+#info-type {
+    font-size: 11px; margin-bottom: 4px; font-weight: 500;
+    display: flex; align-items: center;
+}
+#info-path {
+    font-size: 11px; color: var(--subdued);
+    margin-bottom: 10px; word-break: break-all;
+}
+#info-conn-count { font-size: 11px; color: var(--dim); margin-bottom: 6px; }
+#info-connections { font-size: 12px; padding: 0; }
+#info-connections li {
+    margin: 2px 0; padding: 2px 6px; border-left: 2px solid var(--border-color);
+    display: flex; align-items: baseline; gap: 5px; list-style: none;
+}
+.conn-group ul { padding: 0; margin: 0 0 6px 0; }
+.conn-group-hdr {
+    font-size: 11px; font-weight: bold; cursor: pointer; user-select: none;
+    color: var(--dim); padding: 4px 0 2px;
+}
+.conn-group-hdr::before { content: "▼ "; }
+.conn-group-hdr.collapsed::before { content: "▶ "; }
+.conn-group-hdr:hover { color: var(--fg); }
+.conn-count { font-weight: normal; }
+.conn-type { color: var(--conn-dir); font-size: 10px; }
+.conn-link { color: var(--fg); text-decoration: underline dotted; cursor: pointer; }
+#ide-select, #select-lang {
+    font-family: inherit; font-size: 13px;
+    background: var(--btn-bg); color: var(--fg);
+    border: 1px solid var(--input-border); border-radius: 5px;
+    padding: 5px 8px; cursor: pointer;
+}
+.conn-line { color: var(--dim); font-size: 10px; font-style: italic; flex-shrink: 0; }
+.conn-copy::after { content: " [copy]"; font-size: 9px; opacity: 0.45; }
+.conn-more {
+    background: none; border: none; outline: none; color: var(--dim);
+    font-size: 10px; cursor: pointer; padding: 0 3px;
+    font-family: inherit; vertical-align: middle;
+}
+.conn-more:hover { background: none; color: var(--fg); }
+.conn-extra { list-style: none; padding: 2px 0 0 10px; margin: 0; }
+#info-connections .conn-extra li {
+    border-left: none; display: block; padding: 1px 0; gap: 0;
+}
+.conn-extra-ln { font-size: 11px; color: var(--subdued); text-decoration: none; }
+.conn-extra-ln:hover { color: var(--fg); text-decoration: underline dotted; }
+#copy-toast {
+    position: fixed; bottom: 60px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(30,30,30,0.88); color: #fff;
+    padding: 5px 14px; border-radius: 14px;
+    font-size: 12px; z-index: 200; pointer-events: none;
+    opacity: 0; transition: opacity 0.2s;
+}
+#copy-toast.visible { opacity: 1; }
+/* Node / edge visuals (dimmed, sticky, path, dead-code, ghost, rename)
+ * are rendered on the canvas — see draw() in main.js. Only DOM-based UI
+ * styling remains in this file. */
+/* Themed thin scrollbar for in-panel scroll containers (info-panel,
+ * exclude-list, faq-modal). WebKit-engines via ::-webkit-scrollbar*,
+ * Firefox via scrollbar-width / scrollbar-color. Track stays transparent
+ * so the panel's blurred background shows through. */
+#info-panel,
+#exclude-list,
+#legend-node-types,
+#faq-modal {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+}
+#info-panel::-webkit-scrollbar,
+#exclude-list::-webkit-scrollbar,
+#legend-node-types::-webkit-scrollbar,
+#faq-modal::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+#info-panel::-webkit-scrollbar-track,
+#exclude-list::-webkit-scrollbar-track,
+#legend-node-types::-webkit-scrollbar-track,
+#faq-modal::-webkit-scrollbar-track {
+    background: transparent;
+}
+#info-panel::-webkit-scrollbar-thumb,
+#exclude-list::-webkit-scrollbar-thumb,
+#legend-node-types::-webkit-scrollbar-thumb,
+#faq-modal::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+#info-panel::-webkit-scrollbar-thumb:hover,
+#exclude-list::-webkit-scrollbar-thumb:hover,
+#legend-node-types::-webkit-scrollbar-thumb:hover,
+#faq-modal::-webkit-scrollbar-thumb:hover {
+    background: var(--muted);
+    background-clip: padding-box;
+}
+#info-panel::-webkit-scrollbar-corner,
+#exclude-list::-webkit-scrollbar-corner,
+#legend-node-types::-webkit-scrollbar-corner,
+#faq-modal::-webkit-scrollbar-corner {
+    background: transparent;
+}
+/* Clickable breadcrumb segments in info-panel path */
+.bc-seg {
+    cursor: pointer;
+    text-decoration: underline dotted;
+    text-decoration-color: var(--subdued);
+}
+.bc-seg:hover {
+    color: var(--fg);
+    text-decoration-color: var(--fg);
+}
+.bc-sep {
+    color: var(--subdued);
+    margin: 0 1px;
+}
+/* Git button disabled state */
+#btn-git.disabled {
+    opacity: 0.4; cursor: not-allowed;
+}
+#btn-git.disabled:hover { background: var(--btn-bg); color: var(--btn-color); }
+/* Git mode active — visual hint on the toggle */
+#btn-git.active {
+    background: #4a7a9b; color: #fff; border-color: #4a7a9b;
+}
+#btn-git.active:hover { background: #3d6b8a; }
+/* Stack legend children so we can re-order Git status above the rest */
+#legend { display: flex; flex-direction: column; }
+/* Hide Node types section in git mode */
+body.git-mode #legend > h4:first-of-type,
+body.git-mode #legend-node-types,
+body.git-mode #legend > [data-legend-type],
+body.git-mode #legend > .legend-actions,
+body.git-mode #legend > .legend-sep {
+    display: none;
+}
+/* Show Git status section only in git mode, on top of everything else */
+#legend-git { display: none; }
+body.git-mode #legend-git {
+    display: flex; flex-direction: column;
+    order: -1;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border-faint);
+    padding-bottom: 8px;
+}
+#exclude-panel {
+    position: fixed; bottom: 20px; right: 20px; z-index: 10;
+    background: var(--panel-bg); padding: 12px 16px;
+    border-radius: 8px; font-size: 12px;
+    backdrop-filter: blur(6px);
+}
+#exclude-panel h4 {
+    color: var(--dim); font-size: 11px; margin-bottom: 8px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+}
+#excl-row { display: flex; gap: 6px; margin-bottom: 8px; }
+#exclude-input {
+    flex: 1 1 0; min-width: 0;
+    padding: 4px 8px; border-radius: 4px;
+    border: 1px solid var(--input-border); background: var(--input-bg);
+    color: var(--fg); font-size: 12px; outline: none;
+}
+#exclude-input:focus { border-color: #e74c3c; }
+#exclude-list {
+    list-style: none; margin-bottom: 4px;
+    max-height: 138px; overflow-y: auto;
+}
+#exclude-list li {
+    display: flex; justify-content: space-between;
+    align-items: center; padding: 3px 0;
+    border-bottom: 1px solid var(--border-faint);
+}
+.excl-name { color: var(--fg); word-break: break-all; }
+.excl-rm {
+    background: none; border: none; color: var(--muted);
+    cursor: pointer; font-size: 14px; padding: 0 2px; flex-shrink: 0;
+}
+.excl-rm:hover { color: #e74c3c; }
+#exclude-clear { display: none; margin-top: 6px; }
+#controls-left {
+    position: fixed; left: 12px; top: 56px; z-index: 10;
+    background: var(--panel-bg); padding: 12px 16px;
+    border-radius: 8px; backdrop-filter: blur(6px);
+    display: grid;
+    /* col 1: shrinkable label column (auto = minmax(min-content, max-content));
+     * col 2: 1fr slider that takes the rest;
+     * col 3: auto value readout. */
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    column-gap: 8px; row-gap: 5px;
+    min-width: 200px; max-width: 480px;
+    /* resize:horizontal needs overflow != visible. hidden keeps the panel
+     * tidy if the user shrinks below content (sliders take precedence). */
+    overflow: hidden;
+    resize: horizontal;
+}
+#controls-left h4 {
+    grid-column: 1 / -1;
+    color: var(--dim); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin-bottom: 2px;
+}
+.ctrl-group-title {
+    grid-column: 1 / -1;
+    color: var(--subdued); font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 7px; margin-top: 2px;
+    cursor: pointer; user-select: none;
+}
+.ctrl-group-title:first-of-type {
+    border-top: none; padding-top: 0; margin-top: 0;
+}
+#controls-left label {
+    font-size: 11px; color: var(--fg);
+    /* normal wrap so labels can break onto multiple lines when the panel
+     * is narrow — was nowrap which forced a wide max-content column. */
+    white-space: normal;
+    min-width: 0;
+}
+#controls-left input[type=range] {
+    accent-color: #6699cc; cursor: pointer; width: 100%;
+    /* override UA min-width (~130px on most browsers) so the slider
+     * column can shrink along with the panel. */
+    min-width: 0;
+}
+.ctrl-val {
+    color: var(--muted); font-size: 11px;
+    min-width: 32px; text-align: right;
+}
+/* action buttons (.ctrl-action) span the full grid; let them shrink and
+ * wrap text when the panel is narrow so the label doesn't get clipped. */
+#controls-left .ctrl-action {
+    min-width: 0;
+    white-space: normal;
+}
+#controls-left .ctrl-action span {
+    white-space: normal;
+    text-align: left;
+}
+/* Action buttons placed inside the controls-left CSS grid — span all
+ * columns so the label-input-value rhythm doesn't wrap them weirdly. */
+.ctrl-action {
+    grid-column: 1 / -1;
+    margin-top: 6px;
+}
+#controls-left h4,
+#legend > h4:first-of-type,
+#legend-git h4,
+#exclude-panel h4,
+#info-header { cursor: grab; user-select: none; }
+#controls-left h4:active,
+#legend > h4:first-of-type:active,
+#legend-git h4:active,
+#exclude-panel h4:active,
+#info-header:active { cursor: grabbing; }
+#controls-left h4::before,
+#legend > h4:first-of-type::before,
+#legend-git h4::before,
+#exclude-panel h4::before,
+#info-header::before,
+#controls::before,
+#theme-toggle::before {
+    content: "";
+    display: inline-block;
+    width: 7px;
+    height: 11px;
+    margin-right: 7px;
+    vertical-align: middle;
+    background-image: radial-gradient(circle, var(--muted) 1px, transparent 1.5px);
+    background-size: 3px 3px;
+    background-position: center;
+    opacity: 0.6;
+    flex-shrink: 0;
+}
+#controls-left h4:hover::before,
+#legend > h4:first-of-type:hover::before,
+#legend-git h4:hover::before,
+#exclude-panel h4:hover::before,
+#info-header:hover::before,
+#controls:hover::before,
+#theme-toggle:hover::before {
+    opacity: 1;
+}
+/* Collapsible panels: chevron in header + hide content when .collapsed */
+#controls-left h4,
+#legend > h4:first-of-type,
+#exclude-panel h4 {
+    display: flex; align-items: center;
+}
+#controls-left h4::after,
+#legend > h4:first-of-type::after,
+#exclude-panel h4::after {
+    content: "▾";
+    margin-left: auto; padding-left: 10px;
+    font-size: 13px; line-height: 1; opacity: 0.75;
+    color: var(--fg);
+    transition: opacity 0.15s;
+}
+#controls-left h4:hover::after,
+#legend > h4:first-of-type:hover::after,
+#exclude-panel h4:hover::after { opacity: 1; }
+#controls-left.collapsed h4::after,
+#legend.collapsed > h4:first-of-type::after,
+#exclude-panel.collapsed h4::after {
+    content: "▸";
+}
+#controls-left.collapsed > *:not(h4),
+#exclude-panel.collapsed > *:not(h4),
+#legend.collapsed > *:not(:first-child) {
+    display: none !important;
+}
+#controls-left.collapsed,
+#exclude-panel.collapsed,
+#legend.collapsed {
+    min-width: 0 !important;
+    width: max-content !important;
+}
+#controls-left.collapsed h4,
+#exclude-panel.collapsed h4,
+#legend.collapsed > h4:first-of-type {
+    margin-bottom: 0;
+}
+#exclude-rebuild { margin-top: 4px; }
+.legend-actions { display: flex; gap: 4px; margin-top: 6px; }
+.legend-actions .btn { flex: 1 1 auto; white-space: nowrap; min-width: max-content; }
+#edge-tooltip {
+    position: fixed; z-index: 90;
+    background: var(--panel-bg-heavy); color: var(--fg);
+    padding: 8px 12px; border-radius: 6px;
+    border: 1px solid var(--border-color);
+    font-size: 12px; line-height: 1.4;
+    pointer-events: none;
+    max-width: 360px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    backdrop-filter: blur(2px);
+}
+#edge-tooltip.hidden { display: none; }
+#edge-tooltip .et-type {
+    color: var(--muted); font-size: 10px;
+    text-transform: uppercase; margin-bottom: 4px;
+    letter-spacing: 0.5px;
+}
+#edge-tooltip .et-files { margin-bottom: 4px; }
+#edge-tooltip .et-files b { color: var(--fg); font-weight: 600; }
+#edge-tooltip .et-files .et-arrow { color: var(--muted); margin: 0 4px; }
+#edge-tooltip .et-lines { color: var(--dim); font-size: 11px; }
+#btn-faq { font-weight: bold; padding: 5px 9px; }
+#faq-overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.55);
+    display: none; align-items: center; justify-content: center;
+    backdrop-filter: blur(2px);
+}
+#faq-overlay.visible { display: flex; }
+#faq-modal {
+    background: var(--panel-bg-heavy); color: var(--fg);
+    max-width: 720px; width: calc(100vw - 40px);
+    max-height: calc(100vh - 80px); overflow-y: auto;
+    padding: 22px 28px 24px; border-radius: 10px;
+    border: 1px solid var(--border-color);
+    font-size: 13px; line-height: 1.55;
+    position: relative;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+#faq-modal h2 {
+    font-size: 17px; margin: 0 0 10px; color: var(--fg);
+}
+#faq-modal h3 {
+    font-size: 13.5px; margin: 14px 0 5px; color: var(--fg);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border-faint); padding-bottom: 3px;
+}
+#faq-modal p { margin: 4px 0 6px; color: var(--dim); }
+#faq-modal ul { margin: 2px 0 4px 20px; }
+#faq-modal li { margin-bottom: 3px; color: var(--dim); }
+#faq-modal li b, #faq-modal li strong { color: var(--fg); font-weight: 600; }
+#faq-modal kbd {
+    display: inline-block; padding: 1px 6px; margin: 0 1px;
+    background: var(--input-bg); border: 1px solid var(--input-border);
+    border-radius: 3px; font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 11px; color: var(--fg);
+}
+#faq-close {
+    position: absolute; top: 8px; right: 12px;
+    font-size: 24px; padding: 2px 6px;
+}
+#faq-close:hover { background: var(--btn-hover-bg); border-radius: 4px; }
