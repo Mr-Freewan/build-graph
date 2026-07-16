@@ -15,7 +15,8 @@ three layers no other tool combines:
 …and exports the same map as a **compact, token-efficient JSON** designed to
 drop into an LLM agent's context.
 
-<!-- TODO: screenshot — dark theme, full graph -->
+![Interactive dependency graph — 1070 nodes / 6096 edges of a real project, dark theme](docs/media/hero-dark.jpg)
+
 <!-- TODO: GIF — hover/pin/path interactions -->
 
 ## Install
