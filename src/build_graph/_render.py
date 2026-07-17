@@ -91,8 +91,11 @@ def _get_d3_script(embed: bool) -> str:
 _ASSETS_DIR = _resources.files("build_graph") / "resources"
 _CSS = (_ASSETS_DIR / "style.css").read_text(encoding="utf-8")
 _BODY = (_ASSETS_DIR / "body.html").read_text(encoding="utf-8")
-# main.js content is concatenated as-is; backslashes inside (e.g. JS \u
-# escapes) must remain literal — that's handled by the file being raw text.
+# JS content is concatenated as-is; backslashes inside (e.g. JS \u escapes)
+# must remain literal — that's handled by the files being raw text. i18n.js
+# MUST precede main.js: main.js top-level init code calls applyI18n / reads
+# I18N at evaluation time.
+_JS_I18N = (_ASSETS_DIR / "i18n.js").read_text(encoding="utf-8")
 _JS = (_ASSETS_DIR / "main.js").read_text(encoding="utf-8")
 
 
@@ -216,6 +219,7 @@ def render_html(
         + ";\nconst APP_AUTHOR_URL = "
         + _safe_json(__author_url__)
         + ";\n"
+        + _JS_I18N
         + _JS
         + "</script>\n</body>\n</html>\n"
     )

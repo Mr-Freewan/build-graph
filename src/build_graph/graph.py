@@ -23,9 +23,11 @@ Module layout:
         graph.py   — LLM JSON exports (verbose + compact), CLI entry
             point and build orchestration (this file)
 
-    JS (inside build_graph/resources/main.js, search "// === ..."):
+    JS (build_graph/resources/, search "// === ..."):
+        i18n.js — I18N dictionary (10 locales), formatters, applyI18n;
+            assembled before main.js
+        main.js:
         STATE & EDGE COLORS
-        I18N (dictionary, formatters, applyI18n)
         WIDTH LOCKING (lockAllI18nWidths)
         NEIGHBOR MAP & SIMULATION (nodes, links, forces)
         RENDER STATE & CANVAS ENGINE (draw loop, hit testing,
