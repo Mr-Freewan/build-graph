@@ -1615,9 +1615,18 @@ function loadPrefs() {
             if (el && pos) {
                 if (pos.left)  el.style.left = pos.left;
                 if (pos.top)   el.style.top  = pos.top;
-                el.style.right     = pos.right     || "auto";
-                el.style.bottom    = pos.bottom    || "auto";
-                el.style.transform = pos.transform || "none";
+                // Only override the CSS anchor (right/bottom/transform) when
+                // a real drag position was captured. A panel that was never
+                // clamped/dragged can still pick up a saved `width` (e.g.
+                // legend's syncLegendWidth) without pos.left/top ever being
+                // set — blindly forcing right/bottom to "auto" here would
+                // strip its CSS anchor (`right: 12px` etc.) and leave it
+                // with no positioning at all.
+                if (pos.left || pos.top) {
+                    el.style.right     = pos.right     || "auto";
+                    el.style.bottom    = pos.bottom    || "auto";
+                    el.style.transform = pos.transform || "none";
+                }
                 if (pos.width) el.style.width = pos.width;
                 if (pos.height) el.style.height = pos.height;
                 // Mirror saved position into desired-* so clamp can restore
@@ -2364,6 +2373,27 @@ document.getElementById("btn-release-pinned").addEventListener("click", () => {
 // so when the viewport grows back, the panel returns to where the user put it.
 function clampPanelToViewport(panel) {
     const margin = 4;
+    const wasPositioned = panel.dataset.desiredLeft !== undefined || panel.style.left;
+    if (!wasPositioned) {
+        // Never dragged and never clamped before — it's still governed by
+        // its CSS anchor (e.g. `#legend { right: 12px }`, `#controls {
+        // left: 50%; transform: translateX(-50%) }`). If it already fits
+        // fully on screen, leave it alone: converting it to inline
+        // left/top here would freeze today's size and remove the CSS
+        // anchor, so any later width change (font swap, i18n width lock,
+        // syncLegendWidth) grows the box AWAY from its anchored edge
+        // instead of toward it — pushing it off the opposite side with no
+        // further correction. Only intervene when it genuinely overflows.
+        const r = panel.getBoundingClientRect();
+        if (
+            r.left >= margin && r.top >= margin &&
+            r.right <= window.innerWidth - margin &&
+            r.bottom <= window.innerHeight - margin
+        ) {
+            return;
+        }
+    }
+
     const w = panel.offsetWidth, h = panel.offsetHeight;
     const maxX = Math.max(margin, window.innerWidth - w - margin);
     const maxY = Math.max(margin, window.innerHeight - h - margin);
@@ -2898,11 +2928,16 @@ loadPrefs();
 if (location.hash && location.hash.length > 1) {
     applyShareableState(decodeStateHash(location.hash));
 }
-// In case saved panel positions were captured at a larger viewport
-// (or a different zoom level), pull anything sticking out back inside.
-clampAllPanels();
-// Match legend width to exclude-panel so they look balanced on the right side.
-// (theme-toggle & help-panel widths are pinned via CSS.)
+// Match legend width to exclude-panel so they look balanced on the right side
+// (theme-toggle & help-panel widths are pinned via CSS). MUST run before
+// clampAllPanels(): on a fresh session (no saved prefs) #legend is still
+// right-anchored (CSS `right: 12px`, no inline `left`), so widening it here
+// grows the box LEFTWARD — safe. clampAllPanels() then bakes an inline
+// `left` from the final (already-synced) width. Doing this the other way
+// around — clamp first, resize after — bakes `left` from the pre-sync
+// (CSS-only) width, converts the panel to left-anchored (`right: auto`),
+// and the subsequent width change grows it RIGHTWARD with no re-clamp,
+// pushing it off the viewport on first load.
 (function syncLegendWidth() {
     const exclude = document.getElementById("exclude-panel");
     const legend = document.getElementById("legend");
@@ -2910,6 +2945,9 @@ clampAllPanels();
         legend.style.width = exclude.getBoundingClientRect().width + "px";
     }
 })();
+// In case saved panel positions were captured at a larger viewport
+// (or a different zoom level), pull anything sticking out back inside.
+clampAllPanels();
 
 // === WARMUP & FIRST PAINT ===
 // Make sure every node/link carries a `_vis` flag even when no prefs
