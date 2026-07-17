@@ -16,6 +16,7 @@ from collections import defaultdict
 from functools import lru_cache
 from pathlib import Path
 
+from build_graph._common import Colors, print_separator
 from build_graph._console import ensure_utf8_stdout
 
 # Source of truth for excludes — git: we query once below
@@ -115,46 +116,6 @@ def _is_skipped(file_path: Path, project_root: Path) -> bool:
     if resolved in ignored:
         return True
     return any(parent in ignored for parent in resolved.parents)
-
-
-# ANSI color codes
-
-
-class Colors:
-    """ANSI color codes for terminal output."""
-
-    GREEN = "\033[92m"
-    YELLOW = "\033[93m"
-    RED = "\033[91m"
-    BLUE = "\033[94m"
-    RESET = "\033[0m"
-    BOLD = "\033[1m"
-
-
-def print_separator() -> None:
-    """Print a visual separator line."""
-    print("─" * 100)
-
-
-def is_code_or_config_file(file_path: Path) -> bool:
-    """Check if a file is a code or configuration file that should be checked.
-
-    Returns:
-        True if file is .py, .md, or config file
-    """
-    code_extensions = {".py", ".md"}
-    config_extensions = {
-        ".yaml",
-        ".yml",
-        ".toml",
-        ".ini",
-        ".cfg",
-        ".json",
-        ".conf",
-        ".env",
-        ".config",
-    }
-    return file_path.suffix.lower() in code_extensions | config_extensions
 
 
 def build_file_index(project_root: Path) -> tuple[dict[str, Path], dict[str, Path]]:

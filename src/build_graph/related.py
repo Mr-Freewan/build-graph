@@ -14,47 +14,40 @@ from bisect import bisect_right
 from collections import defaultdict
 from pathlib import Path
 
+from build_graph._common import Colors, is_code_or_config_file, print_separator
 from build_graph._console import ensure_utf8_stdout
 
 
-# ANSI color codes
+def _line_mentions(
+    line: str,
+    fname: str,
+    patterns: list[str],
+    code_block_re: re.Pattern[str],
+    test_class_pattern: str | None,
+    in_code_block: bool,
+    in_mermaid: bool,
+) -> bool:
+    """Single-line mention check shared by the path and filename scanners.
 
-
-class Colors:
-    """ANSI color codes for terminal output."""
-
-    GREEN = "\033[92m"
-    YELLOW = "\033[93m"
-    RED = "\033[91m"
-    BLUE = "\033[94m"
-    RESET = "\033[0m"
-    BOLD = "\033[1m"
-
-
-def print_separator() -> None:
-    """Print a visual separator line."""
-    print("─" * 100)
-
-
-def is_code_or_config_file(file_path: Path) -> bool:
-    """Check if a file is a code or configuration file that should be checked.
-
-    Returns:
-        True if file is .py, .md, or config file
+    A line counts as a mention when any context pattern occurs in it, when
+    the bare filename appears in a code context (backticks via
+    `code_block_re`, a markdown table row, a fenced code block or a mermaid
+    diagram), or when the derived test-class name appears.
     """
-    code_extensions = {".py", ".md"}
-    config_extensions = {
-        ".yaml",
-        ".yml",
-        ".toml",
-        ".ini",
-        ".cfg",
-        ".json",
-        ".conf",
-        ".env",
-        ".config",
-    }
-    return file_path.suffix.lower() in code_extensions | config_extensions
+    for pattern in patterns:
+        # For the bare filename, require a code context (backticks).
+        if pattern == fname:
+            if code_block_re.search(line):
+                return True
+        elif pattern in line:
+            return True
+    if test_class_pattern and test_class_pattern in line:
+        return True
+    if "|" in line and fname in line:
+        return True
+    if (in_code_block or in_mermaid) and fname in line:
+        return True
+    return False
 
 
 _RESOLVED_DIR_CACHE: dict[str, Path] = {}
@@ -236,35 +229,15 @@ def find_related_docs_by_filename(
                         in_code_block = True
                     continue
 
-                # Check if any pattern matches this line
-                line_mentioned = False
-                for pattern in patterns:
-                    if pattern == filename:
-                        if code_block_re.search(line):
-                            line_mentioned = True
-                            break
-                    else:
-                        if pattern in line:
-                            line_mentioned = True
-                            break
-
-                # Check for test class name
-                if test_class_pattern and test_class_pattern in line:
-                    line_mentioned = True
-
-                # Check in markdown tables
-                if "|" in line and filename in line:
-                    line_mentioned = True
-
-                # Check in code blocks
-                if in_code_block and filename in line:
-                    line_mentioned = True
-
-                # Check in mermaid diagrams
-                if in_mermaid and filename in line:
-                    line_mentioned = True
-
-                if line_mentioned:
+                if _line_mentions(
+                    line,
+                    filename,
+                    patterns,
+                    code_block_re,
+                    test_class_pattern,
+                    in_code_block,
+                    in_mermaid,
+                ):
                     mentioned_lines.add(line_num)
                     verbose_output[md_rel].append((line_num, line.strip()))
 
@@ -379,36 +352,15 @@ def find_related_docs(
                 line = lines[idx]
                 line_num = idx + 1
 
-                # Check if any pattern matches this line
-                line_mentioned = False
-                for pattern in patterns:
-                    # For filename without backticks, check if it's in a code context
-                    if pattern == fname:
-                        if code_block_re.search(line):
-                            line_mentioned = True
-                            break
-                    else:
-                        if pattern in line:
-                            line_mentioned = True
-                            break
-
-                # Check for test class name
-                if test_class_pattern and test_class_pattern in line:
-                    line_mentioned = True
-
-                # Check in markdown tables (lines with |)
-                if "|" in line and fname in line:
-                    line_mentioned = True
-
-                # Check in code blocks
-                if in_code_block and fname in line:
-                    line_mentioned = True
-
-                # Check in mermaid diagrams
-                if in_mermaid and fname in line:
-                    line_mentioned = True
-
-                if line_mentioned:
+                if _line_mentions(
+                    line,
+                    fname,
+                    patterns,
+                    code_block_re,
+                    test_class_pattern,
+                    in_code_block,
+                    in_mermaid,
+                ):
                     mentioned_lines.add(line_num)
                     if verbose:
                         verbose_output[md_rel].append((line_num, line.strip()))
@@ -623,6 +575,96 @@ def _print_files_with_docs(
                 print(f"    {full_path}")
 
 
+def _check_git_files(
+    git_files: list[Path],
+    docs_dir: str,
+    md_cache: list,
+    handle_deleted: bool,
+) -> tuple[list[tuple], list[Path], list[tuple]]:
+    """Scan git-reported files for doc mentions (shared by both git modes).
+
+    Returns (files_with_docs, files_without_docs, files_not_found). Deleted
+    files are looked up by bare filename when `handle_deleted` is set
+    (--git-added); otherwise missing files are silently skipped.
+    """
+    files_with_docs: list[tuple] = []
+    files_without_docs: list[Path] = []
+    files_not_found: list[tuple] = []
+    for git_file in git_files:
+        # Skip non-code/config files and docs
+        if not is_code_or_config_file(git_file) or "docs/" in str(git_file):
+            continue
+
+        if not git_file.exists():
+            if handle_deleted:
+                # For deleted files, search by filename in docs
+                result, verbose_output = find_related_docs_by_filename(
+                    git_file.name, docs_dir, md_cache
+                )
+                if result:
+                    files_not_found.append((git_file, len(result), verbose_output))
+            continue
+
+        result, verbose_output = find_related_docs(
+            str(git_file), docs_dir, True, md_cache
+        )
+
+        if not result:
+            files_without_docs.append(git_file)
+        else:
+            files_with_docs.append((git_file, len(result), verbose_output))
+    return files_with_docs, files_without_docs, files_not_found
+
+
+def _print_git_report(
+    files_with_docs: list[tuple],
+    files_without_docs: list[Path],
+    files_not_found: list[tuple],
+    docs_path: str,
+    all_ok_message: str,
+) -> None:
+    """Print the per-file blocks and the summary for a git-mode run."""
+    if files_with_docs:
+        print_separator()
+        _print_files_with_docs(files_with_docs, docs_path)
+
+    # Files not found (deleted files mentioned in docs)
+    if files_not_found:
+        print_separator()
+        for git_file, count, verbose_output in files_not_found:
+            print(
+                f"{Colors.YELLOW}⚠️{Colors.RESET} {Colors.YELLOW}WARNING{Colors.RESET}: "  # noqa: E501
+                f"File not found - mentioned in {count} doc(s): {git_file}"
+            )
+            for doc_file, lines in verbose_output.items():
+                for line_num, _ in lines:
+                    full_path = f"{docs_path}/{doc_file}:{line_num}"
+                    print(f"    {full_path}")
+
+    if files_without_docs:
+        print_separator()
+        for git_file in files_without_docs:
+            print(
+                f"{Colors.RED}⚠️{Colors.RESET} {Colors.RED}ERROR{Colors.RESET}: "
+                f"No documentation mentions for {git_file}"
+            )
+
+    # Summary
+    print_separator()
+    if files_without_docs:
+        print(
+            f"{Colors.YELLOW}{len(files_without_docs)}{Colors.RESET} "
+            f"file(s) without documentation mentions"
+        )
+    if files_not_found:
+        print(
+            f"{Colors.YELLOW}{len(files_not_found)}{Colors.RESET} "
+            f"deleted file(s) mentioned in docs"
+        )
+    if not files_without_docs and not files_not_found:
+        print(f"{Colors.GREEN}{all_ok_message}{Colors.RESET}")
+
+
 def main() -> None:
     """Main entry point for the script."""
     ensure_utf8_stdout()
@@ -672,7 +714,7 @@ def main() -> None:
 
     # Git mode: check all staged files
     if args.git_added:
-        files_amr, files_deleted, all_files = get_git_staged_files()
+        _, _, all_files = get_git_staged_files()
         if not all_files:
             print("No files staged in git (git add)")
             return
@@ -681,80 +723,16 @@ def main() -> None:
 
         # Load all md files once
         md_cache = load_md_files(args.docs_dir, tuple(args.exclude))
-
-        files_with_docs = []
-        files_without_docs = []
-        files_not_found = []
-
-        # Check all staged files
-        for git_file in all_files:
-            # Skip non-code/config files and docs
-            if not is_code_or_config_file(git_file) or "docs/" in str(git_file):
-                continue
-
-            if not git_file.exists():
-                # For deleted files, search by filename in docs
-                result, verbose_output = find_related_docs_by_filename(
-                    git_file.name, args.docs_dir, md_cache
-                )
-                if result:
-                    files_not_found.append((git_file, len(result), verbose_output))
-                continue
-
-            result, verbose_output = find_related_docs(
-                str(git_file), args.docs_dir, True, md_cache
-            )
-
-            if not result:
-                files_without_docs.append(git_file)
-            else:
-                files_with_docs.append((git_file, len(result), verbose_output))
-
-        # Print files with documentation mentions
-        if files_with_docs:
-            print_separator()
-            _print_files_with_docs(files_with_docs, str(docs_path))
-
-        # Print files not found (deleted files mentioned in docs)
-        if files_not_found:
-            print_separator()
-            for git_file, count, verbose_output in files_not_found:
-                print(
-                    f"{Colors.YELLOW}⚠️{Colors.RESET} {Colors.YELLOW}WARNING{Colors.RESET}: "  # noqa: E501
-                    f"File not found - mentioned in {count} doc(s): {git_file}"
-                )
-                for doc_file, lines in verbose_output.items():
-                    for line_num, _ in lines:
-                        full_path = f"{docs_path}/{doc_file}:{line_num}"
-                        print(f"    {full_path}")
-
-        # Print files without documentation mentions
-        if files_without_docs:
-            print_separator()
-            for git_file in files_without_docs:
-                print(
-                    f"{Colors.RED}⚠️{Colors.RESET} {Colors.RED}ERROR{Colors.RESET}: "
-                    f"No documentation mentions for {git_file}"
-                )
-
-        # Summary
-        print_separator()
-        if files_without_docs:
-            print(
-                f"{Colors.YELLOW}{len(files_without_docs)}{Colors.RESET} "
-                f"file(s) without documentation mentions"
-            )
-        if files_not_found:
-            print(
-                f"{Colors.YELLOW}{len(files_not_found)}{Colors.RESET} "
-                f"deleted file(s) mentioned in docs"
-            )
-        if not files_without_docs and not files_not_found:
-            print(
-                f"{Colors.GREEN}All staged files have "
-                f"documentation mentions{Colors.RESET}"
-            )
-
+        files_with_docs, files_without_docs, files_not_found = _check_git_files(
+            all_files, args.docs_dir, md_cache, handle_deleted=True
+        )
+        _print_git_report(
+            files_with_docs,
+            files_without_docs,
+            files_not_found,
+            str(docs_path),
+            "All staged files have documentation mentions",
+        )
         return
 
     # Git mode: check all modified files
@@ -771,54 +749,16 @@ def main() -> None:
 
         # Load all md files once
         md_cache = load_md_files(args.docs_dir, tuple(args.exclude))
-
-        files_with_docs = []
-        files_without_docs = []
-
-        for git_file in modified_files:
-            # Skip non-code/config files and docs
-            if not is_code_or_config_file(git_file) or "docs/" in str(git_file):
-                continue
-
-            if not git_file.exists():
-                continue
-
-            result, verbose_output = find_related_docs(
-                str(git_file), args.docs_dir, True, md_cache
-            )
-
-            if not result:
-                files_without_docs.append(git_file)
-            else:
-                files_with_docs.append((git_file, len(result), verbose_output))
-
-        # Print files with documentation mentions
-        if files_with_docs:
-            print_separator()
-            _print_files_with_docs(files_with_docs, str(docs_path))
-
-        # Print files without documentation mentions
-        if files_without_docs:
-            print_separator()
-            for git_file in files_without_docs:
-                print(
-                    f"{Colors.RED}⚠️{Colors.RESET} {Colors.RED}ERROR{Colors.RESET}: "
-                    f"No documentation mentions for {git_file}"
-                )
-
-        # Summary
-        print_separator()
-        if files_without_docs:
-            print(
-                f"{Colors.YELLOW}{len(files_without_docs)}{Colors.RESET} "
-                f"file(s) without documentation mentions"
-            )
-        else:
-            print(
-                f"{Colors.GREEN}All modified files have "
-                f"documentation mentions{Colors.RESET}"
-            )
-
+        files_with_docs, files_without_docs, _ = _check_git_files(
+            modified_files, args.docs_dir, md_cache, handle_deleted=False
+        )
+        _print_git_report(
+            files_with_docs,
+            files_without_docs,
+            [],
+            str(docs_path),
+            "All modified files have documentation mentions",
+        )
         return
 
     # Normal mode: require path argument
