@@ -17,6 +17,10 @@ drop into an LLM agent's context.
 
 ![Interactive dependency graph — 1070 nodes / 6096 edges of a real project, dark theme](docs/media/hero-dark.jpg)
 
+**[▶ Live demo](https://mr-freewan.github.io/build-graph/)** — the graph of
+this very repository (dogfood), with a synthetic `--mock-git` overlay so the
+Git mode is clickable too.
+
 <!-- TODO: GIF — hover/pin/path interactions -->
 
 ## Install
