@@ -147,7 +147,9 @@ def _resolve_python_import(
     """Resolve a Python import to a project-relative .py file path.
 
     - `level=0` → absolute import. The module dotted-path must resolve to
-      `<project_root>/<module>.py`.
+      `<project_root>/<module>.py`, with an `src/<module>.py` fallback for
+      src-layout projects (where the import root is `src/`, not the repo
+      root — the returned path stays repo-relative so it matches node ids).
     - `level>0` → relative. Walk up `level - 1` directories from the source
       file's package, then append `module` (if any).
     - Always picks `foo.py`; never falls back to `foo/__init__.py`.
@@ -171,6 +173,10 @@ def _resolve_python_import(
     candidate = project_root / base.with_suffix(".py")
     if candidate.is_file():
         return base.with_suffix(".py").as_posix()
+    if level == 0:
+        src_base = Path("src") / base
+        if (project_root / src_base.with_suffix(".py")).is_file():
+            return src_base.with_suffix(".py").as_posix()
     return None
 
 
