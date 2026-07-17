@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from build_graph.graph import _resolve_python_import, _split_dotted_module
+from build_graph._build import _resolve_python_import, _split_dotted_module
 
 
 @pytest.fixture()
