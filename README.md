@@ -37,12 +37,9 @@ build-graph --compact          # + docs/graph-compact.json for AI agents
 build-graph --init             # optional: pin discovered structure to graph.toml
 ```
 
-Two companion CLIs ship in the same package:
-
-| CLI | What it does |
-|---|---|
-| `find-related-docs <file>` | Reverse lookup: which docs mention this code file. `--git-added` / `--git-modified` modes for pre-commit hooks; `--exclude <dirname>` skips docs subfolders. |
-| `verify-doc-links` | Check that every file reference in your `.md` files points to a real file. Exits non-zero on broken refs — drop it straight into CI. |
+Two companion CLIs — `find-related-docs` (reverse lookup: code → docs) and
+`verify-doc-links` (broken-reference gate for CI) — ship in the same package;
+see [Companion tools](#companion-tools).
 
 ## Why not X?
 
@@ -123,6 +120,66 @@ Two optional plain-text companions, both looked up in the project root:
 | `--no-cdn` | fully offline output: embed D3.js inline (SHA-256 verified) and drop the external font link |
 | `--mock-git` | synthetic git overlay for demos/testing |
 | `--init [--diff\|--merge\|--force]` | config lifecycle (see above) |
+
+## Companion tools
+
+Both CLIs run the same reference scanner the graph is built from — what the
+map draws as a code↔docs edge is exactly what they look up and verify.
+
+### find-related-docs
+
+Reverse lookup: which docs mention a given code file. Run it before editing a
+file to know which pages need updating afterwards, or wire `--git-added` into
+a pre-commit hook so undocumented changes get flagged before they land.
+
+```bash
+find-related-docs src/mypkg/core/access.py   # single file (bare filename works too)
+find-related-docs --git-added -v             # pre-commit: staged files, with doc line numbers
+find-related-docs --git-modified             # working tree: staged + unstaged modifications
+```
+
+| Flag | Effect |
+|---|---|
+| `path` | file or directory to look up (a bare filename is searched project-wide) |
+| `--docs-dir PATH` | documentation directory (default: `docs`) |
+| `--exclude DIRNAME` | skip a folder name anywhere under the docs dir (repeatable) |
+| `--git-added` | check all staged files; also warns about deleted files still mentioned in docs |
+| `--git-modified` | check all modified files (staged + unstaged) |
+| `-v` / `--verbose` | print `docs/<file>.md:<line>` for every mention |
+
+### verify-doc-links
+
+Check that every file reference in your `.md` files points to a real file.
+Exit codes make it a drop-in CI gate:
+
+| Exit | Meaning |
+|---|---|
+| `0` | all references valid |
+| `1` | broken references found |
+| `2` | target path invalid (not found, or not a `.md` file) |
+
+```bash
+verify-doc-links                     # whole docs/ against the project root
+verify-doc-links docs/reference -v   # one subtree, with the offending lines
+```
+
+```yaml
+# CI step (GitHub Actions)
+- run: pip install build-graph
+- run: verify-doc-links --root .
+```
+
+| Flag | Effect |
+|---|---|
+| `path` | `.md` file or directory to check (default: `docs`) |
+| `--root PATH` | project root the references resolve against (default: cwd) |
+| `--known-brokens PATH` | whitelist file (default: `<root>/known-brokens.txt`) |
+| `-v` / `--verbose` | show the offending lines |
+
+Besides `known-brokens.txt`, false positives can be silenced inline with HTML
+comments (invisible in rendered Markdown): `<!-- broken-link-ok -->` on the
+same line, `<!-- broken-links-ok-start -->` / `<!-- broken-links-ok-end -->`
+around a block, or `<!-- ignore-ref: path/to/file.py -->` anywhere in the file.
 
 ## Known limitations
 
