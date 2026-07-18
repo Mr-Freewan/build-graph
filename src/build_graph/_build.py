@@ -309,17 +309,21 @@ class _ImportCollector(ast.NodeVisitor):
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         module = node.module or ""
         level = node.level or 0
-        if module or level > 0:
+        if not module and level == 0:
+            return
+        if module:
             target = _resolve_python_import(module, level, self.rel, self.project_root)
             if target:
                 self.refs.append((target, node.lineno, bool(self._tc_depth)))
-        if level > 0 and not module:
-            for alias in node.names:
-                target = _resolve_python_import(
-                    alias.name, level, self.rel, self.project_root
-                )
-                if target:
-                    self.refs.append((target, node.lineno, bool(self._tc_depth)))
+        # The imported names may be submodules rather than attributes —
+        # `from pkg import mod` / `from .pkg import mod` never mention
+        # pkg/mod.py in the module field. Probing <module>.<alias> is cheap:
+        # attribute names simply fail the is_file check in the resolver.
+        for alias in node.names:
+            sub = f"{module}.{alias.name}" if module else alias.name
+            target = _resolve_python_import(sub, level, self.rel, self.project_root)
+            if target:
+                self.refs.append((target, node.lineno, bool(self._tc_depth)))
 
     def visit_Call(self, node: ast.Call) -> None:
         target_module = _extract_dynamic_import(node, self.module_consts)

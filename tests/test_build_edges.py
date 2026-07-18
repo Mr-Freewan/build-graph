@@ -96,6 +96,43 @@ class TestCodeCodeEdges:
         )
         assert edge["target"] == "pkg/b.py"
 
+    def test_from_package_import_submodule(self, tmp_path: Path) -> None:
+        # `from pkg import b` — b is a submodule, not an attribute.
+        _write(tmp_path, "app.py", "from pkg import b\n")
+        _write(tmp_path, "pkg/b.py", "X = 1\n")
+        nodes = _code_nodes("app.py", "pkg/b.py")
+        (edge,) = add_code_code_edges(
+            nodes, tmp_path, _parse_code_trees(nodes, tmp_path)
+        )
+        assert edge["target"] == "pkg/b.py"
+
+    def test_from_src_layout_package_import_submodule(self, tmp_path: Path) -> None:
+        _write(tmp_path, "tests/test_x.py", "from pkg import b\n")
+        _write(tmp_path, "src/pkg/b.py", "X = 1\n")
+        nodes = _code_nodes("tests/test_x.py", "src/pkg/b.py")
+        (edge,) = add_code_code_edges(
+            nodes, tmp_path, _parse_code_trees(nodes, tmp_path)
+        )
+        assert edge["target"] == "src/pkg/b.py"
+
+    def test_relative_from_package_import_submodule(self, tmp_path: Path) -> None:
+        # `from .sub import mod` — mod is a submodule of the sibling package.
+        _write(tmp_path, "pkg/a.py", "from .sub import mod\n")
+        _write(tmp_path, "pkg/sub/mod.py", "X = 1\n")
+        nodes = _code_nodes("pkg/a.py", "pkg/sub/mod.py")
+        (edge,) = add_code_code_edges(
+            nodes, tmp_path, _parse_code_trees(nodes, tmp_path)
+        )
+        assert edge["target"] == "pkg/sub/mod.py"
+
+    def test_attribute_import_not_resolved_as_submodule(self, tmp_path: Path) -> None:
+        # `from pkg.b import X` — X is an attribute; only pkg/b.py is the edge.
+        _write(tmp_path, "app.py", "from pkg.b import X\n")
+        _write(tmp_path, "pkg/b.py", "X = 1\n")
+        nodes = _code_nodes("app.py", "pkg/b.py")
+        edges = add_code_code_edges(nodes, tmp_path, _parse_code_trees(nodes, tmp_path))
+        assert [e["target"] for e in edges] == ["pkg/b.py"]
+
     def test_external_import_skipped(self, tmp_path: Path) -> None:
         _write(tmp_path, "pkg/a.py", "import json\nfrom os import path\n")
         nodes = _code_nodes("pkg/a.py")
