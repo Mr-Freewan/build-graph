@@ -24,6 +24,7 @@ SRI-pinned from CDN or fully embedded with `--no-cdn`.
 **[▶ Live demo](https://mr-freewan.github.io/build-graph/)** — the graph of
 this very repository (dogfood), with a synthetic `--mock-git` overlay so the
 Git mode is clickable too.
+**[📖 UI guide](docs/guide.md)** — every feature, one by one.
 
 <!-- TODO: GIF — hover/pin/path interactions -->
 
