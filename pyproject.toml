@@ -56,5 +56,9 @@ path = "src/build_graph/__init__.py"
 [tool.hatch.build.targets.wheel]
 packages = ["src/build_graph"]
 
+[tool.hatch.build.targets.sdist]
+# Guide GIFs weigh ~100MB — they belong to the GitHub repo, not the PyPI sdist.
+exclude = ["docs/media"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
