@@ -1,7 +1,7 @@
 # build-graph
 
 [![CI](https://github.com/Mr-Freewan/build-graph/actions/workflows/ci.yml/badge.svg)](https://github.com/Mr-Freewan/build-graph/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/build-graph)](https://pypi.org/project/build-graph/)
+[![PyPI](https://img.shields.io/pypi/v/graph-build)](https://pypi.org/project/graph-build/)
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
 ![Zero dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -35,7 +35,7 @@ Git mode is clickable too.
 ## Install
 
 ```bash
-pip install build-graph        # or: uv tool install build-graph
+pip install graph-build        # or: uv tool install graph-build
 ```
 
 No PyPI needed — install straight from GitHub:
@@ -50,6 +50,10 @@ pip install ./build-graph
 
 Zero dependencies — stdlib only, Python 3.11+. The HTML output needs only a
 browser (D3.js from CDN with SRI pinning, or fully embedded via `--no-cdn`).
+
+> The PyPI distribution is named `graph-build` (the straight name is taken);
+> the installed commands keep their names: `build-graph`, `find-related-docs`,
+> `verify-doc-links`.
 
 ## Quick start
 
@@ -256,7 +260,7 @@ verify-doc-links docs/reference -v   # one subtree, with the offending lines
 
 ```yaml
 # CI step (GitHub Actions)
-- run: pip install build-graph
+- run: pip install graph-build
 - run: verify-doc-links --root .
 ```
 

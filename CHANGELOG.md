@@ -24,4 +24,10 @@ Initial public release.
 - Zero runtime dependencies (pure stdlib); Python 3.11+; the browser side
   uses D3.js, SRI-pinned from CDN or fully embedded via `--no-cdn`.
 
+### Notes
+
+- The PyPI distribution is named `graph-build` — PyPI rejects `build-graph`
+  as too similar to an existing unrelated project. The CLI commands keep the
+  `build-graph` family of names.
+
 [0.1.0]: https://github.com/Mr-Freewan/build-graph/releases/tag/v0.1.0

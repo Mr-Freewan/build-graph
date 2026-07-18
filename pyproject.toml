@@ -3,7 +3,7 @@ requires = ["hatchling", "hatch-fancy-pypi-readme"]
 build-backend = "hatchling.build"
 
 [project]
-name = "build-graph"
+name = "graph-build"
 dynamic = ["version", "readme"]
 description = "Interactive code+docs dependency graph with doc-sync tooling and an AI-agent-friendly JSON export"
 license = "MIT"
