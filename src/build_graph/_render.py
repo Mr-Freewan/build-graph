@@ -1,8 +1,9 @@
 """HTML assembly, palette and node post-processing (layout hints, dead-code).
 
-Holds the packaged front-end resources (style.css / body.html / main.js —
-read once at import), the pinned D3.js handling and `render_html` which
-concatenates everything into the single self-contained output file.
+Holds the packaged front-end resources (style.css / body.html and the JS
+modules i18n.js / engine.js / ui.js / boot.js — read once at import), the
+pinned D3.js handling and `render_html` which concatenates everything into
+the single self-contained output file.
 """
 
 import base64
@@ -92,11 +93,20 @@ _ASSETS_DIR = _resources.files("build_graph") / "resources"
 _CSS = (_ASSETS_DIR / "style.css").read_text(encoding="utf-8")
 _BODY = (_ASSETS_DIR / "body.html").read_text(encoding="utf-8")
 # JS content is concatenated as-is; backslashes inside (e.g. JS \u escapes)
-# must remain literal — that's handled by the files being raw text. i18n.js
-# MUST precede main.js: main.js top-level init code calls applyI18n / reads
-# I18N at evaluation time.
+# must remain literal — that's handled by the files being raw text. The
+# concatenation order is a hard contract (top-level statements reference
+# earlier declarations at evaluation time — TDZ otherwise):
+#   i18n.js   — I18N dictionaries + applyI18n
+#   engine.js — state, palette, simulation, canvas renderer, interactions
+#   ui.js     — info-panel, filters, prefs, URL state, legend, git overlay,
+#               top-bar and panel dragging, edge tooltip
+#   boot.js   — init sequence + warmup / first paint (calls applyI18n)
 _JS_I18N = (_ASSETS_DIR / "i18n.js").read_text(encoding="utf-8")
-_JS = (_ASSETS_DIR / "main.js").read_text(encoding="utf-8")
+_JS = (
+    (_ASSETS_DIR / "engine.js").read_text(encoding="utf-8")
+    + (_ASSETS_DIR / "ui.js").read_text(encoding="utf-8")
+    + (_ASSETS_DIR / "boot.js").read_text(encoding="utf-8")
+)
 
 
 # --- palette / dead-code exemptions ----------------------------------------

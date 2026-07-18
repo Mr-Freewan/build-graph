@@ -23,10 +23,10 @@ Module layout:
         graph.py   — LLM JSON exports (verbose + compact), CLI entry
             point and build orchestration (this file)
 
-    JS (build_graph/resources/, search "// === ..."):
-        i18n.js — I18N dictionary (10 locales), formatters, applyI18n;
-            assembled before main.js
-        main.js:
+    JS (build_graph/resources/, search "// === ..."; concatenated in
+    this order — it is a hard contract, see _render.py):
+        i18n.js — I18N dictionary (10 locales), formatters, applyI18n
+        engine.js:
         STATE & EDGE COLORS
         WIDTH LOCKING (lockAllI18nWidths)
         NEIGHBOR MAP & SIMULATION (nodes, links, forces)
@@ -34,20 +34,24 @@ Module layout:
             node drag, pointer dispatch)
         PIN / EDGE FOCUS / DIM (overlay predicates)
         HOVER (onNodeEnter/onNodeLeave, hoverTimer)
+        PATH MODE (shift+click BFS path)
+        ui.js:
         CLICK HANDLERS (onNodeClick, dropAllSelections, info-close)
         INFO-PANEL RENDERING
-        EDGE TOOLTIP
         SEARCH (debounced)
         EXCLUSION FILTER
         VISIBILITY FILTER (showAll / orphansOnly / applyAllFilters)
+        PREFS (savePrefs / loadPrefs)
+        URL STATE (shareable view via location.hash)
         LEGEND (node types / edge types / orphans button)
         GIT OVERLAY (palettes, applyGitMode, buildGitLegend)
         FILE OPENING (IDE selector, buildFileHref)
-        PREFS (savePrefs / loadPrefs)
         TOP-BAR HANDLERS (theme, palette, lang, ide, export/import)
         SLIDERS
         DRAG (makeDraggable + bindings — panels)
         TICK (orphan ring refit + requestDraw)
+        EDGE TOOLTIP
+        boot.js:
         INIT (applyI18n, loadPrefs, WARMUP & FIRST PAINT)
 """
 
