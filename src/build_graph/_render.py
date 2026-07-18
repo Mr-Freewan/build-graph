@@ -12,6 +12,7 @@ import fnmatch
 import hashlib
 import json
 import sys
+import tomllib
 import urllib.error
 import urllib.request
 from collections import defaultdict
@@ -147,7 +148,47 @@ _DEAD_EXEMPT_NAME_PATTERNS = ("test_*.py",)
 _DEAD_EXEMPT_PATH_PARTS = ("alembic/versions/",)
 
 
-def apply_dead_exemptions(nodes: list[dict], exempt_globs: list[str]) -> None:
+def collect_entry_point_modules(project_root: Path) -> set[str]:
+    """Repo-relative .py paths declared as script entry points in pyproject.
+
+    Reads ``[project.scripts]`` and ``[project.gui-scripts]`` — modules
+    launched by an installed console command are entry points: nothing
+    imports them, yet they're alive. Returned paths feed the dead-code
+    exemptions. Missing / malformed pyproject.toml → empty set.
+    """
+    try:
+        data = tomllib.loads(
+            (project_root / "pyproject.toml").read_text(encoding="utf-8")
+        )
+    except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError):
+        return set()
+    project = data.get("project")
+    if not isinstance(project, dict):
+        return set()
+    out: set[str] = set()
+    for table in ("scripts", "gui-scripts"):
+        entries = project.get(table)
+        if not isinstance(entries, dict):
+            continue
+        for target in entries.values():
+            if not isinstance(target, str):
+                continue
+            module = target.split(":", 1)[0].strip()
+            if not module:
+                continue
+            rel = Path(module.replace(".", "/") + ".py")
+            for candidate in (rel, Path("src") / rel):
+                if (project_root / candidate).is_file():
+                    out.add(candidate.as_posix())
+                    break
+    return out
+
+
+def apply_dead_exemptions(
+    nodes: list[dict],
+    exempt_globs: list[str],
+    entry_point_paths: set[str] = frozenset(),
+) -> None:
     """Mark nodes the dead-code detector must ignore (mutates in place)."""
     for n in nodes:
         if n.get("ghost"):
@@ -155,6 +196,7 @@ def apply_dead_exemptions(nodes: list[dict], exempt_globs: list[str]) -> None:
         path = n["path"]
         if (
             n["label"] in _DEAD_EXEMPT_NAMES
+            or path in entry_point_paths
             or any(fnmatch.fnmatch(n["label"], p) for p in _DEAD_EXEMPT_NAME_PATTERNS)
             or any(part in path for part in _DEAD_EXEMPT_PATH_PARTS)
             or any(fnmatch.fnmatch(path, pat) for pat in exempt_globs)

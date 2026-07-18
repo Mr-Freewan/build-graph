@@ -84,6 +84,7 @@ from build_graph._git import (
 from build_graph._render import (
     apply_dead_exemptions,
     build_palette,
+    collect_entry_point_modules,
     compute_layout_hints,
     render_html,
 )
@@ -506,7 +507,11 @@ def main() -> None:
 
     print("Computing layout hints...")
     compute_layout_hints(all_nodes, all_edges)
-    apply_dead_exemptions(all_nodes, (config.get("dead_code") or {}).get("exempt", []))
+    apply_dead_exemptions(
+        all_nodes,
+        (config.get("dead_code") or {}).get("exempt", []),
+        collect_entry_point_modules(project_root),
+    )
 
     categories = {n["type"] for n in all_nodes if not n.get("ghost")}
     colors, colors_saturated = build_palette(

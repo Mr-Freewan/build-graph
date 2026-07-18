@@ -192,7 +192,9 @@ semantic one:
 
 - Dynamic imports resolve only literal / top-level-constant module names
   (f-strings, dict lookups, conditional rebinding are skipped).
-- `eval` / `exec`, plugin entry points, and DI-by-string are invisible.
+- `eval` / `exec` and DI-by-string are invisible. `[project.scripts]` /
+  `[project.gui-scripts]` entry points in `pyproject.toml` are read, but only
+  to exempt those modules from dead-code flagging — they don't create edges.
 - Markdown templating (`{{ ref }}`, Jekyll/Hugo shortcodes) isn't parsed.
 - Links resolve to whole files — section anchors (`file.md#part`) map to the
   file node.
