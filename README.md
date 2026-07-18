@@ -15,6 +15,10 @@ three layers no other tool combines:
 …and exports the same map as a **compact, token-efficient JSON** designed to
 drop into an LLM agent's context.
 
+All of that with **zero dependencies** — pure Python stdlib, `pip install`
+brings in nothing else. The only third-party code is D3.js in the browser,
+SRI-pinned from CDN or fully embedded with `--no-cdn`.
+
 ![Force layout settling on a real project — 1070 nodes / 6279 edges, dark theme](docs/media/hero.gif)
 
 **[▶ Live demo](https://mr-freewan.github.io/build-graph/)** — the graph of
@@ -27,6 +31,16 @@ Git mode is clickable too.
 
 ```bash
 pip install build-graph        # or: uv tool install build-graph
+```
+
+No PyPI needed — install straight from GitHub:
+
+```bash
+pip install git+https://github.com/Mr-Freewan/build-graph.git
+
+# or from a clone:
+git clone https://github.com/Mr-Freewan/build-graph.git
+pip install ./build-graph
 ```
 
 Zero dependencies — stdlib only, Python 3.11+. The HTML output needs only a
@@ -51,7 +65,8 @@ see [Companion tools](#companion-tools).
 - **lychee & co.** — dead-URL checkers; no map, no code layer.
 - **Obsidian graph view** — notes only; doesn't see your code.
 - **Repomix / Gitingest** — pack the repo *text* for LLMs; build-graph gives
-  the *structure* in ~35 KB instead of megabytes.
+  the *structure*: ~2 % of the tokens the raw text would cost (see
+  [the numbers](#what-it-costs-in-context)).
 
 ## Designed for AI agents
 
@@ -68,6 +83,73 @@ nodes, 3-letter type codes) that agents use for:
 
 Add `build-graph --compact` to a pre-commit hook or CI step to keep the map
 fresh for every agent session.
+
+### The compact format
+
+`--compact` writes `graph-compact.json` (schema v2): nodes as an indexed
+array, edges as `[source_idx, target_idx, type, [line_numbers]]` rows,
+3-letter codes for every category and edge type. The `legend` key embeds the
+full decoding table — an agent needs no external schema, the file explains
+itself:
+
+```jsonc
+{
+  "v": "2.0",
+  "legend": { "...": "what every field and code below means" },
+  "stats": { "nodes": 1070, "ghosts": 0, "edges": 6279 },
+  "n": [
+    { "p": "smm_bot_async/core/security/access.py", "t": "cor", "d": 56 },
+    { "p": "docs/explanation/adr/0009-parser-framework.md", "t": "adr",
+      "d": 11, "s": "mod" }
+  ],
+  "e": [
+    [ 1, 75, "d2d", [186] ]
+  ]
+}
+```
+
+`p` — path, `t` — category, `d` — degree, `s` — git status (omitted when
+clean). Edge types: `c2c` imports, `c2d` doc mentions, `d2d` doc links,
+`dcs` docstring refs, `typ` `TYPE_CHECKING`-only, `ren` git renames.
+Deleted-but-still-referenced files ride along as ghost nodes (`"G": 1`).
+
+### What it costs in context
+
+Real numbers from a production repo — 1,070 mapped files, 6,279 edges
+(tokens ≈ bytes / 4, the usual rough estimate):
+
+| What you put in context             |   Size | ≈ Tokens   |
+|-------------------------------------|-------:|-----------:|
+| The mapped files themselves         |  15 MB | ~3,700,000 |
+| `--json` (verbose snapshot)         | 1.6 MB |   ~410,000 |
+| **`--compact`**                     | **0.33 MB** | **~80,000** |
+
+The whole architecture — every import, every doc mention, every stale
+reference — lands in ~2 % of what the raw text would cost, and fits in a
+single 200 k-context session with room to work. Without the map an agent
+rediscovers this structure every session: dozens of speculative greps and
+file reads that burn comparable tokens *per question*, not once. On small
+projects the map is almost free — the compact snapshot of this very repo is
+4 KB ≈ ~1,000 tokens.
+
+### A prompt to start from
+
+```text
+graph-compact.json is a dependency map of this repository: nodes are
+files, edges are imports and documentation mentions. Read the embedded
+"legend" key first — it explains every field and code.
+
+Using the map (before any grep):
+1. Lay of the land: the 10 highest-degree hubs, grouped by category,
+   with one line each on why they're central.
+2. I'm about to modify <path/to/file.py>. List the blast radius:
+   direct and 2-hop incoming importers, plus every doc that mentions
+   the file — and tell me which of those docs to read first.
+3. Anything suspicious: ghost nodes (docs pointing at deleted files),
+   zero-degree modules, docs nothing links to.
+
+Verify any surprising claim against the actual source before acting.
+```
 
 ## The interactive graph
 
