@@ -591,8 +591,9 @@ def _check_git_files(
     files_without_docs: list[Path] = []
     files_not_found: list[tuple] = []
     for git_file in git_files:
-        # Skip non-code/config files and docs
-        if not is_code_or_config_file(git_file) or "docs/" in str(git_file):
+        # Skip non-code/config files and docs. as_posix() — on Windows
+        # str(Path) yields backslashes and the substring check never fires.
+        if not is_code_or_config_file(git_file) or "docs/" in git_file.as_posix():
             continue
 
         if not git_file.exists():
