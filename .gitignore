@@ -10,3 +10,5 @@ graph.html
 graph.json
 graph-compact.json
 demo/
+.coverage
+uv.lock
