@@ -100,17 +100,16 @@ class TestFindRelatedDocsByFilename:
 
 class TestFindRelatedDocsForDir:
     def test_only_mentioned_files_reported(self, project: Path) -> None:
-        results = find_related_docs_for_dir(
-            str(project / "app"), str(project / "docs")
-        )
+        results = find_related_docs_for_dir(str(project / "app"), str(project / "docs"))
         assert set(results) == {"app/core.py"} or set(results) == {"app\\core.py"}
         (key,) = results
         assert results[key] == {"design.md": 1}
 
     def test_missing_dir(self, project: Path) -> None:
-        assert find_related_docs_for_dir(
-            str(project / "nope"), str(project / "docs")
-        ) == {}
+        assert (
+            find_related_docs_for_dir(str(project / "nope"), str(project / "docs"))
+            == {}
+        )
 
 
 class TestGitFileLists:

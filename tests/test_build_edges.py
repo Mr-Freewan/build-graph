@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
 from build_graph._build import (
     _parse_code_trees,
     add_code_code_edges,
@@ -118,7 +116,7 @@ class TestDynamicImports:
         _write(
             tmp_path,
             "pkg/a.py",
-            "import importlib\n\nmod = importlib.import_module(\"pkg.b\")\n",
+            'import importlib\n\nmod = importlib.import_module("pkg.b")\n',
         )
         _write(tmp_path, "pkg/b.py", "X = 1\n")
         nodes = _code_nodes("pkg/a.py", "pkg/b.py")
@@ -129,7 +127,7 @@ class TestDynamicImports:
         assert dynamic[0]["lines"] == [3]
 
     def test_dunder_import_literal(self, tmp_path: Path) -> None:
-        _write(tmp_path, "pkg/a.py", "mod = __import__(\"pkg.b\")\n")
+        _write(tmp_path, "pkg/a.py", 'mod = __import__("pkg.b")\n')
         _write(tmp_path, "pkg/b.py", "X = 1\n")
         nodes = _code_nodes("pkg/a.py", "pkg/b.py")
         (edge,) = add_code_code_edges(
@@ -141,7 +139,7 @@ class TestDynamicImports:
         _write(
             tmp_path,
             "pkg/a.py",
-            "import importlib\n\nMOD = \"pkg.b\"\n\n"
+            'import importlib\n\nMOD = "pkg.b"\n\n'
             "def load():\n    return importlib.import_module(MOD)\n",
         )
         _write(tmp_path, "pkg/b.py", "X = 1\n")
@@ -153,7 +151,7 @@ class TestDynamicImports:
         _write(
             tmp_path,
             "pkg/a.py",
-            "import importlib\n\nMOD: str = \"pkg.b\"\n\n"
+            'import importlib\n\nMOD: str = "pkg.b"\n\n'
             "mod = importlib.import_module(MOD)\n",
         )
         _write(tmp_path, "pkg/b.py", "X = 1\n")
@@ -166,7 +164,7 @@ class TestDynamicImports:
             tmp_path,
             "pkg/a.py",
             "import importlib\n\n"
-            "mod = importlib.import_module(\".b\", package=__name__)\n",
+            'mod = importlib.import_module(".b", package=__name__)\n',
         )
         _write(tmp_path, "pkg/b.py", "X = 1\n")
         nodes = _code_nodes("pkg/a.py", "pkg/b.py")
@@ -263,10 +261,7 @@ class TestDocstringEdges:
             tmp_path,
             {
                 "pkg/a.py": (
-                    '"""See `pkg/b.py`."""\n'
-                    "\n"
-                    "def f():\n"
-                    '    """Also `pkg/b.py`."""\n'
+                    '"""See `pkg/b.py`."""\n\ndef f():\n    """Also `pkg/b.py`."""\n'
                 )
             },
             {"pkg/b.py"},
