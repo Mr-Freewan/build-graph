@@ -15,7 +15,7 @@ three layers no other tool combines:
 …and exports the same map as a **compact, token-efficient JSON** designed to
 drop into an LLM agent's context.
 
-![Interactive dependency graph — 1070 nodes / 6096 edges of a real project, dark theme](docs/media/hero-dark.jpg)
+![Force layout settling on a real project — 1070 nodes / 6279 edges, dark theme](docs/media/intro.gif)
 
 **[▶ Live demo](https://mr-freewan.github.io/build-graph/)** — the graph of
 this very repository (dogfood), with a synthetic `--mock-git` overlay so the
