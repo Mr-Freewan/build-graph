@@ -19,7 +19,7 @@ All of that with **zero dependencies** — pure Python stdlib, `pip install`
 brings in nothing else. The only third-party code is D3.js in the browser,
 SRI-pinned from CDN or fully embedded with `--no-cdn`.
 
-![Force layout settling on a real project — 1070 nodes / 6279 edges, dark theme](docs/media/hero.gif)
+![Force layout settling on a real project — 1070 nodes / 6279 edges, dark theme](https://mr-freewan.github.io/build-graph/media/hero.gif)
 
 **[▶ Live demo](https://mr-freewan.github.io/build-graph/)** — the graph of
 this very repository (dogfood), with a synthetic `--mock-git` overlay so the

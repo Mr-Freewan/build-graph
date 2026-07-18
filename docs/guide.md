@@ -14,13 +14,13 @@ pan, drag a node to move it**. Node labels fade in as you zoom past the
 smooth). The crosshair button in the top bar resets the view; the counter
 in the bottom-left corner shows how many nodes and edges are on the map.
 
-![Zoom, pan and label LOD](media/guide/01-navigation.gif)
+![Zoom, pan and label LOD](https://mr-freewan.github.io/build-graph/media/guide/01-navigation.gif)
 
 Hovering a node highlights it with its direct neighbours and dims
 everything else; hovering an edge shows a tooltip with the edge type,
 source → target and the exact line numbers behind the relation.
 
-![Hover highlight and edge tooltip](media/guide/02-hover.gif)
+![Hover highlight and edge tooltip](https://mr-freewan.github.io/build-graph/media/guide/02-hover.gif)
 
 ## Panels
 
@@ -39,7 +39,7 @@ switching never re-shuffles which colour means what. Edge colours and
 legend swatches follow the palette too. The built-in FAQ (the `?` button,
 50+ answers in all 10 languages) makes an appearance here as well.
 
-![Panels, appearance switches and the FAQ](media/guide/03-panels.gif)
+![Panels, appearance switches and the FAQ](https://mr-freewan.github.io/build-graph/media/guide/03-panels.gif)
 
 ## Graph controls
 
@@ -53,7 +53,7 @@ The left panel tunes the picture and the physics:
   reheats the layout (pinned nodes keep their place — sticky wins over
   rebuild).
 
-![Tuning the view and the physics](media/guide/04-controls.gif)
+![Tuning the view and the physics](https://mr-freewan.github.io/build-graph/media/guide/04-controls.gif)
 
 ## Search and exclusion
 
@@ -64,7 +64,7 @@ The search field (`Ctrl/Cmd+K`) matches node names **and paths** — typing
 taken off the board; excluded nodes are frozen so the layout doesn't jump.
 Rebuild physics re-flows the survivors into the freed space.
 
-![Search and exclude-by-name](media/guide/05-search-exclude.gif)
+![Search and exclude-by-name](https://mr-freewan.github.io/build-graph/media/guide/05-search-exclude.gif)
 
 ## Legend filtering
 
@@ -78,7 +78,7 @@ The legend is interactive:
   docstring subgraph, not a cloud of disconnected dots.
 - **Orphans only** shows just the files nothing links to.
 
-![Type filters and isolation](media/guide/06-legend-filters.gif)
+![Type filters and isolation](https://mr-freewan.github.io/build-graph/media/guide/06-legend-filters.gif)
 
 ## Inspecting a node
 
@@ -93,13 +93,13 @@ Click a node — the **info-panel** opens and the selection stays highlighted
   file into a deep link — open the exact file:line straight from the
   browser.
 
-![Info-panel, breadcrumbs and IDE deep links](media/guide/07-info-panel.gif)
+![Info-panel, breadcrumbs and IDE deep links](https://mr-freewan.github.io/build-graph/media/guide/07-info-panel.gif)
 
 With a node pinned, hovering any of its neighbours peeks one level deeper:
 the highlight becomes the union of both neighbourhoods — a quick two-step
 walk of the dependency chain without losing your place.
 
-![Two-step neighbourhood peek](media/guide/08-hover-peek.gif)
+![Two-step neighbourhood peek](https://mr-freewan.github.io/build-graph/media/guide/08-hover-peek.gif)
 
 ## Pinning nodes in place
 
@@ -112,7 +112,7 @@ Two ways to nail a node to the canvas:
 Pinned nodes show a 📌 marker, survive Rebuild physics, and are released
 either by another double-click or globally with **Release pinned**.
 
-![Sticky pins with the B hotkey](media/guide/09-sticky-pins.gif)
+![Sticky pins with the B hotkey](https://mr-freewan.github.io/build-graph/media/guide/09-sticky-pins.gif)
 
 ## Path between two nodes
 
@@ -120,7 +120,7 @@ either by another double-click or globally with **Release pinned**.
 (undirected BFS): endpoints and the path edges turn purple, the rest dims.
 If no path exists, a toast says so. `Esc` or a background click clears it.
 
-![Shortest path via Shift+click](media/guide/10-path.gif)
+![Shortest path via Shift+click](https://mr-freewan.github.io/build-graph/media/guide/10-path.gif)
 
 ## Focusing an edge
 
@@ -128,7 +128,7 @@ Click an edge to isolate it: only the source and target stay lit (with
 their labels forced on), so you can read exactly which two files the
 relation binds. `Esc` or a background click releases.
 
-![Edge focus](media/guide/11-edge-focus.gif)
+![Edge focus](https://mr-freewan.github.io/build-graph/media/guide/11-edge-focus.gif)
 
 ## Git mode
 
@@ -146,7 +146,7 @@ The button is disabled (with a tooltip) when git isn't available. For demos
 and screenshots, `--mock-git` bakes a synthetic overlay covering all five
 categories.
 
-![Git overlay with ghost nodes and rename edges](media/guide/12-git-mode.gif)
+![Git overlay with ghost nodes and rename edges](https://mr-freewan.github.io/build-graph/media/guide/12-git-mode.gif)
 
 ## Analysis aids
 
