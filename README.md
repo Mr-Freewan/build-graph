@@ -1,5 +1,11 @@
 # build-graph
 
+[![CI](https://github.com/Mr-Freewan/build-graph/actions/workflows/ci.yml/badge.svg)](https://github.com/Mr-Freewan/build-graph/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/build-graph)](https://pypi.org/project/build-graph/)
+![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
+![Zero dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 > **Architectural memory for your refactors.** See the blast radius of your
 > changes across code, docs, and git — on one interactive map that both you
 > and your AI agent can read.
@@ -25,8 +31,6 @@ SRI-pinned from CDN or fully embedded with `--no-cdn`.
 this very repository (dogfood), with a synthetic `--mock-git` overlay so the
 Git mode is clickable too.
 **[📖 UI guide](docs/guide.md)** — every feature, one by one.
-
-<!-- TODO: GIF — hover/pin/path interactions -->
 
 ## Install
 
