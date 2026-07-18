@@ -262,12 +262,11 @@ document.getElementById("info-close").addEventListener("click", () => {
     infoPanel.classList.add("hidden");
     clearPinDim();
 });
-let _copyToastTimer = null;
+// Delegates to showToast so the shared #copy-toast element always gets its
+// text (re)set — toggling only the class left whatever message a generic
+// toast wrote there last, and the two timers raced on the same element.
 function showCopyToast() {
-    const toast = document.getElementById("copy-toast");
-    toast.classList.add("visible");
-    clearTimeout(_copyToastTimer);
-    _copyToastTimer = setTimeout(() => toast.classList.remove("visible"), 1600);
+    showToast(t("toast.copied"));
 }
 
 infoPanel.addEventListener("click", e => {
