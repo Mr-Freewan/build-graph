@@ -184,6 +184,9 @@ Using the map (before any grep):
 Verify any surprising claim against the actual source before acting.
 ```
 
+**More recipes:** [Prompts for AI agents](docs/agent-prompts.md) — ready-made
+prompts for blast radius, three-way doc-sync, ghost detection and dead-code hunts.
+
 ## The interactive graph
 
 - **Canvas renderer** — smooth at 1000+ nodes / 6000+ edges (pre-warmed

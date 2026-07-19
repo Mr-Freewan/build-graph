@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `docs/agent-prompts.md` — ready-made prompts for driving an LLM agent with
+  `graph-compact.json` (blast radius, three-way doc-sync, ghost detection,
+  dead-code and missing-edges hunts), linked from the README.
+
 ## [0.3.0] — 2026-07-19
 
 ### Added
