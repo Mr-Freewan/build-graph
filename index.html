@@ -467,6 +467,62 @@ body.git-mode #legend-git {
     border-bottom: 1px solid var(--border-faint);
     padding-bottom: 8px;
 }
+/* Heat button disabled/active state — mirrors #btn-git */
+#btn-heat.disabled {
+    opacity: 0.4; cursor: not-allowed;
+}
+#btn-heat.disabled:hover { background: var(--btn-bg); color: var(--btn-color); }
+#btn-heat.active {
+    background: #c2410c; color: #fff; border-color: #c2410c;
+}
+#btn-heat.active:hover { background: #9a3412; }
+/* Heat mode is additive, unlike git mode: Node types / Edge types / Cycles
+ * / Untracked / actions all stay exactly as they are — heat only changes
+ * node fill color, it doesn't redefine what "type" means or disable
+ * type-based filtering. The Activity heat section is the only addition,
+ * shown just in heat mode and pinned above everything else via `order: -1`. */
+#legend-heat { display: none; }
+body.heat-mode #legend-heat {
+    display: flex; flex-direction: column;
+    order: -1;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border-faint);
+    padding-bottom: 8px;
+}
+.heat-period { font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+.heat-gradient-bar { height: 10px; border-radius: 5px; margin-bottom: 4px; }
+.heat-gradient-labels {
+    display: flex; justify-content: space-between;
+    font-size: 10px; color: var(--muted);
+}
+.heat-filter-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 6px;
+}
+.heat-filter-row input[type="range"] {
+    flex: 1 1 0; min-width: 0;
+}
+.heat-min-label {
+    font-size: 10px; color: var(--muted);
+    min-width: 22px; text-align: right; flex-shrink: 0;
+}
+/* Coverage button active state. No .disabled variant — the button is
+ * fully hidden (display:none, set in ui.js::setupCoverageButton) rather
+ * than shown-and-greyed-out when there's no coverage.xml, since that's
+ * the common case (unlike git, which almost every build has). */
+#btn-coverage.active {
+    background: #15803d; color: #fff; border-color: #15803d;
+}
+#btn-coverage.active:hover { background: #166534; }
+/* Coverage mode is additive, same reasoning as heat mode above. */
+#legend-coverage { display: none; }
+body.coverage-mode #legend-coverage {
+    display: flex; flex-direction: column;
+    order: -1;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border-faint);
+    padding-bottom: 8px;
+}
 #exclude-panel {
     position: fixed; bottom: 20px; right: 20px; z-index: 10;
     background: var(--panel-bg); padding: 12px 16px;
@@ -804,6 +860,24 @@ body.git-mode #legend-git {
     </svg>
     <span data-i18n="btn.git">Git</span>
   </button>
+  <button id="btn-heat" class="btn btn-with-icon" data-i18n-title="btn.heatTitle">
+    <svg class="btn-icon-svg lucide" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2" stroke-linecap="round"
+         stroke-linejoin="round" aria-hidden="true">
+      <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+    </svg>
+    <span data-i18n="btn.heat">Heat</span>
+  </button>
+  <button id="btn-coverage" class="btn btn-with-icon" data-i18n-title="btn.coverageTitle">
+    <svg class="btn-icon-svg lucide" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2" stroke-linecap="round"
+         stroke-linejoin="round" aria-hidden="true">
+      <line x1="19" y1="5" x2="5" y2="19"/>
+      <circle cx="6.5" cy="6.5" r="2.5"/>
+      <circle cx="17.5" cy="17.5" r="2.5"/>
+    </svg>
+    <span data-i18n="btn.coverage">Cov.</span>
+  </button>
   <span class="bar-divider"></span>
   <select id="ide-select" data-i18n-title="ide.title">
     <option value="vscode">VS Code</option>
@@ -1006,6 +1080,20 @@ body.git-mode #legend-git {
       <li data-i18n-html="faq.git.li6"></li>
     </ul>
 
+    <h3 data-i18n="faq.section.heatMode">Heat mode</h3>
+    <ul>
+      <li data-i18n-html="faq.heat.li1"></li>
+      <li data-i18n-html="faq.heat.li2"></li>
+      <li data-i18n-html="faq.heat.li3"></li>
+    </ul>
+
+    <h3 data-i18n="faq.section.coverage">Coverage mode</h3>
+    <ul>
+      <li data-i18n-html="faq.coverage.li1"></li>
+      <li data-i18n-html="faq.coverage.li2"></li>
+      <li data-i18n-html="faq.coverage.li3"></li>
+    </ul>
+
     <h3 data-i18n="faq.section.persistence">Persistence</h3>
     <ul>
       <li data-i18n-html="faq.persistence.li1"></li>
@@ -1025,12 +1113,15 @@ body.git-mode #legend-git {
 </div>
 <canvas id="graph"></canvas>
 <script>
-const GRAPH_DATA = {"nodes": [{"id": "guide.md", "label": "guide.md", "stem": "guide", "type": "doc/docs", "path": "docs/guide.md", "degree": 4, "size": 11.0, "gitStatus": "added"}, {"id": ".devcontainer/devcontainer.json", "label": "devcontainer.json", "stem": "devcontainer", "type": "config/.devcontainer", "path": ".devcontainer/devcontainer.json", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": ".github/ISSUE_TEMPLATE/bug_report.yml", "label": "bug_report.yml", "stem": "bug_report", "type": "config/.github", "path": ".github/ISSUE_TEMPLATE/bug_report.yml", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": ".github/ISSUE_TEMPLATE/false_positive.yml", "label": "false_positive.yml", "stem": "false_positive", "type": "config/.github", "path": ".github/ISSUE_TEMPLATE/false_positive.yml", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": ".github/ISSUE_TEMPLATE/feature_request.yml", "label": "feature_request.yml", "stem": "feature_request", "type": "config/.github", "path": ".github/ISSUE_TEMPLATE/feature_request.yml", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": ".github/workflows/ci.yml", "label": "ci.yml", "stem": "ci", "type": "config/.github", "path": ".github/workflows/ci.yml", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": ".github/workflows/publish.yml", "label": "publish.yml", "stem": "publish", "type": "config/.github", "path": ".github/workflows/publish.yml", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": ".gitignore", "label": ".gitignore", "stem": ".gitignore", "type": "config/_root", "path": ".gitignore", "degree": 1, "size": 6.5, "gitStatus": "clean"}, {"id": "CHANGELOG.md", "label": "CHANGELOG.md", "stem": "CHANGELOG", "type": "doc/_root", "path": "CHANGELOG.md", "degree": 5, "size": 12.5, "gitStatus": "modified"}, {"id": "CONTRIBUTING.md", "label": "CONTRIBUTING.md", "stem": "CONTRIBUTING", "type": "doc/_root", "path": "CONTRIBUTING.md", "degree": 6, "size": 14.0, "gitStatus": "renamed"}, {"id": "LICENSE", "label": "LICENSE", "stem": "LICENSE", "type": "doc/_root", "path": "LICENSE", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": "README.md", "label": "README.md", "stem": "README", "type": "doc/_root", "path": "README.md", "degree": 7, "size": 15.5, "gitStatus": "clean"}, {"id": "examples/README.md", "label": "README.md", "stem": "README", "type": "doc/examples", "path": "examples/README.md", "degree": 5, "size": 12.5, "gitStatus": "clean"}, {"id": "examples/expected/graph-compact.json", "label": "graph-compact.json", "stem": "graph-compact", "type": "config/examples", "path": "examples/expected/graph-compact.json", "degree": 2, "size": 8.0, "gitStatus": "clean"}, {"id": "examples/expected/graph.json", "label": "graph.json", "stem": "graph", "type": "config/examples", "path": "examples/expected/graph.json", "degree": 1, "size": 6.5, "gitStatus": "clean"}, {"id": "examples/tiny-project/app/__init__.py", "label": "__init__.py", "stem": "__init__", "type": "code/examples", "path": "examples/tiny-project/app/__init__.py", "degree": 3, "size": 9.5, "gitStatus": "modified", "deadExempt": true}, {"id": "examples/tiny-project/app/cli.py", "label": "cli.py", "stem": "cli", "type": "code/examples", "path": "examples/tiny-project/app/cli.py", "degree": 2, "size": 8.0, "gitStatus": "added"}, {"id": "examples/tiny-project/app/core.py", "label": "core.py", "stem": "core", "type": "code/examples", "path": "examples/tiny-project/app/core.py", "degree": 3, "size": 9.5, "gitStatus": "clean"}, {"id": "examples/tiny-project/docs/design.md", "label": "design.md", "stem": "design", "type": "doc/examples", "path": "examples/tiny-project/docs/design.md", "degree": 1, "size": 6.5, "gitStatus": "clean"}, {"id": "graph.example.toml", "label": "graph.example.toml", "stem": "graph.example", "type": "config/_root", "path": "graph.example.toml", "degree": 1, "size": 6.5, "gitStatus": "clean"}, {"id": "pyproject.toml", "label": "pyproject.toml", "stem": "pyproject", "type": "config/_root", "path": "pyproject.toml", "degree": 2, "size": 8.0, "gitStatus": "clean"}, {"id": "schema/graph-compact-v2.schema.json", "label": "graph-compact-v2.schema.json", "stem": "graph-compact-v2.schema", "type": "config/schema", "path": "schema/graph-compact-v2.schema.json", "degree": 1, "size": 6.5, "gitStatus": "clean"}, {"id": "schema/graph-v1.schema.json", "label": "graph-v1.schema.json", "stem": "graph-v1.schema", "type": "config/schema", "path": "schema/graph-v1.schema.json", "degree": 1, "size": 6.5, "gitStatus": "clean"}, {"id": "src/build_graph/__init__.py", "label": "__init__.py", "stem": "__init__", "type": "code/src", "path": "src/build_graph/__init__.py", "degree": 2, "size": 8.0, "gitStatus": "clean", "deadExempt": true}, {"id": "src/build_graph/_build.py", "label": "_build.py", "stem": "_build", "type": "code/src", "path": "src/build_graph/_build.py", "degree": 6, "size": 14.0, "gitStatus": "clean"}, {"id": "src/build_graph/_common.py", "label": "_common.py", "stem": "_common", "type": "code/src", "path": "src/build_graph/_common.py", "degree": 3, "size": 9.5, "gitStatus": "clean"}, {"id": "src/build_graph/_config.py", "label": "_config.py", "stem": "_config", "type": "code/src", "path": "src/build_graph/_config.py", "degree": 3, "size": 9.5, "gitStatus": "clean"}, {"id": "src/build_graph/_console.py", "label": "_console.py", "stem": "_console", "type": "code/src", "path": "src/build_graph/_console.py", "degree": 4, "size": 11.0, "gitStatus": "clean"}, {"id": "src/build_graph/_diff.py", "label": "_diff.py", "stem": "_diff", "type": "code/src", "path": "src/build_graph/_diff.py", "degree": 4, "size": 11.0, "gitStatus": "clean"}, {"id": "src/build_graph/_git.py", "label": "_git.py", "stem": "_git", "type": "code/src", "path": "src/build_graph/_git.py", "degree": 4, "size": 11.0, "gitStatus": "clean"}, {"id": "src/build_graph/_render.py", "label": "_render.py", "stem": "_render", "type": "code/src", "path": "src/build_graph/_render.py", "degree": 3, "size": 9.5, "gitStatus": "clean"}, {"id": "src/build_graph/graph.py", "label": "graph.py", "stem": "graph", "type": "code/src", "path": "src/build_graph/graph.py", "degree": 10, "size": 20.0, "gitStatus": "clean", "deadExempt": true}, {"id": "src/build_graph/links.py", "label": "links.py", "stem": "links", "type": "code/src", "path": "src/build_graph/links.py", "degree": 6, "size": 14.0, "gitStatus": "clean", "deadExempt": true}, {"id": "src/build_graph/query.py", "label": "query.py", "stem": "query", "type": "code/src", "path": "src/build_graph/query.py", "degree": 4, "size": 11.0, "gitStatus": "clean", "deadExempt": true}, {"id": "src/build_graph/related.py", "label": "related.py", "stem": "related", "type": "code/src", "path": "src/build_graph/related.py", "degree": 5, "size": 12.5, "gitStatus": "clean", "deadExempt": true}, {"id": "src/build_graph/resources/body.html", "label": "body.html", "stem": "body", "type": "code/src", "path": "src/build_graph/resources/body.html", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": "src/build_graph/resources/boot.js", "label": "boot.js", "stem": "boot", "type": "code/src", "path": "src/build_graph/resources/boot.js", "degree": 1, "size": 6.5, "gitStatus": "clean"}, {"id": "src/build_graph/resources/engine.js", "label": "engine.js", "stem": "engine", "type": "code/src", "path": "src/build_graph/resources/engine.js", "degree": 1, "size": 6.5, "gitStatus": "clean"}, {"id": "src/build_graph/resources/i18n.js", "label": "i18n.js", "stem": "i18n", "type": "code/src", "path": "src/build_graph/resources/i18n.js", "degree": 1, "size": 6.5, "gitStatus": "clean"}, {"id": "src/build_graph/resources/style.css", "label": "style.css", "stem": "style", "type": "code/src", "path": "src/build_graph/resources/style.css", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": "src/build_graph/resources/ui.js", "label": "ui.js", "stem": "ui", "type": "code/src", "path": "src/build_graph/resources/ui.js", "degree": 1, "size": 6.5, "gitStatus": "clean"}, {"id": "tests/test_build_edges.py", "label": "test_build_edges.py", "stem": "test_build_edges", "type": "code/tests", "path": "tests/test_build_edges.py", "degree": 1, "size": 6.5, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_cli_smoke.py", "label": "test_cli_smoke.py", "stem": "test_cli_smoke", "type": "code/tests", "path": "tests/test_cli_smoke.py", "degree": 1, "size": 6.5, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_dead_exemptions.py", "label": "test_dead_exemptions.py", "stem": "test_dead_exemptions", "type": "code/tests", "path": "tests/test_dead_exemptions.py", "degree": 1, "size": 6.5, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_examples.py", "label": "test_examples.py", "stem": "test_examples", "type": "code/tests", "path": "tests/test_examples.py", "degree": 1, "size": 6.5, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_export_schemas.py", "label": "test_export_schemas.py", "stem": "test_export_schemas", "type": "code/tests", "path": "tests/test_export_schemas.py", "degree": 1, "size": 6.5, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_extract_file_references.py", "label": "test_extract_file_references.py", "stem": "test_extract_file_references", "type": "code/tests", "path": "tests/test_extract_file_references.py", "degree": 1, "size": 6.5, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_git_overlay.py", "label": "test_git_overlay.py", "stem": "test_git_overlay", "type": "code/tests", "path": "tests/test_git_overlay.py", "degree": 1, "size": 6.5, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_init_lifecycle.py", "label": "test_init_lifecycle.py", "stem": "test_init_lifecycle", "type": "code/tests", "path": "tests/test_init_lifecycle.py", "degree": 1, "size": 6.5, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_links_cli.py", "label": "test_links_cli.py", "stem": "test_links_cli", "type": "code/tests", "path": "tests/test_links_cli.py", "degree": 1, "size": 6.5, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_query.py", "label": "test_query.py", "stem": "test_query", "type": "code/tests", "path": "tests/test_query.py", "degree": 1, "size": 6.5, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_ref_diff.py", "label": "test_ref_diff.py", "stem": "test_ref_diff", "type": "code/tests", "path": "tests/test_ref_diff.py", "degree": 2, "size": 8.0, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_related.py", "label": "test_related.py", "stem": "test_related", "type": "code/tests", "path": "tests/test_related.py", "degree": 1, "size": 6.5, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_related_git_modes.py", "label": "test_related_git_modes.py", "stem": "test_related_git_modes", "type": "code/tests", "path": "tests/test_related_git_modes.py", "degree": 1, "size": 6.5, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_resolve_python_import.py", "label": "test_resolve_python_import.py", "stem": "test_resolve_python_import", "type": "code/tests", "path": "tests/test_resolve_python_import.py", "degree": 1, "size": 6.5, "gitStatus": "clean", "deadExempt": true}, {"id": "ghost::__demo_renamed_from.md", "label": "__demo_renamed_from.md", "stem": "__demo_renamed_from", "type": "doc/ghost", "path": "__demo_renamed_from.md", "degree": 1, "size": 6, "ghost": true, "gitStatus": "renamed"}, {"id": "ghost::docs/__demo_deleted_with_refs.md", "label": "__demo_deleted_with_refs.md", "stem": "__demo_deleted_with_refs", "type": "doc/ghost", "path": "docs/__demo_deleted_with_refs.md", "degree": 1, "size": 6, "ghost": true, "gitStatus": "deleted"}, {"id": "ghost::__demo_deleted_orphan.md", "label": "__demo_deleted_orphan.md", "stem": "__demo_deleted_orphan", "type": "doc/ghost", "path": "__demo_deleted_orphan.md", "degree": 0, "size": 6, "ghost": true, "gitStatus": "deleted"}], "links": [{"source": "CONTRIBUTING.md", "target": "CHANGELOG.md", "type": "doc->doc", "weight": 1, "lines": [50]}, {"source": "README.md", "target": "guide.md", "type": "doc->doc", "weight": 1, "lines": [39]}, {"source": ".gitignore", "target": "README.md", "type": "code->doc", "weight": 1, "lines": [230]}, {"source": "examples/expected/graph-compact.json", "target": "README.md", "type": "code->doc", "weight": 4, "lines": [69, 104, 168, 314]}, {"source": "examples/expected/graph-compact.json", "target": "examples/README.md", "type": "code->doc", "weight": 2, "lines": [30, 33]}, {"source": "examples/expected/graph.json", "target": "examples/README.md", "type": "code->doc", "weight": 3, "lines": [29, 32, 36]}, {"source": "examples/tiny-project/app/__init__.py", "target": "guide.md", "type": "code->doc", "weight": 1, "lines": [174]}, {"source": "src/build_graph/__init__.py", "target": "guide.md", "type": "code->doc", "weight": 1, "lines": [174]}, {"source": "examples/tiny-project/app/__init__.py", "target": "CHANGELOG.md", "type": "code->doc", "weight": 2, "lines": [43, 44]}, {"source": "src/build_graph/__init__.py", "target": "CHANGELOG.md", "type": "code->doc", "weight": 2, "lines": [43, 44]}, {"source": "examples/tiny-project/app/__init__.py", "target": "examples/README.md", "type": "code->doc", "weight": 1, "lines": [12]}, {"source": "examples/tiny-project/app/cli.py", "target": "examples/README.md", "type": "code->doc", "weight": 2, "lines": [14, 16]}, {"source": "examples/tiny-project/app/cli.py", "target": "examples/tiny-project/docs/design.md", "type": "code->doc", "weight": 1, "lines": [3]}, {"source": "examples/tiny-project/app/core.py", "target": "README.md", "type": "code->doc", "weight": 1, "lines": [317]}, {"source": "examples/tiny-project/app/core.py", "target": "examples/README.md", "type": "code->doc", "weight": 2, "lines": [13, 16]}, {"source": "graph.example.toml", "target": "README.md", "type": "code->doc", "weight": 1, "lines": [221]}, {"source": "pyproject.toml", "target": "guide.md", "type": "code->doc", "weight": 1, "lines": [173]}, {"source": "pyproject.toml", "target": "README.md", "type": "code->doc", "weight": 1, "lines": [341]}, {"source": "schema/graph-compact-v2.schema.json", "target": "CHANGELOG.md", "type": "code->doc", "weight": 1, "lines": [58]}, {"source": "schema/graph-v1.schema.json", "target": "CHANGELOG.md", "type": "code->doc", "weight": 1, "lines": [57]}, {"source": "src/build_graph/resources/boot.js", "target": "CONTRIBUTING.md", "type": "code->doc", "weight": 1, "lines": [34]}, {"source": "src/build_graph/resources/engine.js", "target": "CONTRIBUTING.md", "type": "code->doc", "weight": 1, "lines": [34]}, {"source": "src/build_graph/resources/i18n.js", "target": "CONTRIBUTING.md", "type": "code->doc", "weight": 2, "lines": [34, 36]}, {"source": "src/build_graph/resources/ui.js", "target": "CONTRIBUTING.md", "type": "code->doc", "weight": 1, "lines": [34]}, {"source": "src/build_graph/_build.py", "target": "src/build_graph/links.py", "type": "code->code", "weight": 1, "lines": [12]}, {"source": "src/build_graph/_build.py", "target": "src/build_graph/related.py", "type": "code->code", "weight": 1, "lines": [13]}, {"source": "src/build_graph/_config.py", "target": "src/build_graph/_render.py", "type": "code->code", "weight": 1, "lines": [18]}, {"source": "src/build_graph/_diff.py", "target": "src/build_graph/_build.py", "type": "code->code", "weight": 1, "lines": [29]}, {"source": "src/build_graph/_diff.py", "target": "src/build_graph/_config.py", "type": "code->code", "weight": 1, "lines": [36]}, {"source": "src/build_graph/_git.py", "target": "src/build_graph/links.py", "type": "code->code", "weight": 1, "lines": [12]}, {"source": "src/build_graph/graph.py", "target": "src/build_graph/_build.py", "type": "code->code", "weight": 1, "lines": [67]}, {"source": "src/build_graph/graph.py", "target": "src/build_graph/_config.py", "type": "code->code", "weight": 1, "lines": [74]}, {"source": "src/build_graph/graph.py", "target": "src/build_graph/_console.py", "type": "code->code", "weight": 1, "lines": [80]}, {"source": "src/build_graph/graph.py", "target": "src/build_graph/_diff.py", "type": "code->code", "weight": 1, "lines": [81]}, {"source": "src/build_graph/graph.py", "target": "src/build_graph/_git.py", "type": "code->code", "weight": 1, "lines": [82]}, {"source": "src/build_graph/graph.py", "target": "src/build_graph/_render.py", "type": "code->code", "weight": 1, "lines": [88]}, {"source": "src/build_graph/links.py", "target": "src/build_graph/_common.py", "type": "code->code", "weight": 1, "lines": [19]}, {"source": "src/build_graph/links.py", "target": "src/build_graph/_console.py", "type": "code->code", "weight": 1, "lines": [20]}, {"source": "src/build_graph/query.py", "target": "src/build_graph/_common.py", "type": "code->code", "weight": 1, "lines": [22]}, {"source": "src/build_graph/query.py", "target": "src/build_graph/_console.py", "type": "code->code", "weight": 1, "lines": [23]}, {"source": "src/build_graph/related.py", "target": "src/build_graph/_common.py", "type": "code->code", "weight": 1, "lines": [17]}, {"source": "src/build_graph/related.py", "target": "src/build_graph/_console.py", "type": "code->code", "weight": 1, "lines": [18]}, {"source": "tests/test_build_edges.py", "target": "src/build_graph/_build.py", "type": "code->code", "weight": 5, "lines": [5, 363, 426, 470, 495]}, {"source": "tests/test_cli_smoke.py", "target": "src/build_graph/graph.py", "type": "code->code", "weight": 1, "lines": [9]}, {"source": "tests/test_dead_exemptions.py", "target": "src/build_graph/_render.py", "type": "code->code", "weight": 1, "lines": [5]}, {"source": "tests/test_examples.py", "target": "src/build_graph/graph.py", "type": "code->code", "weight": 1, "lines": [10]}, {"source": "tests/test_export_schemas.py", "target": "src/build_graph/graph.py", "type": "code->code", "weight": 1, "lines": [10]}, {"source": "tests/test_extract_file_references.py", "target": "src/build_graph/links.py", "type": "code->code", "weight": 1, "lines": [3]}, {"source": "tests/test_git_overlay.py", "target": "src/build_graph/_git.py", "type": "code->code", "weight": 1, "lines": [8]}, {"source": "tests/test_init_lifecycle.py", "target": "src/build_graph/graph.py", "type": "code->code", "weight": 1, "lines": [9]}, {"source": "tests/test_links_cli.py", "target": "src/build_graph/links.py", "type": "code->code", "weight": 1, "lines": [8]}, {"source": "tests/test_query.py", "target": "src/build_graph/query.py", "type": "code->code", "weight": 2, "lines": [12, 13]}, {"source": "tests/test_ref_diff.py", "target": "src/build_graph/_diff.py", "type": "code->code", "weight": 1, "lines": [8]}, {"source": "tests/test_ref_diff.py", "target": "src/build_graph/_git.py", "type": "code->code", "weight": 1, "lines": [14]}, {"source": "tests/test_related.py", "target": "src/build_graph/related.py", "type": "code->code", "weight": 1, "lines": [7]}, {"source": "tests/test_related_git_modes.py", "target": "src/build_graph/related.py", "type": "code->code", "weight": 2, "lines": [9, 10]}, {"source": "tests/test_resolve_python_import.py", "target": "src/build_graph/_build.py", "type": "code->code", "weight": 1, "lines": [7]}, {"source": "src/build_graph/query.py", "target": "examples/tiny-project/app/core.py", "type": "docstring", "weight": 1, "lines": [119]}, {"source": "ghost::__demo_renamed_from.md", "target": "CONTRIBUTING.md", "type": "rename", "weight": 1, "lines": [], "ghost": true}, {"source": "README.md", "target": "ghost::docs/__demo_deleted_with_refs.md", "type": "doc->doc", "weight": 1, "lines": [42], "ghost": true}]};
-const NODE_COLORS = {"code/examples": "#eab8ca", "code/src": "#b8eabf", "code/tests": "#b8d1ea", "config/.devcontainer": "#d4b8ea", "config/.github": "#eacbb8", "config/_root": "#b8e8ea", "config/examples": "#eab8d0", "config/schema": "#d3b8ea", "doc/_root": "#d4eab8", "doc/docs": "#e7b8ea", "doc/examples": "#eac9b8"};
-const NODE_COLORS_SATURATED = {"code/examples": "#bd285c", "code/src": "#28bd3f", "code/tests": "#2873bd", "config/.devcontainer": "#7d28bd", "config/.github": "#bd6128", "config/_root": "#28b6bd", "config/examples": "#bd2870", "config/schema": "#7828bd", "doc/_root": "#7dbd28", "doc/docs": "#b328bd", "doc/examples": "#bd5a28"};
+const GRAPH_DATA = {"nodes": [{"id": "guide.md", "label": "guide.md", "stem": "guide", "type": "doc/docs", "path": "docs/guide.md", "degree": 3, "size": 8.214285714285714, "gitStatus": "added"}, {"id": ".devcontainer/devcontainer.json", "label": "devcontainer.json", "stem": "devcontainer", "type": "config/.devcontainer", "path": ".devcontainer/devcontainer.json", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": ".github/ISSUE_TEMPLATE/bug_report.yml", "label": "bug_report.yml", "stem": "bug_report", "type": "config/.github", "path": ".github/ISSUE_TEMPLATE/bug_report.yml", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": ".github/ISSUE_TEMPLATE/false_positive.yml", "label": "false_positive.yml", "stem": "false_positive", "type": "config/.github", "path": ".github/ISSUE_TEMPLATE/false_positive.yml", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": ".github/ISSUE_TEMPLATE/feature_request.yml", "label": "feature_request.yml", "stem": "feature_request", "type": "config/.github", "path": ".github/ISSUE_TEMPLATE/feature_request.yml", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": ".github/workflows/ci.yml", "label": "ci.yml", "stem": "ci", "type": "config/.github", "path": ".github/workflows/ci.yml", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": ".github/workflows/publish.yml", "label": "publish.yml", "stem": "publish", "type": "config/.github", "path": ".github/workflows/publish.yml", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": ".gitignore", "label": ".gitignore", "stem": ".gitignore", "type": "config/_root", "path": ".gitignore", "degree": 1, "size": 6.071428571428571, "gitStatus": "clean"}, {"id": "CHANGELOG.md", "label": "CHANGELOG.md", "stem": "CHANGELOG", "type": "doc/_root", "path": "CHANGELOG.md", "degree": 4, "size": 9.285714285714285, "gitStatus": "modified"}, {"id": "CONTRIBUTING.md", "label": "CONTRIBUTING.md", "stem": "CONTRIBUTING", "type": "doc/_root", "path": "CONTRIBUTING.md", "degree": 6, "size": 11.428571428571427, "gitStatus": "renamed"}, {"id": "LICENSE", "label": "LICENSE", "stem": "LICENSE", "type": "doc/_root", "path": "LICENSE", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": "README.md", "label": "README.md", "stem": "README", "type": "doc/_root", "path": "README.md", "degree": 7, "size": 12.5, "gitStatus": "clean"}, {"id": "examples/README.md", "label": "README.md", "stem": "README", "type": "doc/examples", "path": "examples/README.md", "degree": 5, "size": 10.357142857142858, "gitStatus": "clean"}, {"id": "examples/expected/graph-compact.json", "label": "graph-compact.json", "stem": "graph-compact", "type": "config/examples", "path": "examples/expected/graph-compact.json", "degree": 2, "size": 7.142857142857142, "gitStatus": "clean"}, {"id": "examples/expected/graph.json", "label": "graph.json", "stem": "graph", "type": "config/examples", "path": "examples/expected/graph.json", "degree": 1, "size": 6.071428571428571, "gitStatus": "clean"}, {"id": "examples/tiny-project/app/__init__.py", "label": "__init__.py", "stem": "__init__", "type": "code/examples", "path": "examples/tiny-project/app/__init__.py", "degree": 1, "size": 6.071428571428571, "gitStatus": "modified", "deadExempt": true}, {"id": "examples/tiny-project/app/cli.py", "label": "cli.py", "stem": "cli", "type": "code/examples", "path": "examples/tiny-project/app/cli.py", "degree": 2, "size": 7.142857142857142, "gitStatus": "added"}, {"id": "examples/tiny-project/app/core.py", "label": "core.py", "stem": "core", "type": "code/examples", "path": "examples/tiny-project/app/core.py", "degree": 3, "size": 8.214285714285714, "gitStatus": "clean"}, {"id": "examples/tiny-project/docs/design.md", "label": "design.md", "stem": "design", "type": "doc/examples", "path": "examples/tiny-project/docs/design.md", "degree": 1, "size": 6.071428571428571, "gitStatus": "clean"}, {"id": "graph.example.toml", "label": "graph.example.toml", "stem": "graph.example", "type": "config/_root", "path": "graph.example.toml", "degree": 1, "size": 6.071428571428571, "gitStatus": "clean"}, {"id": "pyproject.toml", "label": "pyproject.toml", "stem": "pyproject", "type": "config/_root", "path": "pyproject.toml", "degree": 2, "size": 7.142857142857142, "gitStatus": "clean"}, {"id": "schema/graph-compact-v2.schema.json", "label": "graph-compact-v2.schema.json", "stem": "graph-compact-v2.schema", "type": "config/schema", "path": "schema/graph-compact-v2.schema.json", "degree": 1, "size": 6.071428571428571, "gitStatus": "clean"}, {"id": "schema/graph-v1.schema.json", "label": "graph-v1.schema.json", "stem": "graph-v1.schema", "type": "config/schema", "path": "schema/graph-v1.schema.json", "degree": 1, "size": 6.071428571428571, "gitStatus": "clean"}, {"id": "src/build_graph/__init__.py", "label": "__init__.py", "stem": "__init__", "type": "code/src", "path": "src/build_graph/__init__.py", "degree": 0, "size": 5.0, "gitStatus": "clean", "deadExempt": true}, {"id": "src/build_graph/_build.py", "label": "_build.py", "stem": "_build", "type": "code/src", "path": "src/build_graph/_build.py", "degree": 6, "size": 11.428571428571427, "gitStatus": "clean"}, {"id": "src/build_graph/_common.py", "label": "_common.py", "stem": "_common", "type": "code/src", "path": "src/build_graph/_common.py", "degree": 3, "size": 8.214285714285714, "gitStatus": "clean"}, {"id": "src/build_graph/_config.py", "label": "_config.py", "stem": "_config", "type": "code/src", "path": "src/build_graph/_config.py", "degree": 3, "size": 8.214285714285714, "gitStatus": "clean"}, {"id": "src/build_graph/_console.py", "label": "_console.py", "stem": "_console", "type": "code/src", "path": "src/build_graph/_console.py", "degree": 4, "size": 9.285714285714285, "gitStatus": "clean"}, {"id": "src/build_graph/_coverage.py", "label": "_coverage.py", "stem": "_coverage", "type": "code/src", "path": "src/build_graph/_coverage.py", "degree": 5, "size": 10.357142857142858, "gitStatus": "clean"}, {"id": "src/build_graph/_diff.py", "label": "_diff.py", "stem": "_diff", "type": "code/src", "path": "src/build_graph/_diff.py", "degree": 4, "size": 9.285714285714285, "gitStatus": "clean"}, {"id": "src/build_graph/_git.py", "label": "_git.py", "stem": "_git", "type": "code/src", "path": "src/build_graph/_git.py", "degree": 6, "size": 11.428571428571427, "gitStatus": "clean"}, {"id": "src/build_graph/_heat.py", "label": "_heat.py", "stem": "_heat", "type": "code/src", "path": "src/build_graph/_heat.py", "degree": 5, "size": 10.357142857142858, "gitStatus": "clean"}, {"id": "src/build_graph/_render.py", "label": "_render.py", "stem": "_render", "type": "code/src", "path": "src/build_graph/_render.py", "degree": 3, "size": 8.214285714285714, "gitStatus": "clean"}, {"id": "src/build_graph/graph.py", "label": "graph.py", "stem": "graph", "type": "code/src", "path": "src/build_graph/graph.py", "degree": 14, "size": 20.0, "gitStatus": "clean", "deadExempt": true}, {"id": "src/build_graph/links.py", "label": "links.py", "stem": "links", "type": "code/src", "path": "src/build_graph/links.py", "degree": 6, "size": 11.428571428571427, "gitStatus": "clean", "deadExempt": true}, {"id": "src/build_graph/query.py", "label": "query.py", "stem": "query", "type": "code/src", "path": "src/build_graph/query.py", "degree": 4, "size": 9.285714285714285, "gitStatus": "clean", "deadExempt": true}, {"id": "src/build_graph/related.py", "label": "related.py", "stem": "related", "type": "code/src", "path": "src/build_graph/related.py", "degree": 5, "size": 10.357142857142858, "gitStatus": "clean", "deadExempt": true}, {"id": "src/build_graph/resources/body.html", "label": "body.html", "stem": "body", "type": "code/src", "path": "src/build_graph/resources/body.html", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": "src/build_graph/resources/boot.js", "label": "boot.js", "stem": "boot", "type": "code/src", "path": "src/build_graph/resources/boot.js", "degree": 1, "size": 6.071428571428571, "gitStatus": "clean"}, {"id": "src/build_graph/resources/engine.js", "label": "engine.js", "stem": "engine", "type": "code/src", "path": "src/build_graph/resources/engine.js", "degree": 1, "size": 6.071428571428571, "gitStatus": "clean"}, {"id": "src/build_graph/resources/i18n.js", "label": "i18n.js", "stem": "i18n", "type": "code/src", "path": "src/build_graph/resources/i18n.js", "degree": 1, "size": 6.071428571428571, "gitStatus": "clean"}, {"id": "src/build_graph/resources/style.css", "label": "style.css", "stem": "style", "type": "code/src", "path": "src/build_graph/resources/style.css", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": "src/build_graph/resources/ui.js", "label": "ui.js", "stem": "ui", "type": "code/src", "path": "src/build_graph/resources/ui.js", "degree": 1, "size": 6.071428571428571, "gitStatus": "clean"}, {"id": "tests/test_build_edges.py", "label": "test_build_edges.py", "stem": "test_build_edges", "type": "code/tests", "path": "tests/test_build_edges.py", "degree": 1, "size": 6.071428571428571, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_cli_smoke.py", "label": "test_cli_smoke.py", "stem": "test_cli_smoke", "type": "code/tests", "path": "tests/test_cli_smoke.py", "degree": 1, "size": 6.071428571428571, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_coverage.py", "label": "test_coverage.py", "stem": "test_coverage", "type": "code/tests", "path": "tests/test_coverage.py", "degree": 1, "size": 6.071428571428571, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_dead_exemptions.py", "label": "test_dead_exemptions.py", "stem": "test_dead_exemptions", "type": "code/tests", "path": "tests/test_dead_exemptions.py", "degree": 1, "size": 6.071428571428571, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_examples.py", "label": "test_examples.py", "stem": "test_examples", "type": "code/tests", "path": "tests/test_examples.py", "degree": 1, "size": 6.071428571428571, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_export_schemas.py", "label": "test_export_schemas.py", "stem": "test_export_schemas", "type": "code/tests", "path": "tests/test_export_schemas.py", "degree": 1, "size": 6.071428571428571, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_extract_file_references.py", "label": "test_extract_file_references.py", "stem": "test_extract_file_references", "type": "code/tests", "path": "tests/test_extract_file_references.py", "degree": 1, "size": 6.071428571428571, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_git_overlay.py", "label": "test_git_overlay.py", "stem": "test_git_overlay", "type": "code/tests", "path": "tests/test_git_overlay.py", "degree": 1, "size": 6.071428571428571, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_heat.py", "label": "test_heat.py", "stem": "test_heat", "type": "code/tests", "path": "tests/test_heat.py", "degree": 1, "size": 6.071428571428571, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_init_lifecycle.py", "label": "test_init_lifecycle.py", "stem": "test_init_lifecycle", "type": "code/tests", "path": "tests/test_init_lifecycle.py", "degree": 1, "size": 6.071428571428571, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_links_cli.py", "label": "test_links_cli.py", "stem": "test_links_cli", "type": "code/tests", "path": "tests/test_links_cli.py", "degree": 1, "size": 6.071428571428571, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_query.py", "label": "test_query.py", "stem": "test_query", "type": "code/tests", "path": "tests/test_query.py", "degree": 1, "size": 6.071428571428571, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_ref_diff.py", "label": "test_ref_diff.py", "stem": "test_ref_diff", "type": "code/tests", "path": "tests/test_ref_diff.py", "degree": 2, "size": 7.142857142857142, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_related.py", "label": "test_related.py", "stem": "test_related", "type": "code/tests", "path": "tests/test_related.py", "degree": 1, "size": 6.071428571428571, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_related_git_modes.py", "label": "test_related_git_modes.py", "stem": "test_related_git_modes", "type": "code/tests", "path": "tests/test_related_git_modes.py", "degree": 1, "size": 6.071428571428571, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_resolve_python_import.py", "label": "test_resolve_python_import.py", "stem": "test_resolve_python_import", "type": "code/tests", "path": "tests/test_resolve_python_import.py", "degree": 1, "size": 6.071428571428571, "gitStatus": "clean", "deadExempt": true}, {"id": "ambiguous::__init__.py", "label": "__init__.py (×2)", "stem": "__init__", "type": "ambiguous", "path": "ambiguous::__init__.py", "degree": 2, "size": 7.142857142857142, "ambiguous": true, "gitStatus": "clean"}, {"id": "ghost::__demo_renamed_from.md", "label": "__demo_renamed_from.md", "stem": "__demo_renamed_from", "type": "doc/ghost", "path": "__demo_renamed_from.md", "degree": 1, "size": 6, "ghost": true, "gitStatus": "renamed"}, {"id": "ghost::docs/__demo_deleted_with_refs.md", "label": "__demo_deleted_with_refs.md", "stem": "__demo_deleted_with_refs", "type": "doc/ghost", "path": "docs/__demo_deleted_with_refs.md", "degree": 1, "size": 6, "ghost": true, "gitStatus": "deleted"}, {"id": "ghost::__demo_deleted_orphan.md", "label": "__demo_deleted_orphan.md", "stem": "__demo_deleted_orphan", "type": "doc/ghost", "path": "__demo_deleted_orphan.md", "degree": 0, "size": 6, "ghost": true, "gitStatus": "deleted"}], "links": [{"source": "CONTRIBUTING.md", "target": "CHANGELOG.md", "type": "doc->doc", "weight": 1, "lines": [50]}, {"source": "README.md", "target": "guide.md", "type": "doc->doc", "weight": 1, "lines": [39]}, {"source": ".gitignore", "target": "README.md", "type": "code->doc", "weight": 1, "lines": [247]}, {"source": "examples/expected/graph-compact.json", "target": "README.md", "type": "code->doc", "weight": 4, "lines": [69, 104, 171, 343]}, {"source": "examples/expected/graph-compact.json", "target": "examples/README.md", "type": "code->doc", "weight": 2, "lines": [30, 33]}, {"source": "examples/expected/graph.json", "target": "examples/README.md", "type": "code->doc", "weight": 3, "lines": [29, 32, 36]}, {"source": "ambiguous::__init__.py", "target": "guide.md", "type": "code->doc", "weight": 2, "lines": [216, 238]}, {"source": "ambiguous::__init__.py", "target": "CHANGELOG.md", "type": "code->doc", "weight": 3, "lines": [60, 61, 68]}, {"source": "examples/tiny-project/app/__init__.py", "target": "examples/README.md", "type": "code->doc", "weight": 1, "lines": [12]}, {"source": "examples/tiny-project/app/cli.py", "target": "examples/README.md", "type": "code->doc", "weight": 2, "lines": [14, 16]}, {"source": "examples/tiny-project/app/cli.py", "target": "examples/tiny-project/docs/design.md", "type": "code->doc", "weight": 1, "lines": [3]}, {"source": "examples/tiny-project/app/core.py", "target": "README.md", "type": "code->doc", "weight": 1, "lines": [349]}, {"source": "examples/tiny-project/app/core.py", "target": "examples/README.md", "type": "code->doc", "weight": 2, "lines": [13, 16]}, {"source": "graph.example.toml", "target": "README.md", "type": "code->doc", "weight": 1, "lines": [238]}, {"source": "pyproject.toml", "target": "guide.md", "type": "code->doc", "weight": 1, "lines": [215]}, {"source": "pyproject.toml", "target": "README.md", "type": "code->doc", "weight": 1, "lines": [375]}, {"source": "schema/graph-compact-v2.schema.json", "target": "CHANGELOG.md", "type": "code->doc", "weight": 1, "lines": [80]}, {"source": "schema/graph-v1.schema.json", "target": "CHANGELOG.md", "type": "code->doc", "weight": 1, "lines": [79]}, {"source": "src/build_graph/resources/boot.js", "target": "CONTRIBUTING.md", "type": "code->doc", "weight": 1, "lines": [34]}, {"source": "src/build_graph/resources/engine.js", "target": "CONTRIBUTING.md", "type": "code->doc", "weight": 1, "lines": [34]}, {"source": "src/build_graph/resources/i18n.js", "target": "CONTRIBUTING.md", "type": "code->doc", "weight": 2, "lines": [34, 36]}, {"source": "src/build_graph/resources/ui.js", "target": "CONTRIBUTING.md", "type": "code->doc", "weight": 1, "lines": [34]}, {"source": "src/build_graph/_build.py", "target": "src/build_graph/links.py", "type": "code->code", "weight": 1, "lines": [12]}, {"source": "src/build_graph/_build.py", "target": "src/build_graph/related.py", "type": "code->code", "weight": 1, "lines": [13]}, {"source": "src/build_graph/_config.py", "target": "src/build_graph/_render.py", "type": "code->code", "weight": 1, "lines": [18]}, {"source": "src/build_graph/_diff.py", "target": "src/build_graph/_build.py", "type": "code->code", "weight": 1, "lines": [29]}, {"source": "src/build_graph/_diff.py", "target": "src/build_graph/_config.py", "type": "code->code", "weight": 1, "lines": [36]}, {"source": "src/build_graph/_git.py", "target": "src/build_graph/links.py", "type": "code->code", "weight": 1, "lines": [12]}, {"source": "src/build_graph/graph.py", "target": "src/build_graph/_build.py", "type": "code->code", "weight": 1, "lines": [70]}, {"source": "src/build_graph/graph.py", "target": "src/build_graph/_config.py", "type": "code->code", "weight": 1, "lines": [77]}, {"source": "src/build_graph/graph.py", "target": "src/build_graph/_console.py", "type": "code->code", "weight": 1, "lines": [83]}, {"source": "src/build_graph/graph.py", "target": "src/build_graph/_diff.py", "type": "code->code", "weight": 1, "lines": [84]}, {"source": "src/build_graph/graph.py", "target": "src/build_graph/_git.py", "type": "code->code", "weight": 1, "lines": [85]}, {"source": "src/build_graph/graph.py", "target": "src/build_graph/_coverage.py", "type": "code->code", "weight": 1, "lines": [91]}, {"source": "src/build_graph/graph.py", "target": "src/build_graph/_heat.py", "type": "code->code", "weight": 1, "lines": [92]}, {"source": "src/build_graph/graph.py", "target": "src/build_graph/_render.py", "type": "code->code", "weight": 1, "lines": [93]}, {"source": "src/build_graph/links.py", "target": "src/build_graph/_common.py", "type": "code->code", "weight": 1, "lines": [19]}, {"source": "src/build_graph/links.py", "target": "src/build_graph/_console.py", "type": "code->code", "weight": 1, "lines": [20]}, {"source": "src/build_graph/query.py", "target": "src/build_graph/_common.py", "type": "code->code", "weight": 1, "lines": [22]}, {"source": "src/build_graph/query.py", "target": "src/build_graph/_console.py", "type": "code->code", "weight": 1, "lines": [23]}, {"source": "src/build_graph/related.py", "target": "src/build_graph/_common.py", "type": "code->code", "weight": 1, "lines": [17]}, {"source": "src/build_graph/related.py", "target": "src/build_graph/_console.py", "type": "code->code", "weight": 1, "lines": [18]}, {"source": "tests/test_build_edges.py", "target": "src/build_graph/_build.py", "type": "code->code", "weight": 5, "lines": [5, 365, 446, 497, 523]}, {"source": "tests/test_cli_smoke.py", "target": "src/build_graph/graph.py", "type": "code->code", "weight": 1, "lines": [9]}, {"source": "tests/test_coverage.py", "target": "src/build_graph/_coverage.py", "type": "code->code", "weight": 1, "lines": [5]}, {"source": "tests/test_dead_exemptions.py", "target": "src/build_graph/_render.py", "type": "code->code", "weight": 1, "lines": [5]}, {"source": "tests/test_examples.py", "target": "src/build_graph/graph.py", "type": "code->code", "weight": 1, "lines": [10]}, {"source": "tests/test_export_schemas.py", "target": "src/build_graph/graph.py", "type": "code->code", "weight": 1, "lines": [10]}, {"source": "tests/test_extract_file_references.py", "target": "src/build_graph/links.py", "type": "code->code", "weight": 1, "lines": [3]}, {"source": "tests/test_git_overlay.py", "target": "src/build_graph/_git.py", "type": "code->code", "weight": 1, "lines": [8]}, {"source": "tests/test_heat.py", "target": "src/build_graph/_heat.py", "type": "code->code", "weight": 1, "lines": [8]}, {"source": "tests/test_init_lifecycle.py", "target": "src/build_graph/graph.py", "type": "code->code", "weight": 1, "lines": [9]}, {"source": "tests/test_links_cli.py", "target": "src/build_graph/links.py", "type": "code->code", "weight": 1, "lines": [8]}, {"source": "tests/test_query.py", "target": "src/build_graph/query.py", "type": "code->code", "weight": 2, "lines": [12, 13]}, {"source": "tests/test_ref_diff.py", "target": "src/build_graph/_diff.py", "type": "code->code", "weight": 1, "lines": [8]}, {"source": "tests/test_ref_diff.py", "target": "src/build_graph/_git.py", "type": "code->code", "weight": 1, "lines": [14]}, {"source": "tests/test_related.py", "target": "src/build_graph/related.py", "type": "code->code", "weight": 1, "lines": [7]}, {"source": "tests/test_related_git_modes.py", "target": "src/build_graph/related.py", "type": "code->code", "weight": 2, "lines": [9, 10]}, {"source": "tests/test_resolve_python_import.py", "target": "src/build_graph/_build.py", "type": "code->code", "weight": 1, "lines": [7]}, {"source": "src/build_graph/_coverage.py", "target": "src/build_graph/_git.py", "type": "docstring", "weight": 1, "lines": [1]}, {"source": "src/build_graph/_coverage.py", "target": "src/build_graph/_heat.py", "type": "docstring", "weight": 1, "lines": [1]}, {"source": "src/build_graph/_coverage.py", "target": "src/build_graph/graph.py", "type": "docstring", "weight": 1, "lines": [1]}, {"source": "src/build_graph/_heat.py", "target": "src/build_graph/_git.py", "type": "docstring", "weight": 1, "lines": [1]}, {"source": "src/build_graph/_heat.py", "target": "src/build_graph/graph.py", "type": "docstring", "weight": 1, "lines": [1]}, {"source": "src/build_graph/query.py", "target": "examples/tiny-project/app/core.py", "type": "docstring", "weight": 1, "lines": [119]}, {"source": "ghost::__demo_renamed_from.md", "target": "CONTRIBUTING.md", "type": "rename", "weight": 1, "lines": [], "ghost": true}, {"source": "README.md", "target": "ghost::docs/__demo_deleted_with_refs.md", "type": "doc->doc", "weight": 1, "lines": [42], "ghost": true}]};
+const NODE_COLORS = {"ambiguous": "#eae9b8", "code/examples": "#eab8ca", "code/src": "#b8eabf", "code/tests": "#b8d1ea", "config/.devcontainer": "#d4b8ea", "config/.github": "#eacbb8", "config/_root": "#b8e8ea", "config/examples": "#eab8d0", "config/schema": "#d3b8ea", "doc/_root": "#d4eab8", "doc/docs": "#e7b8ea", "doc/examples": "#eac9b8"};
+const NODE_COLORS_SATURATED = {"ambiguous": "#bdb828", "code/examples": "#bd285c", "code/src": "#28bd3f", "code/tests": "#2873bd", "config/.devcontainer": "#7d28bd", "config/.github": "#bd6128", "config/_root": "#28b6bd", "config/examples": "#bd2870", "config/schema": "#7828bd", "doc/_root": "#7dbd28", "doc/docs": "#b328bd", "doc/examples": "#bd5a28"};
 const PROJECT_ROOT = "F:/incontr_work/build-graph";
 const GIT_DATA = {"added": [], "modified": [], "deleted": [], "renamed": {}};
 const DIFF_INFO = null;
+const HEAT_DATA = {"CHANGELOG.md": 14, "README.md": 20, "docs/guide.md": 8, "docs/media/guide/18-heat.gif": 1, "src/build_graph/_heat.py": 1, "src/build_graph/_render.py": 6, "src/build_graph/graph.py": 10, "src/build_graph/resources/body.html": 5, "src/build_graph/resources/boot.js": 3, "src/build_graph/resources/engine.js": 5, "src/build_graph/resources/i18n.js": 5, "src/build_graph/resources/style.css": 4, "src/build_graph/resources/ui.js": 8, "tests/test_heat.py": 1, "docs/media/guide/17-ambiguous.png": 1, "src/build_graph/_build.py": 7, "src/build_graph/_diff.py": 3, "tests/test_build_edges.py": 6, "tests/test_ref_diff.py": 2, "docs/media/guide/16-diff.png": 1, "docs/media/guide/15-cycles.png": 1, ".github/workflows/publish.yml": 3, "src/build_graph/__init__.py": 2, "pyproject.toml": 8, ".devcontainer/devcontainer.json": 1, "src/build_graph/query.py": 1, "tests/test_dead_exemptions.py": 2, "tests/test_query.py": 1, ".gitignore": 4, "examples/expected/graph-compact.json": 1, "examples/expected/graph.json": 1, "examples/README.md": 1, "examples/tiny-project/app/__init__.py": 1, "examples/tiny-project/app/cli.py": 1, "examples/tiny-project/app/core.py": 1, "examples/tiny-project/docs/design.md": 1, "tests/test_examples.py": 1, ".github/ISSUE_TEMPLATE/bug_report.yml": 1, ".github/ISSUE_TEMPLATE/false_positive.yml": 1, ".github/ISSUE_TEMPLATE/feature_request.yml": 1, "CONTRIBUTING.md": 1, "tests/test_cli_smoke.py": 2, ".github/workflows/ci.yml": 3, "schema/graph-compact-v2.schema.json": 1, "schema/graph-v1.schema.json": 1, "tests/test_export_schemas.py": 1, "docs/media/hero.gif": 1, "docs/media/guide/13-orphan-ring.png": 1, "docs/media/guide/14-mermaid-example.png": 1, "tests/test_related_git_modes.py": 2, "tests/test_git_overlay.py": 1, "src/build_graph/related.py": 3, "src/build_graph/resources/main.js": 3, "tests/test_resolve_python_import.py": 3, "src/build_graph/_common.py": 1, "src/build_graph/links.py": 2, "src/build_graph/_config.py": 1, "src/build_graph/_git.py": 1, "docs/media/hero-dark.jpg": 1, "LICENSE": 1, "graph.example.toml": 1, "src/build_graph/_console.py": 1, "tests/test_extract_file_references.py": 1, "tests/test_init_lifecycle.py": 1, "tests/test_links_cli.py": 1, "tests/test_related.py": 1};
+const HEAT_DAYS = null;
+const COVERAGE_DATA = null;
 const APP_VERSION = "0.2.0";
 const APP_AUTHOR = "Yuriy Totyshev";
 const APP_AUTHOR_URL = "https://github.com/Mr-Freewan";
@@ -1060,12 +1151,21 @@ const I18N = {
         "btn.git": "Git",
         "btn.gitTitle": "Toggle git status overlay",
         "btn.gitNotAvailable": "Not in a git repository",
+        "btn.heat": "Heatmap",
+        "btn.heatTitle": "Toggle git-activity heat overlay",
+        "btn.heatNotAvailable": "Not in a git repository",
+        "btn.coverage": "Cov.",
+        "btn.coverageTitle": "Toggle test-coverage overlay",
         "btn.faqTitle": "Help (?)",
         "ide.title": "Open links in IDE",
         "ide.copy": "— Copy path",
         "legend.nodeTypes": "Node types",
         "legend.edgeTypes": "Edge types",
         "legend.gitStatus": "Git status",
+        "legend.heat": "Activity heat",
+        "legend.coverage": "Test coverage",
+        "legend.coverageMinTitle": "Hide files covered less than N%",
+        "legend.heatMinTitle": "Hide files edited fewer than N times",
         "legend.showAll": "Show all",
         "legend.hideAll": "Hide all",
         "git.added": "Added",
@@ -1073,6 +1173,7 @@ const I18N = {
         "git.renamed": "Renamed",
         "git.deleted": "Deleted",
         "git.clean": "Clean",
+        "heat.allTime": "All time",
         "excl.title": "Exclude by name",
         "excl.placeholder": "e.g. __init__",
         "excl.add": "Add",
@@ -1133,6 +1234,8 @@ const I18N = {
         "faq.shortcuts.li3": "<kbd>Ctrl</kbd>+<kbd>K</kbd> / <kbd>⌘</kbd>+<kbd>K</kbd> &mdash; focus the search field.",
         "faq.shortcuts.li4": "<kbd>B</kbd> &mdash; pin / unpin the node under the cursor (works mid-drag: drag a node aside, press B, release &mdash; it stays put).",
         "faq.section.gitMode": "Git mode",
+        "faq.section.heatMode": "Heat mode",
+        "faq.section.coverage": "Coverage mode",
         "faq.nav.li5": "Clicking a node <b>pins</b> the highlight &mdash; the node and its connections stay bright even when the cursor moves away. Click the same node again or the background to unpin.",
         "faq.nav.li6": "With a node pinned, hovering one of its neighbors briefly shows a second-level peek &mdash; the union of the pin's and the hovered node's neighborhoods.",
         "faq.nav.li7": "Clicking any faded (dimmed) element or the empty background clears all current selections (pinned node, edge focus, search highlight).",
@@ -1151,6 +1254,12 @@ const I18N = {
         "faq.git.li4": "<b>Rename edges</b> are drawn dotted without an arrowhead, linking the old path to the new one; they aren't part of the Edge types legend.",
         "faq.git.li5": "Git status colors follow the active palette (Pastel / Saturated). The Git button is disabled if the build wasn't run inside a git repository.",
         "faq.git.li6": "<b>Graph diff:</b> a build with <code>--diff-base REF</code> compares the working tree against a git ref &mdash; file statuses feed this overlay, while new dependency edges turn green and removed ones red (dashed).",
+        "faq.heat.li1": "Toggle <b>Heat mode</b> from the top bar &mdash; node colors switch from type-based to a blue&rarr;red gradient by how often each file has changed in git.",
+        "faq.heat.li2": "The gradient legend shows the period (whole history, or the last N days if the build ran with <code>--heat-days N</code>) and the raw commit-count range.",
+        "faq.heat.li3": "Heat and Git mode are mutually exclusive &mdash; turning one on turns the other off, since both recolor nodes by a different signal.",
+        "faq.coverage.li1": "Toggle <b>Coverage mode</b> from the top bar &mdash; node colors switch from type-based to a green&rarr;red gradient by test-line coverage (needs a Cobertura <code>coverage.xml</code>, via <code>--coverage PATH</code>).",
+        "faq.coverage.li2": "The gradient legend shows the coverage range and a min-coverage slider &mdash; drag it to hide anything covered less than the chosen percentage (edges follow).",
+        "faq.coverage.li3": "Coverage, Heat and Git mode are all mutually exclusive &mdash; turning one on turns the other two off, since all three recolor nodes by a different signal.",
         "legend.diffEdgesAdded": "New edges",
         "legend.diffEdgesRemoved": "Removed edges",
         "faq.persistence.li4": "<b>Copy JSON</b> in the File menu copies a compact graph representation (id, path, type, edges, line numbers) &mdash; handy to paste into an LLM as project context.",
@@ -1195,12 +1304,21 @@ const I18N = {
         "btn.git": "Git",
         "btn.gitTitle": "Подсветка по git-статусу",
         "btn.gitNotAvailable": "Не git-репозиторий",
+        "btn.heat": "Heatmap",
+        "btn.heatTitle": "Подсветка по частоте изменений (git)",
+        "btn.heatNotAvailable": "Не git-репозиторий",
+        "btn.coverage": "Cov.",
+        "btn.coverageTitle": "Подсветка по покрытию тестами",
         "btn.faqTitle": "Справка (?)",
         "ide.title": "Открывать в IDE",
         "ide.copy": "— Копировать путь",
         "legend.nodeTypes": "Типы узлов",
         "legend.edgeTypes": "Типы связей",
         "legend.gitStatus": "Git-статус",
+        "legend.heat": "Частота изменений",
+        "legend.coverage": "Покрытие тестами",
+        "legend.coverageMinTitle": "Скрывать файлы с покрытием меньше N%",
+        "legend.heatMinTitle": "Скрывать файлы, изменённые реже N раз",
         "legend.showAll": "Показать все",
         "legend.hideAll": "Скрыть все",
         "git.added": "Добавлено",
@@ -1208,6 +1326,7 @@ const I18N = {
         "git.renamed": "Переименовано",
         "git.deleted": "Удалено",
         "git.clean": "Без изменений",
+        "heat.allTime": "Вся история",
         "excl.title": "Исключить по имени",
         "excl.placeholder": "напр. __init__",
         "excl.add": "Добавить",
@@ -1268,6 +1387,8 @@ const I18N = {
         "faq.shortcuts.li3": "<kbd>Ctrl</kbd>+<kbd>K</kbd> / <kbd>⌘</kbd>+<kbd>K</kbd> &mdash; фокус на поле поиска.",
         "faq.shortcuts.li4": "<kbd>B</kbd> &mdash; закрепить / открепить ноду под курсором (работает во время перетаскивания: оттяни ноду, нажми B, отпусти &mdash; она останется на месте).",
         "faq.section.gitMode": "Git-режим",
+        "faq.section.heatMode": "Режим активности",
+        "faq.section.coverage": "Режим покрытия",
         "faq.nav.li5": "Клик по узлу <b>фиксирует</b> подсветку &mdash; узел и его связи остаются яркими даже когда курсор уходит. Повторный клик по тому же узлу или клик по фону снимает фиксацию.",
         "faq.nav.li6": "Когда узел зафиксирован, hover на одного из его соседей кратковременно показывает peek второго уровня &mdash; объединение окрестностей зафиксированного и наведённого узлов.",
         "faq.nav.li7": "Клик по любому затемнённому элементу или по пустому фону снимает все текущие выделения (зафиксированный узел, edge focus, подсветку поиска).",
@@ -1286,6 +1407,12 @@ const I18N = {
         "faq.git.li4": "<b>Rename-рёбра</b> рисуются пунктиром без стрелки и связывают старый путь с новым; в легенде Edge types их нет.",
         "faq.git.li5": "Цвета git-статусов используют активную палитру (Пастель / Насыщенная). Кнопка Git недоступна, если сборка запущена вне git-репозитория.",
         "faq.git.li6": "<b>Дифф графа:</b> сборка с <code>--diff-base REF</code> сравнивает рабочее дерево с git-ссылкой &mdash; статусы файлов попадают в этот оверлей, новые связи подсвечиваются зелёным, удалённые &mdash; красным (пунктир).",
+        "faq.heat.li1": "Переключатель <b>режима активности</b> в верхней панели &mdash; цвета узлов меняются с типов на градиент синий&rarr;красный по тому, как часто файл менялся в git.",
+        "faq.heat.li2": "Градиентная легенда показывает период (вся история, либо последние N дней, если сборка запущена с <code>--heat-days N</code>) и диапазон количества коммитов.",
+        "faq.heat.li3": "Режимы активности и Git взаимоисключающие &mdash; включение одного выключает другой, оба красят узлы по разным сигналам.",
+        "faq.coverage.li1": "Переключатель <b>режима покрытия</b> в верхней панели &mdash; цвета узлов меняются с типов на градиент зелёный&rarr;красный по покрытию тестами (нужен Cobertura <code>coverage.xml</code>, через <code>--coverage PATH</code>).",
+        "faq.coverage.li2": "Градиентная легенда показывает диапазон покрытия и слайдер минимального покрытия &mdash; тяните, чтобы скрыть файлы с покрытием меньше выбранного процента (рёбра гаснут сами).",
+        "faq.coverage.li3": "Режимы покрытия, активности и Git взаимоисключающие &mdash; включение одного выключает два других, все три красят узлы по разным сигналам.",
         "legend.diffEdgesAdded": "Новые связи",
         "legend.diffEdgesRemoved": "Удалённые связи",
         "faq.persistence.li4": "<b>Копировать JSON</b> в меню Файл копирует компактное представление графа (id, путь, тип, рёбра, номера строк) &mdash; удобно вставлять в LLM как контекст проекта.",
@@ -1330,12 +1457,21 @@ const I18N = {
         "btn.git": "Git",
         "btn.gitTitle": "Git-Status-Overlay umschalten",
         "btn.gitNotAvailable": "Kein Git-Repository",
+        "btn.heat": "Heatmap",
+        "btn.heatTitle": "Aktivitäts-Overlay (git) umschalten",
+        "btn.heatNotAvailable": "Kein Git-Repository",
+        "btn.coverage": "Cov.",
+        "btn.coverageTitle": "Testabdeckungs-Overlay umschalten",
         "btn.faqTitle": "Hilfe (?)",
         "ide.title": "Links in IDE öffnen",
         "ide.copy": "— Pfad kopieren",
         "legend.nodeTypes": "Knotentypen",
         "legend.edgeTypes": "Kantentypen",
         "legend.gitStatus": "Git-Status",
+        "legend.heat": "Änderungsaktivität",
+        "legend.coverage": "Testabdeckung",
+        "legend.coverageMinTitle": "Dateien ausblenden, die zu weniger als N% abgedeckt sind",
+        "legend.heatMinTitle": "Dateien ausblenden, die seltener als N Mal geändert wurden",
         "legend.showAll": "Alle anzeigen",
         "legend.hideAll": "Alle ausblenden",
         "git.added": "Hinzugefügt",
@@ -1343,6 +1479,7 @@ const I18N = {
         "git.renamed": "Umbenannt",
         "git.deleted": "Gelöscht",
         "git.clean": "Unverändert",
+        "heat.allTime": "Gesamte Historie",
         "excl.title": "Nach Name ausschließen",
         "excl.placeholder": "z. B. __init__",
         "excl.add": "Hinzufügen",
@@ -1403,6 +1540,8 @@ const I18N = {
         "faq.shortcuts.li3": "<kbd>Strg</kbd>+<kbd>K</kbd> / <kbd>⌘</kbd>+<kbd>K</kbd> &mdash; Suchfeld fokussieren.",
         "faq.shortcuts.li4": "<kbd>B</kbd> &mdash; Knoten unter dem Cursor fixieren / lösen (funktioniert auch beim Ziehen: Knoten ziehen, B drücken, loslassen &mdash; er bleibt an Ort und Stelle).",
         "faq.section.gitMode": "Git-Modus",
+        "faq.section.heatMode": "Aktivitätsmodus",
+        "faq.section.coverage": "Abdeckungsmodus",
         "faq.nav.li5": "Ein Klick auf einen Knoten <b>fixiert</b> die Hervorhebung &mdash; der Knoten und seine Verbindungen bleiben hell, auch wenn der Cursor abdriftet. Erneuter Klick auf denselben Knoten oder auf den Hintergrund hebt die Fixierung auf.",
         "faq.nav.li6": "Bei einem fixierten Knoten zeigt das Bewegen über einen seiner Nachbarn kurz einen Zwei-Ebenen-Peek &mdash; die Vereinigung der Nachbarschaften von fixiertem und überfahrenem Knoten.",
         "faq.nav.li7": "Ein Klick auf ein abgedunkeltes Element oder auf den leeren Hintergrund hebt alle aktuellen Auswahlen auf (fixierter Knoten, Kantenfokus, Suchhervorhebung).",
@@ -1421,6 +1560,12 @@ const I18N = {
         "faq.git.li4": "<b>Umbenennungs-Kanten</b> werden gepunktet ohne Pfeilspitze gezeichnet und verbinden den alten Pfad mit dem neuen; sie sind nicht Teil der Kantentypen-Legende.",
         "faq.git.li5": "Die Farben der Git-Status folgen der aktiven Palette (Pastell / Gesättigt). Die Git-Schaltfläche ist deaktiviert, wenn der Build nicht in einem Git-Repository ausgeführt wurde.",
         "faq.git.li6": "<b>Graph-Diff:</b> ein Build mit <code>--diff-base REF</code> vergleicht den Arbeitsbaum mit einer Git-Referenz &mdash; Dateistatus speist dieses Overlay, neue Abhängigkeitskanten werden grün, entfernte rot (gestrichelt).",
+        "faq.heat.li1": "Mit <b>Aktivitätsmodus</b> in der oberen Leiste umschalten &mdash; Knotenfarben wechseln von Typ-basiert zu einem Blau&rarr;Rot-Verlauf nach Änderungshäufigkeit in git.",
+        "faq.heat.li2": "Die Verlaufslegende zeigt den Zeitraum (gesamte Historie oder die letzten N Tage bei <code>--heat-days N</code>) und die Spannweite der Commit-Anzahl.",
+        "faq.heat.li3": "Aktivitäts- und Git-Modus schließen sich gegenseitig aus &mdash; das Einschalten des einen schaltet den anderen aus, da beide Knoten nach unterschiedlichen Signalen einfärben.",
+        "faq.coverage.li1": "Mit <b>Abdeckungsmodus</b> in der oberen Leiste umschalten &mdash; Knotenfarben wechseln von Typ-basiert zu einem Grün&rarr;Rot-Verlauf nach Testabdeckung (benötigt eine Cobertura-<code>coverage.xml</code> via <code>--coverage PATH</code>).",
+        "faq.coverage.li2": "Die Verlaufslegende zeigt den Abdeckungsbereich und einen Mindestabdeckungs-Regler &mdash; ziehen, um alles unterhalb des gewählten Prozentsatzes auszublenden (Kanten folgen).",
+        "faq.coverage.li3": "Abdeckungs-, Aktivitäts- und Git-Modus schließen sich alle gegenseitig aus &mdash; das Einschalten eines Modus schaltet die anderen beiden aus, da alle drei Knoten nach unterschiedlichen Signalen einfärben.",
         "legend.diffEdgesAdded": "Neue Kanten",
         "legend.diffEdgesRemoved": "Entfernte Kanten",
         "faq.persistence.li4": "<b>JSON kopieren</b> im Datei-Menü kopiert eine kompakte Graph-Darstellung (id, Pfad, Typ, Kanten, Zeilennummern) &mdash; praktisch, um sie als Projektkontext in ein LLM einzufügen.",
@@ -1465,12 +1610,21 @@ const I18N = {
         "btn.git": "Git",
         "btn.gitTitle": "Activar superposición del estado git",
         "btn.gitNotAvailable": "No es un repositorio git",
+        "btn.heat": "Heatmap",
+        "btn.heatTitle": "Activar superposición de actividad (git)",
+        "btn.heatNotAvailable": "No es un repositorio git",
+        "btn.coverage": "Cov.",
+        "btn.coverageTitle": "Activar superposición de cobertura de pruebas",
         "btn.faqTitle": "Ayuda (?)",
         "ide.title": "Abrir enlaces en el IDE",
         "ide.copy": "— Copiar ruta",
         "legend.nodeTypes": "Tipos de nodos",
         "legend.edgeTypes": "Tipos de aristas",
         "legend.gitStatus": "Estado git",
+        "legend.heat": "Actividad de cambios",
+        "legend.coverage": "Cobertura de pruebas",
+        "legend.coverageMinTitle": "Ocultar archivos con menos de N% de cobertura",
+        "legend.heatMinTitle": "Ocultar archivos editados menos de N veces",
         "legend.showAll": "Mostrar todo",
         "legend.hideAll": "Ocultar todo",
         "git.added": "Añadido",
@@ -1478,6 +1632,7 @@ const I18N = {
         "git.renamed": "Renombrado",
         "git.deleted": "Eliminado",
         "git.clean": "Sin cambios",
+        "heat.allTime": "Todo el historial",
         "excl.title": "Excluir por nombre",
         "excl.placeholder": "ej. __init__",
         "excl.add": "Añadir",
@@ -1538,6 +1693,8 @@ const I18N = {
         "faq.shortcuts.li3": "<kbd>Ctrl</kbd>+<kbd>K</kbd> / <kbd>⌘</kbd>+<kbd>K</kbd> &mdash; enfocar el campo de búsqueda.",
         "faq.shortcuts.li4": "<kbd>B</kbd> &mdash; fijar / soltar el nodo bajo el cursor (funciona durante el arrastre: arrastra un nodo, pulsa B, suéltalo &mdash; se queda en su sitio).",
         "faq.section.gitMode": "Modo git",
+        "faq.section.heatMode": "Modo de actividad",
+        "faq.section.coverage": "Modo de cobertura",
         "faq.nav.li5": "Hacer clic en un nodo <b>fija</b> el resaltado &mdash; el nodo y sus conexiones siguen brillantes aunque el cursor se aleje. Otro clic en el mismo nodo o en el fondo libera la fijación.",
         "faq.nav.li6": "Con un nodo fijado, pasar el cursor por uno de sus vecinos muestra brevemente una vista de segundo nivel &mdash; la unión de los vecindarios del nodo fijado y del que está bajo el cursor.",
         "faq.nav.li7": "Hacer clic en cualquier elemento atenuado o en el fondo vacío limpia todas las selecciones actuales (nodo fijado, foco de arista, resaltado de búsqueda).",
@@ -1556,6 +1713,12 @@ const I18N = {
         "faq.git.li4": "<b>Aristas de renombrado</b> se dibujan punteadas y sin flecha, enlazando la ruta antigua con la nueva; no aparecen en la leyenda de Tipos de aristas.",
         "faq.git.li5": "Los colores del estado git siguen la paleta activa (Pastel / Saturada). El botón Git se deshabilita si la compilación no se ejecutó dentro de un repositorio git.",
         "faq.git.li6": "<b>Diff del grafo:</b> una compilación con <code>--diff-base REF</code> compara el árbol de trabajo con una referencia git &mdash; los estados de archivo alimentan esta capa, las aristas nuevas se muestran en verde y las eliminadas en rojo (discontinuo).",
+        "faq.heat.li1": "Activa el <b>modo de actividad</b> desde la barra superior &mdash; los colores de los nodos cambian de tipo a un degradado azul&rarr;rojo según la frecuencia de cambios en git.",
+        "faq.heat.li2": "La leyenda de degradado muestra el período (todo el historial, o los últimos N días con <code>--heat-days N</code>) y el rango de número de commits.",
+        "faq.heat.li3": "Los modos de actividad y git son mutuamente excluyentes &mdash; activar uno desactiva el otro, ya que ambos colorean los nodos según una señal distinta.",
+        "faq.coverage.li1": "Activa el <b>modo de cobertura</b> desde la barra superior &mdash; los colores de los nodos cambian de tipo a un degradado verde&rarr;rojo según la cobertura de pruebas (necesita un <code>coverage.xml</code> Cobertura vía <code>--coverage PATH</code>).",
+        "faq.coverage.li2": "La leyenda de degradado muestra el rango de cobertura y un control deslizante de cobertura mínima &mdash; arrástralo para ocultar lo que tenga menos del porcentaje elegido (las aristas le siguen).",
+        "faq.coverage.li3": "Los modos de cobertura, actividad y git son mutuamente excluyentes &mdash; activar uno desactiva los otros dos, ya que los tres colorean los nodos según una señal distinta.",
         "legend.diffEdgesAdded": "Aristas nuevas",
         "legend.diffEdgesRemoved": "Aristas eliminadas",
         "faq.persistence.li4": "<b>Copiar JSON</b> en el menú Archivo copia una representación compacta del grafo (id, ruta, tipo, aristas, números de línea) &mdash; útil para pegarla en un LLM como contexto del proyecto.",
@@ -1600,12 +1763,21 @@ const I18N = {
         "btn.git": "Git",
         "btn.gitTitle": "Attiva sovrapposizione stato git",
         "btn.gitNotAvailable": "Non è un repository git",
+        "btn.heat": "Heatmap",
+        "btn.heatTitle": "Attiva sovrapposizione attività (git)",
+        "btn.heatNotAvailable": "Non è un repository git",
+        "btn.coverage": "Cov.",
+        "btn.coverageTitle": "Attiva sovrapposizione di copertura dei test",
         "btn.faqTitle": "Aiuto (?)",
         "ide.title": "Apri i link nell'IDE",
         "ide.copy": "— Copia percorso",
         "legend.nodeTypes": "Tipi di nodi",
         "legend.edgeTypes": "Tipi di archi",
         "legend.gitStatus": "Stato git",
+        "legend.heat": "Attività di modifica",
+        "legend.coverage": "Copertura dei test",
+        "legend.coverageMinTitle": "Nascondi i file con copertura inferiore a N%",
+        "legend.heatMinTitle": "Nascondi i file modificati meno di N volte",
         "legend.showAll": "Mostra tutto",
         "legend.hideAll": "Nascondi tutto",
         "git.added": "Aggiunto",
@@ -1613,6 +1785,7 @@ const I18N = {
         "git.renamed": "Rinominato",
         "git.deleted": "Eliminato",
         "git.clean": "Invariato",
+        "heat.allTime": "Intera cronologia",
         "excl.title": "Escludi per nome",
         "excl.placeholder": "es. __init__",
         "excl.add": "Aggiungi",
@@ -1673,6 +1846,8 @@ const I18N = {
         "faq.shortcuts.li3": "<kbd>Ctrl</kbd>+<kbd>K</kbd> / <kbd>⌘</kbd>+<kbd>K</kbd> &mdash; mette il focus sul campo di ricerca.",
         "faq.shortcuts.li4": "<kbd>B</kbd> &mdash; fissare / rilasciare il nodo sotto il cursore (funziona durante il trascinamento: trascina un nodo, premi B, rilascia &mdash; resta al suo posto).",
         "faq.section.gitMode": "Modalità git",
+        "faq.section.heatMode": "Modalità attività",
+        "faq.section.coverage": "Modalità copertura",
         "faq.nav.li5": "Cliccare su un nodo <b>fissa</b> l'evidenziazione &mdash; il nodo e le sue connessioni restano in chiaro anche quando il cursore si sposta. Un altro clic sullo stesso nodo o sullo sfondo rilascia la fissazione.",
         "faq.nav.li6": "Con un nodo fissato, passare con il cursore su uno dei suoi vicini mostra brevemente un'anteprima di secondo livello &mdash; l'unione dei vicinati del nodo fissato e di quello evidenziato.",
         "faq.nav.li7": "Cliccare su qualsiasi elemento attenuato o sullo sfondo vuoto cancella tutte le selezioni correnti (nodo fissato, focus dell'arco, evidenziazione della ricerca).",
@@ -1691,6 +1866,12 @@ const I18N = {
         "faq.git.li4": "Gli <b>archi di rinomina</b> sono disegnati tratteggiati senza freccia e collegano il percorso vecchio al nuovo; non compaiono nella legenda dei Tipi di archi.",
         "faq.git.li5": "I colori dello stato git seguono la palette attiva (Pastello / Saturo). Il pulsante Git è disabilitato se la compilazione non è eseguita in un repository git.",
         "faq.git.li6": "<b>Diff del grafo:</b> una build con <code>--diff-base REF</code> confronta l'albero di lavoro con un riferimento git &mdash; gli stati dei file alimentano questo overlay, gli archi nuovi diventano verdi e quelli rimossi rossi (tratteggiati).",
+        "faq.heat.li1": "Attiva la <b>modalità attività</b> dalla barra superiore &mdash; i colori dei nodi passano da basati sul tipo a un gradiente blu&rarr;rosso in base alla frequenza di modifica in git.",
+        "faq.heat.li2": "La legenda del gradiente mostra il periodo (intera cronologia, oppure gli ultimi N giorni con <code>--heat-days N</code>) e l'intervallo del numero di commit.",
+        "faq.heat.li3": "Le modalità attività e git si escludono a vicenda &mdash; attivarne una disattiva l'altra, perché entrambe colorano i nodi in base a un segnale diverso.",
+        "faq.coverage.li1": "Attiva la <b>modalità copertura</b> dalla barra superiore &mdash; i colori dei nodi passano da basati sul tipo a un gradiente verde&rarr;rosso in base alla copertura dei test (richiede un <code>coverage.xml</code> Cobertura tramite <code>--coverage PATH</code>).",
+        "faq.coverage.li2": "La legenda del gradiente mostra l'intervallo di copertura e uno slider di copertura minima &mdash; trascinalo per nascondere ciò che è coperto meno della percentuale scelta (gli archi seguono).",
+        "faq.coverage.li3": "Le modalità copertura, attività e git si escludono tutte a vicenda &mdash; attivarne una disattiva le altre due, perché tutte e tre colorano i nodi in base a un segnale diverso.",
         "legend.diffEdgesAdded": "Archi nuovi",
         "legend.diffEdgesRemoved": "Archi rimossi",
         "faq.persistence.li4": "<b>Copia JSON</b> nel menu File copia una rappresentazione compatta del grafo (id, percorso, tipo, archi, numeri di riga) &mdash; comodo da incollare in un LLM come contesto del progetto.",
@@ -1735,12 +1916,21 @@ const I18N = {
         "btn.git": "Git",
         "btn.gitTitle": "Activer la superposition de l'état git",
         "btn.gitNotAvailable": "Pas un dépôt git",
+        "btn.heat": "Heatmap",
+        "btn.heatTitle": "Activer la superposition d'activité (git)",
+        "btn.heatNotAvailable": "Pas un dépôt git",
+        "btn.coverage": "Cov.",
+        "btn.coverageTitle": "Activer la superposition de couverture de tests",
         "btn.faqTitle": "Aide (?)",
         "ide.title": "Ouvrir les liens dans l'IDE",
         "ide.copy": "— Copier le chemin",
         "legend.nodeTypes": "Types de nœuds",
         "legend.edgeTypes": "Types de liens",
         "legend.gitStatus": "État git",
+        "legend.heat": "Activité de modification",
+        "legend.coverage": "Couverture de tests",
+        "legend.coverageMinTitle": "Masquer les fichiers couverts à moins de N%",
+        "legend.heatMinTitle": "Masquer les fichiers modifiés moins de N fois",
         "legend.showAll": "Tout afficher",
         "legend.hideAll": "Tout masquer",
         "git.added": "Ajouté",
@@ -1748,6 +1938,7 @@ const I18N = {
         "git.renamed": "Renommé",
         "git.deleted": "Supprimé",
         "git.clean": "Inchangé",
+        "heat.allTime": "Tout l'historique",
         "excl.title": "Exclure par nom",
         "excl.placeholder": "ex. __init__",
         "excl.add": "Ajouter",
@@ -1808,6 +1999,8 @@ const I18N = {
         "faq.shortcuts.li3": "<kbd>Ctrl</kbd>+<kbd>K</kbd> / <kbd>⌘</kbd>+<kbd>K</kbd> &mdash; mettre le focus sur le champ de recherche.",
         "faq.shortcuts.li4": "<kbd>B</kbd> &mdash; épingler / libérer le nœud sous le curseur (fonctionne pendant le glisser&nbsp;: faites glisser un nœud, appuyez sur B, relâchez &mdash; il reste en place).",
         "faq.section.gitMode": "Mode git",
+        "faq.section.heatMode": "Mode activité",
+        "faq.section.coverage": "Mode couverture",
         "faq.nav.li5": "Cliquer sur un nœud <b>épingle</b> la surbrillance &mdash; le nœud et ses connexions restent vifs même quand le curseur s'éloigne. Un nouveau clic sur le même nœud ou sur le fond le désépingle.",
         "faq.nav.li6": "Avec un nœud épinglé, survoler l'un de ses voisins affiche brièvement un aperçu de second niveau &mdash; l'union des voisinages du nœud épinglé et de celui survolé.",
         "faq.nav.li7": "Un clic sur n'importe quel élément atténué ou sur le fond vide efface toutes les sélections en cours (nœud épinglé, focus de lien, surbrillance de recherche).",
@@ -1826,6 +2019,12 @@ const I18N = {
         "faq.git.li4": "Les <b>liens de renommage</b> sont dessinés en pointillé sans flèche, reliant l'ancien chemin au nouveau ; ils ne figurent pas dans la légende des Types de liens.",
         "faq.git.li5": "Les couleurs de l'état git suivent la palette active (Pastel / Saturée). Le bouton Git est désactivé si la compilation n'a pas été exécutée dans un dépôt git.",
         "faq.git.li6": "<b>Diff du graphe&nbsp;:</b> une génération avec <code>--diff-base REF</code> compare l'arbre de travail à une référence git &mdash; les états de fichiers alimentent cette surcouche, les liens nouveaux passent en vert et les liens supprimés en rouge (pointillés).",
+        "faq.heat.li1": "Active le <b>mode activité</b> depuis la barre supérieure &mdash; les couleurs des nœuds passent d'un code par type à un dégradé bleu&rarr;rouge selon la fréquence de modification dans git.",
+        "faq.heat.li2": "La légende du dégradé affiche la période (tout l'historique, ou les N derniers jours avec <code>--heat-days N</code>) et la plage du nombre de commits.",
+        "faq.heat.li3": "Les modes activité et git s'excluent mutuellement &mdash; activer l'un désactive l'autre, car les deux colorent les nœuds selon un signal différent.",
+        "faq.coverage.li1": "Active le <b>mode couverture</b> depuis la barre supérieure &mdash; les couleurs des nœuds passent d'un code par type à un dégradé vert&rarr;rouge selon la couverture de tests (nécessite un <code>coverage.xml</code> Cobertura via <code>--coverage PATH</code>).",
+        "faq.coverage.li2": "La légende du dégradé affiche la plage de couverture et un curseur de couverture minimale &mdash; faites-le glisser pour masquer tout ce qui est couvert en dessous du pourcentage choisi (les liens suivent).",
+        "faq.coverage.li3": "Les modes couverture, activité et git s'excluent tous mutuellement &mdash; activer l'un désactive les deux autres, car les trois colorent les nœuds selon un signal différent.",
         "legend.diffEdgesAdded": "Liens nouveaux",
         "legend.diffEdgesRemoved": "Liens supprimés",
         "faq.persistence.li4": "<b>Copier JSON</b> dans le menu Fichier copie une représentation compacte du graphe (id, chemin, type, liens, numéros de ligne) &mdash; pratique pour la coller dans un LLM comme contexte du projet.",
@@ -1870,12 +2069,21 @@ const I18N = {
         "btn.git": "Git",
         "btn.gitTitle": "Alternar sobreposição do status git",
         "btn.gitNotAvailable": "Não é um repositório git",
+        "btn.heat": "Heatmap",
+        "btn.heatTitle": "Ativar sobreposição de atividade (git)",
+        "btn.heatNotAvailable": "Não é um repositório git",
+        "btn.coverage": "Cov.",
+        "btn.coverageTitle": "Ativar sobreposição de cobertura de testes",
         "btn.faqTitle": "Ajuda (?)",
         "ide.title": "Abrir links no IDE",
         "ide.copy": "— Copiar caminho",
         "legend.nodeTypes": "Tipos de nós",
         "legend.edgeTypes": "Tipos de arestas",
         "legend.gitStatus": "Status git",
+        "legend.heat": "Atividade de alterações",
+        "legend.coverage": "Cobertura de testes",
+        "legend.coverageMinTitle": "Ocultar arquivos com cobertura menor que N%",
+        "legend.heatMinTitle": "Ocultar arquivos editados menos de N vezes",
         "legend.showAll": "Mostrar tudo",
         "legend.hideAll": "Ocultar tudo",
         "git.added": "Adicionado",
@@ -1883,6 +2091,7 @@ const I18N = {
         "git.renamed": "Renomeado",
         "git.deleted": "Excluído",
         "git.clean": "Sem alterações",
+        "heat.allTime": "Todo o histórico",
         "excl.title": "Excluir por nome",
         "excl.placeholder": "ex. __init__",
         "excl.add": "Adicionar",
@@ -1943,6 +2152,8 @@ const I18N = {
         "faq.shortcuts.li3": "<kbd>Ctrl</kbd>+<kbd>K</kbd> / <kbd>⌘</kbd>+<kbd>K</kbd> &mdash; foca o campo de busca.",
         "faq.shortcuts.li4": "<kbd>B</kbd> &mdash; fixar / soltar o nó sob o cursor (funciona durante o arrasto: arraste um nó, pressione B, solte &mdash; ele permanece no lugar).",
         "faq.section.gitMode": "Modo git",
+        "faq.section.heatMode": "Modo de atividade",
+        "faq.section.coverage": "Modo de cobertura",
         "faq.nav.li5": "Clicar em um nó <b>fixa</b> o destaque &mdash; o nó e suas conexões permanecem brilhantes mesmo quando o cursor se afasta. Outro clique no mesmo nó ou no fundo libera a fixação.",
         "faq.nav.li6": "Com um nó fixado, passar o cursor sobre um de seus vizinhos exibe brevemente uma prévia de segundo nível &mdash; a união das vizinhanças do nó fixado e do nó sob o cursor.",
         "faq.nav.li7": "Clicar em qualquer elemento atenuado ou no fundo vazio limpa todas as seleções atuais (nó fixado, foco de aresta, destaque de busca).",
@@ -1961,6 +2172,12 @@ const I18N = {
         "faq.git.li4": "As <b>arestas de renomeação</b> são desenhadas pontilhadas sem seta, ligando o caminho antigo ao novo; não aparecem na legenda de Tipos de arestas.",
         "faq.git.li5": "As cores do status git seguem a paleta ativa (Pastel / Saturada). O botão Git é desativado se a compilação não for executada dentro de um repositório git.",
         "faq.git.li6": "<b>Diff do grafo:</b> uma build com <code>--diff-base REF</code> compara a árvore de trabalho com uma referência git &mdash; os status de arquivo alimentam esta camada, arestas novas ficam verdes e as removidas vermelhas (tracejadas).",
+        "faq.heat.li1": "Ative o <b>modo atividade</b> na barra superior &mdash; as cores dos nós mudam de baseadas em tipo para um gradiente azul&rarr;vermelho conforme a frequência de alterações no git.",
+        "faq.heat.li2": "A legenda do gradiente mostra o período (todo o histórico, ou os últimos N dias com <code>--heat-days N</code>) e o intervalo do número de commits.",
+        "faq.heat.li3": "Os modos atividade e git são mutuamente exclusivos &mdash; ativar um desativa o outro, já que ambos colorem os nós por um sinal diferente.",
+        "faq.coverage.li1": "Ative o <b>modo cobertura</b> na barra superior &mdash; as cores dos nós mudam de baseadas em tipo para um gradiente verde&rarr;vermelho conforme a cobertura de testes (requer um <code>coverage.xml</code> Cobertura via <code>--coverage PATH</code>).",
+        "faq.coverage.li2": "A legenda do gradiente mostra o intervalo de cobertura e um controle deslizante de cobertura mínima &mdash; arraste para ocultar o que tiver cobertura menor que a porcentagem escolhida (as arestas seguem).",
+        "faq.coverage.li3": "Os modos cobertura, atividade e git são todos mutuamente exclusivos &mdash; ativar um desativa os outros dois, já que os três colorem os nós por um sinal diferente.",
         "legend.diffEdgesAdded": "Arestas novas",
         "legend.diffEdgesRemoved": "Arestas removidas",
         "faq.persistence.li4": "<b>Copiar JSON</b> no menu Arquivo copia uma representação compacta do grafo (id, caminho, tipo, arestas, números de linha) &mdash; útil para colar em um LLM como contexto do projeto.",
@@ -2005,12 +2222,21 @@ const I18N = {
         "btn.git": "Git",
         "btn.gitTitle": "切换 git 状态叠加",
         "btn.gitNotAvailable": "不是 git 仓库",
+        "btn.heat": "Heatmap",
+        "btn.heatTitle": "切换 git 活跃度热力叠加",
+        "btn.heatNotAvailable": "不是 git 仓库",
+        "btn.coverage": "Cov.",
+        "btn.coverageTitle": "切换测试覆盖率叠加",
         "btn.faqTitle": "帮助 (?)",
         "ide.title": "在 IDE 中打开链接",
         "ide.copy": "— 复制路径",
         "legend.nodeTypes": "节点类型",
         "legend.edgeTypes": "边类型",
         "legend.gitStatus": "Git 状态",
+        "legend.heat": "变更活跃度",
+        "legend.coverage": "测试覆盖率",
+        "legend.coverageMinTitle": "隐藏覆盖率低于 N% 的文件",
+        "legend.heatMinTitle": "隐藏改动次数少于 N 次的文件",
         "legend.showAll": "全部显示",
         "legend.hideAll": "全部隐藏",
         "git.added": "新增",
@@ -2018,6 +2244,7 @@ const I18N = {
         "git.renamed": "已重命名",
         "git.deleted": "已删除",
         "git.clean": "无变更",
+        "heat.allTime": "全部历史",
         "excl.title": "按名称排除",
         "excl.placeholder": "例如 __init__",
         "excl.add": "添加",
@@ -2078,6 +2305,8 @@ const I18N = {
         "faq.shortcuts.li3": "<kbd>Ctrl</kbd>+<kbd>K</kbd> / <kbd>⌘</kbd>+<kbd>K</kbd> &mdash; 聚焦搜索框。",
         "faq.shortcuts.li4": "<kbd>B</kbd> &mdash; 固定 / 取消固定光标下的节点（拖拽时也有效：拖动节点，按 B，松开 &mdash; 节点保持原位）。",
         "faq.section.gitMode": "Git 模式",
+        "faq.section.heatMode": "活跃度模式",
+        "faq.section.coverage": "覆盖率模式",
         "faq.nav.li5": "点击节点会 <b>钉住</b> 高亮 &mdash; 即使光标移开，该节点及其连接仍保持高亮。再次点击同一节点或点击背景可解除钉住。",
         "faq.nav.li6": "钉住一个节点后，将光标悬停在其相邻节点上会短暂显示二级预览 &mdash; 即钉住节点与悬停节点邻域的并集。",
         "faq.nav.li7": "点击任何被淡化的元素或空白背景，可清除所有当前选择（钉住节点、边焦点、搜索高亮）。",
@@ -2096,6 +2325,12 @@ const I18N = {
         "faq.git.li4": "<b>重命名边</b> 以虚线无箭头的形式绘制，连接旧路径与新路径；不出现在边类型图例中。",
         "faq.git.li5": "Git 状态的颜色跟随当前调色板（柔和 / 鲜艳）。如果构建不在 git 仓库内运行，Git 按钮会被禁用。",
         "faq.git.li6": "<b>图差异：</b>使用 <code>--diff-base REF</code> 构建会将工作区与 git 引用进行比较——文件状态进入此覆盖层，新增的依赖边显示为绿色，移除的边显示为红色（虚线）。",
+        "faq.heat.li1": "在顶部栏切换<b>活跃度模式</b> &mdash; 节点颜色从按类型着色变为按 git 中文件变更频率的蓝&rarr;红渐变。",
+        "faq.heat.li2": "渐变图例显示时间范围(全部历史,或使用 <code>--heat-days N</code> 构建时的最近 N 天)以及提交次数的范围。",
+        "faq.heat.li3": "活跃度模式与 Git 模式互斥 &mdash; 开启一个会关闭另一个,因为二者按不同信号为节点着色。",
+        "faq.coverage.li1": "在顶部栏切换<b>覆盖率模式</b> &mdash; 节点颜色从按类型着色变为按测试覆盖率的绿&rarr;红渐变(需要通过 <code>--coverage PATH</code> 提供 Cobertura <code>coverage.xml</code>)。",
+        "faq.coverage.li2": "渐变图例显示覆盖率范围和最小覆盖率滑块 &mdash; 拖动以隐藏覆盖率低于所选百分比的内容(边会一同隐藏)。",
+        "faq.coverage.li3": "覆盖率、活跃度和 Git 模式互斥 &mdash; 开启一个会关闭另外两个,因为三者按不同信号为节点着色。",
         "legend.diffEdgesAdded": "新增边",
         "legend.diffEdgesRemoved": "移除的边",
         "faq.persistence.li4": "文件菜单中的 <b>复制 JSON</b> 复制图的紧凑表示（id、路径、类型、边、行号）&mdash; 便于粘贴到 LLM 作为项目上下文。",
@@ -2140,12 +2375,21 @@ const I18N = {
         "btn.git": "Git",
         "btn.gitTitle": "Git ステータスの表示を切り替え",
         "btn.gitNotAvailable": "Git リポジトリではありません",
+        "btn.heat": "Heatmap",
+        "btn.heatTitle": "git 活動ヒートオーバーレイを切り替え",
+        "btn.heatNotAvailable": "Git リポジトリではありません",
+        "btn.coverage": "Cov.",
+        "btn.coverageTitle": "テストカバレッジのオーバーレイを切り替え",
         "btn.faqTitle": "ヘルプ (?)",
         "ide.title": "リンクを IDE で開く",
         "ide.copy": "— パスをコピー",
         "legend.nodeTypes": "ノードの種類",
         "legend.edgeTypes": "エッジの種類",
         "legend.gitStatus": "Git ステータス",
+        "legend.heat": "変更アクティビティ",
+        "legend.coverage": "テストカバレッジ",
+        "legend.coverageMinTitle": "カバレッジが N% 未満のファイルを非表示",
+        "legend.heatMinTitle": "N 回未満しか変更されていないファイルを非表示",
         "legend.showAll": "すべて表示",
         "legend.hideAll": "すべて非表示",
         "git.added": "追加",
@@ -2153,6 +2397,7 @@ const I18N = {
         "git.renamed": "リネーム",
         "git.deleted": "削除",
         "git.clean": "変更なし",
+        "heat.allTime": "全期間",
         "excl.title": "名前で除外",
         "excl.placeholder": "例 __init__",
         "excl.add": "追加",
@@ -2213,6 +2458,8 @@ const I18N = {
         "faq.shortcuts.li3": "<kbd>Ctrl</kbd>+<kbd>K</kbd> / <kbd>⌘</kbd>+<kbd>K</kbd> &mdash; 検索フィールドにフォーカス。",
         "faq.shortcuts.li4": "<kbd>B</kbd> &mdash; カーソル下のノードを固定 / 解除（ドラッグ中も有効：ノードをドラッグして B を押し、離すと &mdash; その場に留まります）。",
         "faq.section.gitMode": "Git モード",
+        "faq.section.heatMode": "アクティビティモード",
+        "faq.section.coverage": "カバレッジモード",
         "faq.nav.li5": "ノードをクリックするとハイライトが <b>ピン留め</b> されます &mdash; カーソルが離れてもそのノードと接続はハイライトのまま。同じノードをもう一度クリックするか背景をクリックするとピンが外れます。",
         "faq.nav.li6": "ノードをピン留めした状態で、その隣接ノードにカーソルを合わせると 2 段階目のピーク &mdash; ピン留めノードとホバーノードの近傍の和集合 &mdash; が一時的に表示されます。",
         "faq.nav.li7": "淡色化された要素または空白の背景をクリックすると、現在のすべての選択（ピン留めノード、エッジフォーカス、検索ハイライト）が解除されます。",
@@ -2231,6 +2478,12 @@ const I18N = {
         "faq.git.li4": "<b>リネームエッジ</b> は矢印なしの点線で描かれ、旧パスと新パスを結びます；エッジタイプの凡例には含まれません。",
         "faq.git.li5": "Git ステータスの色はアクティブなパレット（パステル / 鮮やか）に従います。ビルドが Git リポジトリ内で実行されていない場合、Git ボタンは無効になります。",
         "faq.git.li6": "<b>グラフ差分:</b> <code>--diff-base REF</code> でビルドすると、作業ツリーを Git 参照と比較します。ファイルの状態はこのオーバーレイに反映され、新しい依存エッジは緑、削除されたエッジは赤（破線）で表示されます。",
+        "faq.heat.li1": "上部バーで<b>アクティビティモード</b>を切り替え &mdash; ノードの色がタイプ別から、git での変更頻度に応じた青&rarr;赤のグラデーションに変わります。",
+        "faq.heat.li2": "グラデーション凡例には期間(全期間、または <code>--heat-days N</code> でビルドした場合は直近 N 日間)とコミット数の範囲が表示されます。",
+        "faq.heat.li3": "アクティビティモードと Git モードは排他的です &mdash; 一方をオンにすると他方はオフになります。両者は異なる信号でノードを着色するためです。",
+        "faq.coverage.li1": "上部バーで<b>カバレッジモード</b>を切り替え &mdash; ノードの色がタイプ別から、テストカバレッジに応じた緑&rarr;赤のグラデーションに変わります(<code>--coverage PATH</code> で Cobertura の <code>coverage.xml</code> が必要です)。",
+        "faq.coverage.li2": "グラデーション凡例にはカバレッジ範囲と最小カバレッジスライダーが表示されます &mdash; ドラッグすると選択した割合未満のものが非表示になります(エッジも連動します)。",
+        "faq.coverage.li3": "カバレッジモード、アクティビティモード、Git モードはすべて排他的です &mdash; 一つをオンにすると他の二つはオフになります。三つとも異なる信号でノードを着色するためです。",
         "legend.diffEdgesAdded": "新しいエッジ",
         "legend.diffEdgesRemoved": "削除されたエッジ",
         "faq.persistence.li4": "ファイルメニューの <b>JSON をコピー</b> はグラフのコンパクトな表現（id、パス、タイプ、エッジ、行番号）をコピーします &mdash; LLM にプロジェクトコンテキストとして貼り付けるのに便利。",
@@ -2275,12 +2528,21 @@ const I18N = {
         "btn.git": "Git",
         "btn.gitTitle": "Git 상태 오버레이 전환",
         "btn.gitNotAvailable": "Git 저장소가 아닙니다",
+        "btn.heat": "Heatmap",
+        "btn.heatTitle": "git 활동 히트 오버레이 전환",
+        "btn.heatNotAvailable": "Git 저장소가 아닙니다",
+        "btn.coverage": "Cov.",
+        "btn.coverageTitle": "테스트 커버리지 오버레이 전환",
         "btn.faqTitle": "도움말 (?)",
         "ide.title": "IDE에서 링크 열기",
         "ide.copy": "— 경로 복사",
         "legend.nodeTypes": "노드 유형",
         "legend.edgeTypes": "엣지 유형",
         "legend.gitStatus": "Git 상태",
+        "legend.heat": "변경 활동량",
+        "legend.coverage": "테스트 커버리지",
+        "legend.coverageMinTitle": "커버리지가 N% 미만인 파일 숨기기",
+        "legend.heatMinTitle": "N회 미만으로 변경된 파일 숨기기",
         "legend.showAll": "모두 표시",
         "legend.hideAll": "모두 숨기기",
         "git.added": "추가됨",
@@ -2288,6 +2550,7 @@ const I18N = {
         "git.renamed": "이름 변경됨",
         "git.deleted": "삭제됨",
         "git.clean": "변경 없음",
+        "heat.allTime": "전체 기록",
         "excl.title": "이름으로 제외",
         "excl.placeholder": "예: __init__",
         "excl.add": "추가",
@@ -2348,6 +2611,8 @@ const I18N = {
         "faq.shortcuts.li3": "<kbd>Ctrl</kbd>+<kbd>K</kbd> / <kbd>⌘</kbd>+<kbd>K</kbd> &mdash; 검색 필드에 포커스.",
         "faq.shortcuts.li4": "<kbd>B</kbd> &mdash; 커서 아래 노드를 고정 / 해제 (드래그 중에도 동작: 노드를 끌고 B를 누른 뒤 놓으면 &mdash; 제자리에 고정됩니다).",
         "faq.section.gitMode": "Git 모드",
+        "faq.section.heatMode": "활동량 모드",
+        "faq.section.coverage": "커버리지 모드",
         "faq.nav.li5": "노드를 클릭하면 강조가 <b>고정</b>됩니다 &mdash; 커서가 떠나도 해당 노드와 연결이 밝게 유지됩니다. 같은 노드를 다시 클릭하거나 배경을 클릭하면 고정이 해제됩니다.",
         "faq.nav.li6": "노드가 고정된 상태에서 인접 노드 위로 커서를 올리면 2단계 미리보기 &mdash; 고정 노드와 호버 노드의 이웃 집합의 합집합 &mdash; 이 잠시 표시됩니다.",
         "faq.nav.li7": "흐리게 표시된 요소 또는 빈 배경을 클릭하면 현재의 모든 선택(고정 노드, 엣지 포커스, 검색 강조)이 지워집니다.",
@@ -2366,6 +2631,12 @@ const I18N = {
         "faq.git.li4": "<b>이름 변경 엣지</b> 는 화살표 없이 점선으로 그려지며 이전 경로와 새 경로를 연결합니다; 엣지 유형 범례에는 포함되지 않습니다.",
         "faq.git.li5": "Git 상태의 색상은 활성 팔레트(파스텔 / 선명함)를 따릅니다. 빌드가 Git 저장소 내에서 실행되지 않은 경우 Git 버튼은 비활성화됩니다.",
         "faq.git.li6": "<b>그래프 diff:</b> <code>--diff-base REF</code>로 빌드하면 작업 트리를 git 참조와 비교합니다. 파일 상태는 이 오버레이에 반영되고, 새 의존성 엣지는 녹색, 제거된 엣지는 빨간색(점선)으로 표시됩니다.",
+        "faq.heat.li1": "상단 바에서 <b>활동량 모드</b>를 전환하세요 &mdash; 노드 색상이 유형 기반에서 git 변경 빈도에 따른 파랑&rarr;빨강 그라데이션으로 바뀝니다.",
+        "faq.heat.li2": "그라데이션 범례에는 기간(전체 기록, 또는 <code>--heat-days N</code>으로 빌드한 경우 최근 N일)과 커밋 횟수 범위가 표시됩니다.",
+        "faq.heat.li3": "활동량 모드와 Git 모드는 상호 배타적입니다 &mdash; 하나를 켜면 다른 하나는 꺼집니다. 두 모드는 서로 다른 신호로 노드를 색칠하기 때문입니다.",
+        "faq.coverage.li1": "상단 바에서 <b>커버리지 모드</b>를 전환하세요 &mdash; 노드 색상이 유형 기반에서 테스트 커버리지에 따른 초록&rarr;빨강 그라데이션으로 바뀝니다(<code>--coverage PATH</code>로 Cobertura <code>coverage.xml</code>이 필요합니다).",
+        "faq.coverage.li2": "그라데이션 범례에는 커버리지 범위와 최소 커버리지 슬라이더가 표시됩니다 &mdash; 드래그하면 선택한 비율 미만으로 커버된 항목이 숨겨집니다(엣지도 함께 숨겨짐).",
+        "faq.coverage.li3": "커버리지, 활동량, Git 모드는 모두 상호 배타적입니다 &mdash; 하나를 켜면 나머지 둘은 꺼집니다. 세 모드 모두 서로 다른 신호로 노드를 색칠하기 때문입니다.",
         "legend.diffEdgesAdded": "새 엣지",
         "legend.diffEdgesRemoved": "제거된 엣지",
         "faq.persistence.li4": "파일 메뉴의 <b>JSON 복사</b> 는 그래프의 간결한 표현(id, 경로, 유형, 엣지, 줄 번호)을 복사합니다 &mdash; LLM에 프로젝트 컨텍스트로 붙여넣기에 편리합니다.",
@@ -2403,50 +2674,60 @@ function pluralRu(n, one, few, many) {
 const FORMATTERS = {
     en: {
         connectionCount: n => n + " connection" + (n !== 1 ? "s" : ""),
-        stats: (nodes, edges) => nodes + " nodes · " + edges + " edges"
+        stats: (nodes, edges) => nodes + " nodes · " + edges + " edges",
+        heatPeriod: days => "last " + days + " day" + (days !== 1 ? "s" : "")
     },
     ru: {
         connectionCount: n => n + " " + pluralRu(n, "связь", "связи", "связей"),
         stats: (nodes, edges) => nodes + " " + pluralRu(nodes, "узел", "узла", "узлов")
-            + " · " + edges + " " + pluralRu(edges, "связь", "связи", "связей")
+            + " · " + edges + " " + pluralRu(edges, "связь", "связи", "связей"),
+        heatPeriod: days => "последние " + days + " " + pluralRu(days, "день", "дня", "дней")
     },
     de: {
         connectionCount: n => n + " " + (n === 1 ? "Verbindung" : "Verbindungen"),
         stats: (nodes, edges) => nodes + " Knoten · "
-            + edges + " " + (edges === 1 ? "Kante" : "Kanten")
+            + edges + " " + (edges === 1 ? "Kante" : "Kanten"),
+        heatPeriod: days => "letzte " + days + " " + (days === 1 ? "Tag" : "Tage")
     },
     es: {
         connectionCount: n => n + " " + (n === 1 ? "conexión" : "conexiones"),
         stats: (nodes, edges) => nodes + " " + (nodes === 1 ? "nodo" : "nodos")
-            + " · " + edges + " " + (edges === 1 ? "arista" : "aristas")
+            + " · " + edges + " " + (edges === 1 ? "arista" : "aristas"),
+        heatPeriod: days => "últimos " + days + " " + (days === 1 ? "día" : "días")
     },
     it: {
         connectionCount: n => n + " " + (n === 1 ? "connessione" : "connessioni"),
         stats: (nodes, edges) => nodes + " " + (nodes === 1 ? "nodo" : "nodi")
-            + " · " + edges + " " + (edges === 1 ? "arco" : "archi")
+            + " · " + edges + " " + (edges === 1 ? "arco" : "archi"),
+        heatPeriod: days => "ultimi " + days + " " + (days === 1 ? "giorno" : "giorni")
     },
     fr: {
         // French: 0 and 1 take the singular form
         connectionCount: n => n + " " + (n <= 1 ? "connexion" : "connexions"),
         stats: (nodes, edges) => nodes + " " + (nodes <= 1 ? "nœud" : "nœuds")
-            + " · " + edges + " " + (edges <= 1 ? "lien" : "liens")
+            + " · " + edges + " " + (edges <= 1 ? "lien" : "liens"),
+        heatPeriod: days => "derniers " + days + " " + (days <= 1 ? "jour" : "jours")
     },
     pt: {
         connectionCount: n => n + " " + (n === 1 ? "conexão" : "conexões"),
         stats: (nodes, edges) => nodes + " " + (nodes === 1 ? "nó" : "nós")
-            + " · " + edges + " " + (edges === 1 ? "aresta" : "arestas")
+            + " · " + edges + " " + (edges === 1 ? "aresta" : "arestas"),
+        heatPeriod: days => "últimos " + days + " " + (days === 1 ? "dia" : "dias")
     },
     zh: {
         connectionCount: n => n + " 个连接",
-        stats: (nodes, edges) => nodes + " 个节点 · " + edges + " 条边"
+        stats: (nodes, edges) => nodes + " 个节点 · " + edges + " 条边",
+        heatPeriod: days => "最近 " + days + " 天"
     },
     ja: {
         connectionCount: n => n + " 件の接続",
-        stats: (nodes, edges) => nodes + " ノード · " + edges + " エッジ"
+        stats: (nodes, edges) => nodes + " ノード · " + edges + " エッジ",
+        heatPeriod: days => "直近" + days + "日間"
     },
     ko: {
         connectionCount: n => n + "개 연결",
-        stats: (nodes, edges) => nodes + " 노드 · " + edges + " 엣지"
+        stats: (nodes, edges) => nodes + " 노드 · " + edges + " 엣지",
+        heatPeriod: days => "최근 " + days + "일"
     }
 };
 
@@ -2491,6 +2772,9 @@ function applyI18n(lang) {
             && typeof renderInfoPanel === "function") {
             renderInfoPanel(activeNodeData);
         }
+    } catch (_) {}
+    try {
+        if (typeof updateHeatPeriodLabel === "function") updateHeatPeriodLabel();
     } catch (_) {}
 }
 
@@ -2767,6 +3051,73 @@ let cycleCount = 0;
     });
 }
 
+// Heat overlay: per-node activity intensity (0..1), computed once at init
+// from HEAT_DATA (path -> raw commit count over the configured window, or
+// the whole history — see HEAT_DAYS). log1p-scaled: commit frequency is
+// typically power-law (a handful of files change constantly, most rarely),
+// so a linear 0..max scale would wash every file but the single hottest
+// one into the same color. Ghost nodes never participate — they only
+// render in git mode, which is mutually exclusive with heat mode anyway.
+const heatIntensity = new Map();  // node id -> 0..1 (log-scaled, for color)
+const heatCount = new Map();      // node id -> raw commit count (for the min-edits filter)
+let heatMaxCount = 0;
+if (HEAT_DATA) {
+    let maxLog = 0;
+    const rawLog = new Map();
+    nodes.forEach(n => {
+        if (n.ghost) return;
+        const count = HEAT_DATA[n.path] || 0;
+        heatCount.set(n.id, count);
+        if (count > heatMaxCount) heatMaxCount = count;
+        const v = Math.log1p(count);
+        rawLog.set(n.id, v);
+        if (v > maxLog) maxLog = v;
+    });
+    rawLog.forEach((v, id) => heatIntensity.set(id, maxLog > 0 ? v / maxLog : 0));
+}
+// Min-edits threshold (slider in the Activity heat legend, ui.js): nodes
+// with fewer than heatMinCount recorded commits are hidden while heat mode
+// is on — see baseNodeVisible() in ui.js.
+let heatMinCount = 0;
+const HEAT_COLD = "#3b82f6";
+const HEAT_HOT = "#ef4444";
+function heatColor(intensity) {
+    return d3.interpolateRgb(HEAT_COLD, HEAT_HOT)(intensity);
+}
+
+// Coverage overlay: per-node test-line coverage percent (0..100), from
+// COVERAGE_DATA (Cobertura XML, --coverage; path -> percent, already
+// resolved against project paths in Python). Linear scale — unlike heat's
+// commit frequency, coverage percentages aren't power-law distributed, so
+// no log-scaling is needed. Nodes absent from COVERAGE_DATA (docs, config,
+// non-Python files, or code the report simply didn't cover) are left out of
+// the map entirely and fall back to the type color in currentNodeColor —
+// same "not applicable" treatment as ghost nodes in heat mode.
+const coveragePercent = new Map();  // node id -> 0..100
+if (COVERAGE_DATA) {
+    nodes.forEach(n => {
+        if (n.ghost) return;
+        if (Object.prototype.hasOwnProperty.call(COVERAGE_DATA, n.path)) {
+            coveragePercent.set(n.id, COVERAGE_DATA[n.path]);
+        }
+    });
+}
+// The whole point of this overlay is finding badly-covered files, so the
+// gradient reads green(good)->red(bad) — reversed from heat's cold->hot —
+// and the min-coverage slider (ui.js) is laid out RTL to match: high
+// threshold on the left (green side), 0 (no filter) on the right.
+const COVERAGE_GOOD = "#22c55e";
+const COVERAGE_BAD = "#ef4444";
+function coverageColor(percent) {
+    return d3.interpolateRgb(COVERAGE_BAD, COVERAGE_GOOD)(percent / 100);
+}
+let coverageMode = false;
+// Min-coverage threshold (slider in the Coverage legend, ui.js): nodes
+// covered less than coverageMinPercent are hidden while coverage mode is
+// on — see baseNodeVisible() in ui.js. Nodes with no coverage data at all
+// are exempt from this filter (not the same as "0% covered").
+let coverageMinPercent = 0;
+
 const simulation = d3.forceSimulation(nodes)
     .force("link", d3.forceLink(links).id(d => d.id)
         .distance(d => d.type === "code->doc" ? 120 : 80)
@@ -2908,8 +3259,15 @@ let activeGitColors = GIT_COLORS_PASTEL;
 const DIFF_EDGE_COLORS = { added: "#22c55e", removed: "#ef4444" };
 let gitMode = false;
 const hiddenGitStatuses = new Set();
+// Heat mode — mutually exclusive with git mode AND coverage mode
+// (enforced in ui.js: applyGitMode/applyHeatMode/applyCoverageMode all
+// gate each other); all three recolor nodes by a different signal, so
+// only one "what am I colouring by" state can be active at a time.
+let heatMode = false;
 function currentNodeColor(d) {
     if (gitMode && d.gitStatus) return activeGitColors[d.gitStatus] || "#999";
+    if (heatMode && heatIntensity.has(d.id)) return heatColor(heatIntensity.get(d.id));
+    if (coverageMode && coveragePercent.has(d.id)) return coverageColor(coveragePercent.get(d.id));
     return activeColors[d.type] || "#999";
 }
 let searchQuery = "";
@@ -3700,28 +4058,39 @@ function renderInfoPanel(d) {
                 node: l.source, dir: cd ? "→" : "←", type: l.type, edge: l});
     });
     infoTitle.textContent = d.label;
-    // Path as clickable breadcrumbs: each directory segment becomes a span
-    // that, on click, filters the graph by that path prefix (via the search
-    // box). The filename segment keeps its IDE-open / copy-path behavior.
-    const segs = d.path.split("/");
-    const filename = segs.pop();
-    let bc = "";
-    let acc = "";
-    segs.forEach((seg, i) => {
-        acc = i === 0 ? seg : acc + "/" + seg;
-        bc += '<span class="bc-seg" data-prefix="' + esc(acc) + '" title="'
-            + esc(acc) + '">' + esc(seg) + '</span>'
-            + '<span class="bc-sep">/</span>';
-    });
-    const pathHref = buildFileHref(d.path, null);
-    const fileLink = pathHref
-        ? '<a href="' + esc(pathHref) + '" class="conn-link">'
-            + esc(filename) + "</a>"
-        : '<span class="conn-link conn-copy" data-copy="'
-            + esc(PROJECT_ROOT + "/" + d.path)
-            + '" title="' + esc(t("info.copyTitle")) + '">'
-            + esc(filename) + "</span>";
-    infoPath.innerHTML = bc + fileLink;
+    if (d.ambiguous) {
+        // Synthetic "ambiguous group" node — no real file behind it, so no
+        // breadcrumbs and no IDE-open / copy-path affordance.
+        infoPath.textContent = "";
+        const span = document.createElement("span");
+        span.className = "conn-link";
+        span.textContent = d.label;
+        infoPath.appendChild(span);
+    } else {
+        // Path as clickable breadcrumbs: each directory segment becomes a
+        // span that, on click, filters the graph by that path prefix (via
+        // the search box). The filename segment keeps its IDE-open /
+        // copy-path behavior.
+        const segs = d.path.split("/");
+        const filename = segs.pop();
+        let bc = "";
+        let acc = "";
+        segs.forEach((seg, i) => {
+            acc = i === 0 ? seg : acc + "/" + seg;
+            bc += '<span class="bc-seg" data-prefix="' + esc(acc) + '" title="'
+                + esc(acc) + '">' + esc(seg) + '</span>'
+                + '<span class="bc-sep">/</span>';
+        });
+        const pathHref = buildFileHref(d.path, null);
+        const fileLink = pathHref
+            ? '<a href="' + esc(pathHref) + '" class="conn-link">'
+                + esc(filename) + "</a>"
+            : '<span class="conn-link conn-copy" data-copy="'
+                + esc(PROJECT_ROOT + "/" + d.path)
+                + '" title="' + esc(t("info.copyTitle")) + '">'
+                + esc(filename) + "</span>";
+        infoPath.innerHTML = bc + fileLink;
+    }
     const typeColor = activeColors[d.type] || "#999";
     infoTypeEl.innerHTML =
         '<span style="display:inline-block;width:9px;height:9px;'
@@ -3934,6 +4303,11 @@ function baseNodeVisible(n) {
     if (!gitMode && n.ghost) return false;
     if (gitMode && n.gitStatus && hiddenGitStatuses.has(n.gitStatus))
         return false;
+    if (heatMode && heatMinCount > 0 && (heatCount.get(n.id) || 0) < heatMinCount)
+        return false;
+    if (coverageMode && coverageMinPercent > 0 && coveragePercent.has(n.id)
+        && coveragePercent.get(n.id) < coverageMinPercent)
+        return false;
     return !hiddenTypes.has(n.type)
         && !excludedNames.has(n.label)
         && !excludedNames.has(n.stem);
@@ -4049,6 +4423,10 @@ function savePrefs() {
             ide: ideScheme,
             lang: currentLang,
             gitMode,
+            heatMode,
+            heatMinCount,
+            coverageMode,
+            coverageMinPercent,
             hiddenGitStatuses: [...hiddenGitStatuses],
             panels,
             collapsedPanels,
@@ -4072,6 +4450,10 @@ function getShareableState() {
         theme: document.body.classList.contains("light") ? "light" : null,
         palette: currentPalette === "saturated" ? "sat" : null,
         gitMode: gitMode ? "1" : null,
+        heatMode: heatMode ? "1" : null,
+        heatMin: heatMinCount > 0 ? String(heatMinCount) : null,
+        coverageMode: coverageMode ? "1" : null,
+        coverageMin: coverageMinPercent > 0 ? String(coverageMinPercent) : null,
         showDead: showDead ? "1" : null,
         showUnmapped: showUntracked ? "1" : null,
         showCycles: showCycles ? "1" : null,
@@ -4166,6 +4548,20 @@ function applyShareableState(s) {
             });
         }
         if (s.gitMode === "1" && GIT_DATA) applyGitMode(true);
+        if (s.heatMin) {
+            heatMinCount = parseInt(s.heatMin, 10) || 0;
+            const slider = document.getElementById("heat-min-slider");
+            if (slider) slider.value = heatMinCount;
+            updateHeatMinLabel();
+        }
+        if (s.heatMode === "1" && HEAT_DATA) applyHeatMode(true);
+        if (s.coverageMin) {
+            coverageMinPercent = parseInt(s.coverageMin, 10) || 0;
+            const covSlider = document.getElementById("coverage-min-slider");
+            if (covSlider) covSlider.value = _coverageSliderRaw(coverageMinPercent);
+            updateCoverageMinLabel();
+        }
+        if (s.coverageMode === "1" && COVERAGE_DATA) applyCoverageMode(true);
         if (s.showDead === "1" && deadNodes.size > 0) {
             showDead = true;
             document.body.classList.add("show-dead");
@@ -4295,6 +4691,24 @@ function loadPrefs() {
     }
     if (prefs.gitMode && GIT_DATA) {
         applyGitMode(true);
+    }
+    if (typeof prefs.heatMinCount === "number" && prefs.heatMinCount > 0) {
+        heatMinCount = prefs.heatMinCount;
+        const slider = document.getElementById("heat-min-slider");
+        if (slider) slider.value = heatMinCount;
+        updateHeatMinLabel();
+    }
+    if (prefs.heatMode && HEAT_DATA) {
+        applyHeatMode(true);
+    }
+    if (typeof prefs.coverageMinPercent === "number" && prefs.coverageMinPercent > 0) {
+        coverageMinPercent = prefs.coverageMinPercent;
+        const covSlider = document.getElementById("coverage-min-slider");
+        if (covSlider) covSlider.value = _coverageSliderRaw(coverageMinPercent);
+        updateCoverageMinLabel();
+    }
+    if (prefs.coverageMode && COVERAGE_DATA) {
+        applyCoverageMode(true);
     }
     // IDE scheme
     if (prefs.ide) {
@@ -4684,6 +5098,12 @@ function setupGitButton() {
 
 function applyGitMode(on) {
     if (!GIT_DATA && on) return;
+    // Heat and git are mutually exclusive recolor modes — entering one
+    // exits the other (mirrors how Cycles/Untracked get force-disabled
+    // below). applyHeatMode's/applyCoverageMode's own `on && gitMode`
+    // guards stop this from recursing back.
+    if (on && heatMode) applyHeatMode(false);
+    if (on && coverageMode) applyCoverageMode(false);
     gitMode = on;
     // Cycles / Untracked toggles are hidden in git mode (CSS) — drop their
     // highlight state too, so the mode can't stay on without its button.
@@ -4796,6 +5216,204 @@ function buildGitLegend() {
             });
             applyAllFilters(); savePrefs();
         });
+}
+
+// =============================================================================
+// === HEAT OVERLAY ===
+// Heat overlay: recolors nodes by git-activity frequency (commit count per
+// path, log1p-normalized in engine.js at init — heatIntensity / heatMode /
+// heatColor / HEAT_COLD / HEAT_HOT / heatMaxCount live there, same TDZ
+// reasoning as the git overlay state). Mutually exclusive with git mode —
+// see the `on && heatMode` guard inside applyGitMode above.
+// =============================================================================
+function setupHeatButton() {
+    const btn = document.getElementById("btn-heat");
+    if (!HEAT_DATA) {
+        btn.classList.add("disabled");
+        btn.dataset.i18nTitle = "btn.heatNotAvailable";
+        btn.title = t("btn.heatNotAvailable");
+        return;
+    }
+    btn.addEventListener("click", () => {
+        if (btn.classList.contains("disabled")) return;
+        applyHeatMode(!heatMode);
+        savePrefs();
+    });
+}
+
+function applyHeatMode(on) {
+    if (!HEAT_DATA && on) return;
+    if (on && gitMode) applyGitMode(false);
+    if (on && coverageMode) applyCoverageMode(false);
+    heatMode = on;
+    document.body.classList.toggle("heat-mode", on);
+    document.getElementById("btn-heat").classList.toggle("active", on);
+    // heatMode gates the min-edits filter inside baseNodeVisible() — needs
+    // a full recompute, not just a redraw with stale _vis flags.
+    applyAllFilters();
+}
+
+// Gradient legend — a continuum, not a category list: no isolate/show-all,
+// just the cold->hot bar, the collection period, the raw count range (so
+// "hot" has real numbers behind it, not just a color) and a min-edits
+// slider to hide anything colder than the chosen threshold.
+function buildHeatLegend() {
+    if (!HEAT_DATA) return;
+    const container = legendEl.append("div").attr("id", "legend-heat");
+    const heatH4 = container.append("h4")
+        .attr("data-i18n", "legend.heat")
+        .text(t("legend.heat"));
+    if (typeof makeDraggable === "function") {
+        makeDraggable(document.getElementById("legend"), heatH4.node());
+    }
+    container.append("div").attr("id", "heat-period").attr("class", "heat-period");
+    container.append("div")
+        .attr("class", "heat-gradient-bar")
+        .style("background", "linear-gradient(90deg, " + HEAT_COLD + ", " + HEAT_HOT + ")");
+    const labels = container.append("div").attr("class", "heat-gradient-labels");
+    labels.append("span").text("0");
+    labels.append("span").attr("id", "heat-max-label").text(String(heatMaxCount));
+    updateHeatPeriodLabel();
+
+    const filterRow = container.append("div").attr("class", "heat-filter-row");
+    filterRow.append("input")
+        .attr("type", "range")
+        .attr("id", "heat-min-slider")
+        .attr("min", 0)
+        .attr("max", Math.max(heatMaxCount, 1))
+        .attr("step", 1)
+        .attr("value", heatMinCount)
+        .attr("data-i18n-title", "legend.heatMinTitle")
+        .attr("title", t("legend.heatMinTitle"))
+        .on("input", function() {
+            heatMinCount = +this.value;
+            updateHeatMinLabel();
+            applyAllFilters();
+            savePrefs();
+        });
+    filterRow.append("span").attr("id", "heat-min-label").attr("class", "heat-min-label");
+    updateHeatMinLabel();
+}
+
+function updateHeatMinLabel() {
+    const el = document.getElementById("heat-min-label");
+    if (el) el.textContent = "≥ " + heatMinCount;
+}
+
+// Reset the slider to "no filter" — called from Clear filters (btn-show-all).
+function resetHeatMinFilter() {
+    heatMinCount = 0;
+    const slider = document.getElementById("heat-min-slider");
+    if (slider) slider.value = 0;
+    updateHeatMinLabel();
+}
+
+// Re-run on every applyI18n (see i18n.js) — the period text has a
+// translated word ("days"/"дней"/...) that a plain data-i18n span can't
+// carry since it also embeds the HEAT_DAYS number (like #stats/tFmt).
+function updateHeatPeriodLabel() {
+    const el = document.getElementById("heat-period");
+    if (!el) return;
+    el.textContent = HEAT_DAYS == null ? t("heat.allTime") : tFmt("heatPeriod", HEAT_DAYS);
+}
+
+// =============================================================================
+// === COVERAGE OVERLAY ===
+// Coverage overlay: recolors nodes by test-line coverage percent (Cobertura
+// XML, --coverage). Additive like heat mode (Node types stays usable),
+// mutually exclusive with git AND heat (see the `on && ...` guards in all
+// three applyXMode functions). Unlike Git/Heat, whose buttons stay in the
+// bar disabled-with-a-tooltip when their data source is missing, the
+// Coverage button is fully hidden when there's no coverage.xml — it's a
+// much rarer opt-in artifact than git, a permanently-greyed-out button
+// would just be clutter for the common case of "nobody ran coverage".
+// =============================================================================
+function setupCoverageButton() {
+    const btn = document.getElementById("btn-coverage");
+    if (!COVERAGE_DATA) {
+        btn.style.display = "none";
+        return;
+    }
+    btn.addEventListener("click", () => {
+        applyCoverageMode(!coverageMode);
+        savePrefs();
+    });
+}
+
+function applyCoverageMode(on) {
+    if (!COVERAGE_DATA && on) return;
+    if (on && gitMode) applyGitMode(false);
+    if (on && heatMode) applyHeatMode(false);
+    coverageMode = on;
+    document.body.classList.toggle("coverage-mode", on);
+    document.getElementById("btn-coverage").classList.toggle("active", on);
+    applyAllFilters();
+}
+
+// Gradient legend, mirroring buildHeatLegend — but the point of this
+// overlay is finding BADLY covered files, so the direction is reversed:
+// green (100%, good) on the left, red (0%, bad) on the right.
+//
+// The min-coverage slider matches: left = 100% (strictest filter), right =
+// 0% (off, the resting position). This is done with a PLAIN left-to-right
+// <input type="range"> plus an inverted value mapping in JS
+// (rawSliderValue = 100 - coverageMinPercent), not CSS `direction: rtl` —
+// that was tried first and rendered correctly in one browser's screenshot
+// but is exactly the kind of engine-dependent range-input quirk that isn't
+// guaranteed to render the same everywhere. Arithmetic inversion is
+// deterministic on every browser; see _coverageSliderRaw below.
+function _coverageSliderRaw(percent) {
+    return 100 - percent;
+}
+function buildCoverageLegend() {
+    if (!COVERAGE_DATA) return;
+    const container = legendEl.append("div").attr("id", "legend-coverage");
+    const covH4 = container.append("h4")
+        .attr("data-i18n", "legend.coverage")
+        .text(t("legend.coverage"));
+    if (typeof makeDraggable === "function") {
+        makeDraggable(document.getElementById("legend"), covH4.node());
+    }
+    container.append("div")
+        .attr("class", "heat-gradient-bar")
+        .style("background", "linear-gradient(90deg, " + COVERAGE_GOOD + ", " + COVERAGE_BAD + ")");
+    const labels = container.append("div").attr("class", "heat-gradient-labels");
+    labels.append("span").text("100%");
+    labels.append("span").text("0%");
+
+    const filterRow = container.append("div").attr("class", "heat-filter-row");
+    filterRow.append("input")
+        .attr("type", "range")
+        .attr("id", "coverage-min-slider")
+        .attr("min", 0)
+        .attr("max", 100)
+        .attr("step", 1)
+        .attr("value", _coverageSliderRaw(coverageMinPercent))
+        .attr("data-i18n-title", "legend.coverageMinTitle")
+        .attr("title", t("legend.coverageMinTitle"))
+        .on("input", function() {
+            coverageMinPercent = 100 - (+this.value);
+            updateCoverageMinLabel();
+            applyAllFilters();
+            savePrefs();
+        });
+    filterRow.append("span").attr("id", "coverage-min-label").attr("class", "heat-min-label");
+    updateCoverageMinLabel();
+}
+
+function updateCoverageMinLabel() {
+    const el = document.getElementById("coverage-min-label");
+    if (el) el.textContent = "≥ " + coverageMinPercent + "%";
+}
+
+// Reset the slider to "no filter" — called from Clear filters (btn-show-all).
+// Raw DOM value 100 (== _coverageSliderRaw(0)) is the resting/off position,
+// physically on the right (0% end) — see buildCoverageLegend.
+function resetCoverageMinFilter() {
+    coverageMinPercent = 0;
+    const slider = document.getElementById("coverage-min-slider");
+    if (slider) slider.value = _coverageSliderRaw(0);
+    updateCoverageMinLabel();
 }
 
 function updateGitLegendSwatches() {
@@ -5234,6 +5852,8 @@ document.getElementById("btn-show-all").addEventListener("click", () => {
     // Deactivate orphans mode
     orphansOnly = false;
     document.getElementById("btn-orphans").classList.remove("active");
+    if (typeof resetHeatMinFilter === "function") resetHeatMinFilter();
+    if (typeof resetCoverageMinFilter === "function") resetCoverageMinFilter();
     applyAllFilters();
     savePrefs();
 });
@@ -5399,6 +6019,10 @@ bindSlider("ctrl-link", "val-link",
 buildGitLegend();
 updateGitLegendCounts();
 setupGitButton();
+buildHeatLegend();
+setupHeatButton();
+buildCoverageLegend();
+setupCoverageButton();
 
 // Apply default language (RU) to all data-i18n* elements before loadPrefs
 // may overwrite it. The stats line uses tFmt — set after applyI18n.
