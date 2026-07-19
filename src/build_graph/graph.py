@@ -18,8 +18,8 @@ Module layout:
             (AST imports incl. TYPE_CHECKING / dynamic), docstring refs
         _git.py    — git overlay: status collection, ghost nodes,
             rename edges, --mock-git synthetic data
-        _diff.py   — ref-diff mode (--diff-base): base-ref snapshot via
-            git archive, edge-set diff, removed-edge ghosts
+        _diff.py   — ref-diff mode (--diff-base[/--diff-head]): ref
+            snapshots via git archive, edge-set diff, removed-edge ghosts
         _render.py — layout hints, palette, dead-code exemptions,
             packaged front-end resources, HTML assembly, D3 pinning
         graph.py   — LLM JSON exports (verbose + compact), CLI entry
@@ -60,6 +60,7 @@ Module layout:
 import argparse
 import json
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -77,7 +78,7 @@ from build_graph._config import (
     load_config,
 )
 from build_graph._console import ensure_utf8_stdout
-from build_graph._diff import apply_edge_diff, collect_ref_diff
+from build_graph._diff import apply_edge_diff, collect_ref_diff, materialize_ref
 from build_graph._git import (
     add_ghost_nodes_and_edges,
     apply_git_status_to_live_nodes,
@@ -352,10 +353,21 @@ def parse_args() -> argparse.Namespace:
         metavar="REF",
         default=None,
         help=(
-            "Compare the working tree against a git ref (branch, tag, "
-            "commit): file statuses feed the Git overlay, new dependency "
-            "edges show green and removed ones red in git mode. To diff "
-            "two arbitrary refs, check out the head ref first."
+            "Compare a ref (branch, tag, commit) against the working tree "
+            "or, with --diff-head, against a second ref: file statuses "
+            "feed the Git overlay, new dependency edges show green and "
+            "removed ones red in git mode."
+        ),
+    )
+    p.add_argument(
+        "--diff-head",
+        metavar="REF",
+        default=None,
+        help=(
+            "With --diff-base: compare against this ref instead of the "
+            "working tree — both sides are built from git archive "
+            "snapshots, so worktree changes after REF are not part of "
+            "the diff."
         ),
     )
     p.add_argument(
@@ -484,6 +496,9 @@ def main() -> None:
     if args.diff_base and args.mock_git:
         print("--diff-base and --mock-git are mutually exclusive.", file=sys.stderr)
         sys.exit(2)
+    if args.diff_head and not args.diff_base:
+        print("--diff-head requires --diff-base.", file=sys.stderr)
+        sys.exit(2)
     if args.init:
         handle_init(args, project_root, config_path)
         return
@@ -497,8 +512,21 @@ def main() -> None:
     if not output_path.is_absolute():
         output_path = project_root / output_path
 
+    build_root = project_root
+    head_tmp: tempfile.TemporaryDirectory[str] | None = None
+    if args.diff_head:
+        print(f"Materializing head ref {args.diff_head} (git archive)...")
+        head_tmp = tempfile.TemporaryDirectory(prefix="build-graph-head-")
+        if not materialize_ref(project_root, args.diff_head, Path(head_tmp.name)):
+            print(
+                f"Error: could not materialize head ref: {args.diff_head}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        build_root = Path(head_tmp.name)
+
     print(f"Discovering files (scope={args.scope})...")
-    files, git_used = list_project_files(project_root)
+    files, git_used = list_project_files(build_root)
     all_nodes, docs_dirname = build_all_nodes(
         files,
         config,
@@ -518,7 +546,7 @@ def main() -> None:
     )
 
     print("Building doc->doc edges...")
-    all_edges: list[dict] = build_doc_edges(md_nodes, project_root)
+    all_edges: list[dict] = build_doc_edges(md_nodes, build_root)
     print(f"  {len(all_edges)} doc->doc edges")
 
     if not args.docs_only:
@@ -526,7 +554,7 @@ def main() -> None:
         path_to_doc_id = {n["path"]: n["id"] for n in md_nodes}
         md_cache = []
         for n in md_nodes:
-            f = project_root / n["path"]
+            f = build_root / n["path"]
             try:
                 content = f.read_text(encoding="utf-8")
             except Exception as exc:  # mirror load_md_files behaviour
@@ -534,14 +562,14 @@ def main() -> None:
                 continue
             md_cache.append((f, content, content.splitlines()))
         code_edges = add_code_doc_edges(
-            other_nodes, path_to_doc_id, project_root, md_cache
+            other_nodes, path_to_doc_id, build_root, md_cache
         )
         print(f"  {len(code_edges)} code->doc edges")
         all_edges.extend(code_edges)
 
         print("Finding code->code imports (AST)...")
-        code_trees = _parse_code_trees(py_nodes, project_root)
-        code_code_edges = add_code_code_edges(py_nodes, project_root, code_trees)
+        code_trees = _parse_code_trees(py_nodes, build_root)
+        code_code_edges = add_code_code_edges(py_nodes, build_root, code_trees)
         runtime_count = sum(1 for e in code_code_edges if e["type"] == "code->code")
         type_only_count = sum(1 for e in code_code_edges if e["type"] == "type-only")
         print(f"  {runtime_count} code->code edges, {type_only_count} type-only edges")
@@ -557,7 +585,7 @@ def main() -> None:
     diff_info: dict[str, Any] | None = None
     if args.diff_base:
         print(f"Collecting ref diff vs {args.diff_base}...")
-        git_data = collect_ref_diff(project_root, args.diff_base)
+        git_data = collect_ref_diff(project_root, args.diff_base, args.diff_head)
         if git_data is None:
             print(
                 f"Error: git unavailable or unknown ref: {args.diff_base}",
@@ -565,9 +593,7 @@ def main() -> None:
             )
             sys.exit(1)
         apply_git_status_to_live_nodes(all_nodes, git_data)
-        add_ghost_nodes_and_edges(
-            all_nodes, all_edges, git_data, md_nodes, project_root
-        )
+        add_ghost_nodes_and_edges(all_nodes, all_edges, git_data, md_nodes, build_root)
         print(
             f"  added={len(git_data['added'])}, "
             f"modified={len(git_data['modified'])}, "
@@ -592,7 +618,11 @@ def main() -> None:
                 file=sys.stderr,
             )
             sys.exit(1)
-        diff_info = {"base": args.diff_base, "head": "worktree", **edge_diff}
+        diff_info = {
+            "base": args.diff_base,
+            "head": args.diff_head or "worktree",
+            **edge_diff,
+        }
         print(
             f"  edges: +{edge_diff['edgesAdded']} new, "
             f"-{edge_diff['edgesRemoved']} removed"
@@ -625,6 +655,9 @@ def main() -> None:
             )
         else:
             print("  git unavailable; skipping git overlay")
+
+    if head_tmp is not None:
+        head_tmp.cleanup()
 
     print("Computing layout hints...")
     compute_layout_hints(all_nodes, all_edges)

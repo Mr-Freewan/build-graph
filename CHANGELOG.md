@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   glance — with counters in the git legend. Renames are followed, so an
   edge that merely moved with a renamed file stays neutral. The build
   opens with the Git overlay already on.
+- Graph diff: `--diff-head REF` compares two specific refs instead of the
+  working tree — both sides are built from `git archive` snapshots, so
+  worktree changes made after the head ref are excluded from the diff.
 
 ### Changed
 

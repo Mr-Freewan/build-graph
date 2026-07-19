@@ -157,8 +157,12 @@ git as usual, while dependency edges **new since the ref render green**
 and **removed ones red** (dashed), anchored to ghost nodes when the file
 is gone. The git legend gains +N/−N edge counters and its title shows
 the compared range. Renames are followed — an edge that merely moved
-with a renamed file stays neutral. To diff two arbitrary refs, check out
-the head ref first.
+with a renamed file stays neutral.
+
+Add `--diff-head REF` to compare two specific refs instead of the working
+tree — both sides are built from `git archive` snapshots, so worktree
+changes made after the head ref are not part of the diff. Without it,
+`--diff-base` alone still compares against the working tree as before.
 
 ![Graph diff overlay](media/guide/16-diff.png)
 

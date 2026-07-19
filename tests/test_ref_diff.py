@@ -81,6 +81,64 @@ class TestMaterializeRef:
         assert not materialize_ref(diff_repo, "no-such-ref", dest)
 
 
+class TestCollectRefDiffTwoRefs:
+    """Explicit --diff-base + --diff-head: both sides are real refs, so a
+    decoy worktree edit made after the head commit must not show up.
+    """
+
+    @pytest.fixture()
+    def two_ref_repo(self, tmp_path: Path) -> Path:
+        (tmp_path / "a.py").write_text("import b\n", encoding="utf-8")
+        (tmp_path / "b.py").write_text("B = 1\n", encoding="utf-8")
+        _git(tmp_path, "init", "-q")
+        _git(tmp_path, "add", "-A")
+        _git(tmp_path, "commit", "-q", "-m", "base")
+
+        (tmp_path / "a.py").write_text("import b\nimport c\n", encoding="utf-8")
+        (tmp_path / "c.py").write_text("C = 1\n", encoding="utf-8")
+        _git(tmp_path, "add", "-A")
+        _git(tmp_path, "commit", "-q", "-m", "head")
+
+        # Decoy: uncommitted worktree change after the head commit — must
+        # be invisible to an explicit base..head ref diff.
+        (tmp_path / "d.py").write_text("D = 1\n", encoding="utf-8")
+        _git(tmp_path, "add", "-A")
+        return tmp_path
+
+    def test_statuses_ignore_worktree_after_head(self, two_ref_repo: Path) -> None:
+        status = collect_ref_diff(two_ref_repo, "HEAD~1", "HEAD")
+        assert status is not None
+        assert status["added"] == ["c.py"]
+        assert status["modified"] == ["a.py"]
+
+    def test_worktree_diff_sees_the_decoy(self, two_ref_repo: Path) -> None:
+        status = collect_ref_diff(two_ref_repo, "HEAD~1")
+        assert status is not None
+        assert set(status["added"]) == {"c.py", "d.py"}
+
+    def test_unknown_head_ref(self, two_ref_repo: Path) -> None:
+        assert collect_ref_diff(two_ref_repo, "HEAD~1", "no-such-ref") is None
+
+    def test_edge_diff_across_two_materialized_refs(
+        self, two_ref_repo: Path, tmp_path_factory
+    ) -> None:
+        head_dest = tmp_path_factory.mktemp("head")
+        assert materialize_ref(two_ref_repo, "HEAD", head_dest)
+        assert not (head_dest / "d.py").exists()  # decoy never entered a ref
+
+        nodes, edges = _build_snapshot(head_dest, {}, "full", True, False)
+        git_data = collect_ref_diff(two_ref_repo, "HEAD~1", "HEAD")
+        assert git_data is not None
+        add_ghost_nodes_and_edges(nodes, edges, git_data, [], head_dest)
+        info = apply_edge_diff(
+            nodes, edges, two_ref_repo, "HEAD~1", {}, {}, "full", True, False
+        )
+        assert info == {"edgesAdded": 1, "edgesRemoved": 0}
+        by_key = {(e["source"], e["target"]): e for e in edges}
+        assert by_key[("a.py", "c.py")]["diffStatus"] == "added"
+        assert by_key[("a.py", "b.py")]["diffStatus"] == "same"
+
+
 class TestApplyEdgeDiff:
     def _run(self, repo: Path) -> tuple[list[dict], list[dict], dict]:
         nodes, edges = _build_snapshot(repo, {}, "full", True, False)

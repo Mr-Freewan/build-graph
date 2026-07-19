@@ -2,7 +2,10 @@
 
 `--diff-base REF` builds the usual graph of the working tree (the head),
 then materializes REF via `git archive` into a temp dir, builds the same
-graph there and overlays the difference:
+graph there and overlays the difference. `--diff-head REF` swaps the
+working tree for a second materialized ref, so both sides come from
+`git archive` and the comparison is base_ref vs head_ref exactly (worktree
+changes after head_ref are not part of the diff):
 
 - file-level statuses (added / modified / renamed / deleted) come from
   `git diff --name-status -M REF` and flow through the existing git
@@ -33,14 +36,17 @@ from build_graph._build import (
 from build_graph._config import build_all_nodes, list_project_files
 
 
-def collect_ref_diff(project_root: Path, base_ref: str) -> dict | None:
-    """File statuses between `base_ref` and the working tree.
+def collect_ref_diff(
+    project_root: Path, base_ref: str, head_ref: str | None = None
+) -> dict | None:
+    """File statuses between `base_ref` and `head_ref` (default: working tree).
 
     Same shape as `collect_git_status` (added / modified / deleted /
     renamed), so the standard overlay machinery applies as-is. Returns
-    None when git is unavailable or the ref doesn't resolve. Untracked
+    None when git is unavailable or a ref doesn't resolve. Untracked
     files never show up in `git diff` — they simply have no status.
     """
+    diff_args = [base_ref, head_ref] if head_ref else [base_ref]
     try:
         result = subprocess.run(
             [
@@ -51,7 +57,7 @@ def collect_ref_diff(project_root: Path, base_ref: str) -> dict | None:
                 "--name-status",
                 "-M",
                 "--diff-filter=AMRD",
-                base_ref,
+                *diff_args,
             ],
             cwd=project_root,
             capture_output=True,
