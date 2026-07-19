@@ -339,3 +339,73 @@ class TestBuildDocEdges:
         )
         md_nodes = [{"id": "a.md", "path": "docs/a.md"}]
         assert build_doc_edges(md_nodes, tmp_path) == []
+
+
+class TestCodeDocAttribution:
+    """Basename fan-out: explicit-path mentions credit only the named file."""
+
+    def _setup(self, tmp_path: Path) -> list[dict]:
+        _write(tmp_path, "a/config.py", "A = 1\n")
+        _write(tmp_path, "b/config.py", "B = 1\n")
+        return [
+            {"id": "a/config.py", "path": "a/config.py"},
+            {"id": "b/config.py", "path": "b/config.py"},
+        ]
+
+    def _md_cache(self, *files: Path) -> list:
+        cache = []
+        for f in files:
+            content = f.read_text(encoding="utf-8")
+            cache.append((f, content, content.splitlines()))
+        return cache
+
+    def _run(self, tmp_path: Path, nodes: list[dict], doc_body: str) -> list[dict]:
+        from build_graph._build import add_code_doc_edges
+
+        doc = tmp_path / "docs" / "d.md"
+        _write(tmp_path, "docs/d.md", doc_body)
+        return add_code_doc_edges(
+            nodes, {"docs/d.md": "d.md"}, tmp_path, self._md_cache(doc)
+        )
+
+    def test_explicit_path_credits_only_named_member(self, tmp_path: Path) -> None:
+        nodes = self._setup(tmp_path)
+        edges = self._run(tmp_path, nodes, "See `a/config.py` for details.\n")
+        assert [(e["source"], e["lines"], e["weight"]) for e in edges] == [
+            ("a/config.py", [1], 1)
+        ]
+
+    def test_bare_name_still_credits_whole_group(self, tmp_path: Path) -> None:
+        nodes = self._setup(tmp_path)
+        edges = self._run(tmp_path, nodes, "Every module has a `config.py`.\n")
+        assert sorted(e["source"] for e in edges) == ["a/config.py", "b/config.py"]
+        assert all(e["lines"] == [1] for e in edges)
+
+    def test_mixed_lines_split_correctly(self, tmp_path: Path) -> None:
+        nodes = self._setup(tmp_path)
+        edges = self._run(
+            tmp_path,
+            nodes,
+            "Start from `a/config.py`.\nThen check every `config.py`.\n",
+        )
+        by_src = {e["source"]: e for e in edges}
+        assert by_src["a/config.py"]["lines"] == [1, 2]
+        assert by_src["a/config.py"]["weight"] == 2
+        assert by_src["b/config.py"]["lines"] == [2]
+        assert by_src["b/config.py"]["weight"] == 1
+
+    def test_unresolvable_path_falls_back_to_group(self, tmp_path: Path) -> None:
+        nodes = self._setup(tmp_path)
+        edges = self._run(tmp_path, nodes, "Legacy `old/gone/config.py` note.\n")
+        assert sorted(e["source"] for e in edges) == ["a/config.py", "b/config.py"]
+
+    def test_segment_boundary_not_substring(self, tmp_path: Path) -> None:
+        # `b/config.py` must not match a path ending in `web/config.py`.
+        _write(tmp_path, "web/config.py", "W = 1\n")
+        _write(tmp_path, "b/config.py", "B = 1\n")
+        nodes = [
+            {"id": "web/config.py", "path": "web/config.py"},
+            {"id": "b/config.py", "path": "b/config.py"},
+        ]
+        edges = self._run(tmp_path, nodes, "See `b/config.py`.\n")
+        assert [e["source"] for e in edges] == ["b/config.py"]

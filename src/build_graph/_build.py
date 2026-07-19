@@ -6,6 +6,7 @@ collector, dynamic-import const-folding) lives here too.
 """
 
 import ast
+import re
 from pathlib import Path
 
 from build_graph.links import extract_file_references
@@ -83,6 +84,42 @@ def build_doc_edges(
     return edges
 
 
+def _is_path_suffix(path: str, suffix: str) -> bool:
+    """True when `suffix` matches `path` on whole segment boundaries."""
+    return path == suffix or (
+        path.endswith(suffix) and path[-len(suffix) - 1] == "/"
+    )
+
+
+def _attribute_mention_lines(
+    group: list[dict],
+    name: str,
+    mentions: list[tuple[int, str]],
+) -> dict[str, list[int]]:
+    """Split a doc's mention lines between same-named files.
+
+    A line that names a group member by an explicit path (any `dir/<name>`
+    suffix) credits only the members it matches; a bare-`<name>` line — or a
+    path that resolves to no member — credits the whole group, as before.
+    """
+    pathish = re.compile(r"[\w\-.\\/]*" + re.escape(name))
+    credited: dict[str, list[int]] = {n["id"]: [] for n in group}
+    for lineno, text in mentions:
+        explicit = [
+            m.group(0).replace("\\", "/").lstrip("./")
+            for m in pathish.finditer(text)
+            if "/" in m.group(0)
+        ]
+        matched = [
+            n
+            for n in group
+            if any(_is_path_suffix(n["path"], hit) for hit in explicit)
+        ]
+        for n in matched or group:
+            credited[n["id"]].append(lineno)
+    return credited
+
+
 def add_code_doc_edges(
     source_nodes: list[dict],
     path_to_doc_id: dict[str, str],
@@ -103,35 +140,46 @@ def add_code_doc_edges(
     # Matching in find_related_docs is filename-based (the absolute-path and
     # dotted-module patterns never occur in project docs), so files sharing
     # a name — ~100 __init__.py / conftest.py / callbacks.py etc. — produce
-    # identical scan results. Scan once per unique filename and fan the hits
-    # out to every file in the group.
+    # identical scan results. Scan once per unique filename; before fanning
+    # the hits out to the group, mention lines that name a member by an
+    # explicit path are credited to that member only (bare-name lines still
+    # go to everyone) — otherwise `integrations/base/config.py` in a doc
+    # would also link every other config.py in the repo.
     by_name: dict[str, list[dict]] = {}
     for node in source_nodes:
         path = project_root / node["path"]
         if not path.exists():
             continue
         by_name.setdefault(path.name, []).append(node)
-    for group in by_name.values():
+    for name, group in by_name.items():
         rep_path = project_root / group[0]["path"]
         doc_results, verbose_out = find_related_docs(
             str(rep_path), root_str, True, md_cache
         )
-        for node in group:
-            for doc_key, count in doc_results.items():
-                doc_id = path_to_doc_id.get(doc_key.replace("\\", "/"))
-                if doc_id is None:
-                    continue
+        for doc_key, count in doc_results.items():
+            doc_id = path_to_doc_id.get(doc_key.replace("\\", "/"))
+            if doc_id is None:
+                continue
+            mentions = verbose_out.get(doc_key, [])
+            if len(group) > 1 and mentions:
+                credited = _attribute_mention_lines(group, name, mentions)
+            else:
+                all_lines = [ln for ln, _ in mentions]
+                credited = {n["id"]: all_lines for n in group}
+            for node in group:
+                line_nums = sorted(set(credited[node["id"]]))
+                if mentions and not line_nums:
+                    continue  # every mention names another same-named file
                 key = (node["id"], doc_id)
                 if key in seen:
                     continue
                 seen.add(key)
-                line_nums = sorted(ln for ln, _ in verbose_out.get(doc_key, []))
                 edges.append(
                     {
                         "source": node["id"],
                         "target": doc_id,
                         "type": "code->doc",
-                        "weight": count,
+                        "weight": len(line_nums) if mentions else count,
                         "lines": line_nums,
                     }
                 )

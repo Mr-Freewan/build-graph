@@ -24,6 +24,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Contributing guide and GitHub issue templates (bug, feature,
   false-positive/negative edge).
 
+### Fixed
+
+- code→doc edges no longer fan out across same-named files when a doc
+  names one of them by an explicit path: `integrations/base/config.py`
+  in a doc used to also link every other `config.py` in the repo.
+  Bare-name mentions still credit the whole group. On a 1,070-node
+  corpus this removes ~15 % of code→doc edges — all provably wrong —
+  and stops falsely doc-exempting files from the dead-code detector.
+
 ## [0.1.0] — 2026-07-19
 
 Initial public release.
