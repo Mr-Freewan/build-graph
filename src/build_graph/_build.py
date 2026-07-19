@@ -86,9 +86,7 @@ def build_doc_edges(
 
 def _is_path_suffix(path: str, suffix: str) -> bool:
     """True when `suffix` matches `path` on whole segment boundaries."""
-    return path == suffix or (
-        path.endswith(suffix) and path[-len(suffix) - 1] == "/"
-    )
+    return path == suffix or (path.endswith(suffix) and path[-len(suffix) - 1] == "/")
 
 
 def _attribute_mention_lines(
@@ -111,9 +109,7 @@ def _attribute_mention_lines(
             if "/" in m.group(0)
         ]
         matched = [
-            n
-            for n in group
-            if any(_is_path_suffix(n["path"], hit) for hit in explicit)
+            n for n in group if any(_is_path_suffix(n["path"], hit) for hit in explicit)
         ]
         for n in matched or group:
             credited[n["id"]].append(lineno)
