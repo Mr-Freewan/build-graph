@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/Mr-Freewan/build-graph/main/schema/graph-v1.schema.json",
+  "title": "build-graph verbose JSON export (schema v1)",
+  "description": "Snapshot written by `build-graph --json` (<output>.json). Verbose, self-explanatory node/edge lists for LLM or tooling consumption.",
+  "type": "object",
+  "required": ["schema_version", "project_root", "stats", "nodes", "edges"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "project_root": {
+      "type": "string",
+      "description": "Absolute path of the scanned project root (forward slashes)."
+    },
+    "stats": {
+      "type": "object",
+      "required": ["node_count", "edge_count", "categories", "edge_types", "git_available"],
+      "additionalProperties": false,
+      "properties": {
+        "node_count": { "type": "integer", "minimum": 0 },
+        "edge_count": { "type": "integer", "minimum": 0 },
+        "categories": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Sorted list of node categories present in this build (e.g. \"code/core\", \"doc/how-to\")."
+        },
+        "edge_types": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/edgeType" }
+        },
+        "git_available": { "type": "boolean" }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/node" }
+    },
+    "edges": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/edge" }
+    }
+  },
+  "$defs": {
+    "edgeType": {
+      "type": "string",
+      "enum": ["code->doc", "code->code", "doc->doc", "docstring", "type-only", "rename"]
+    },
+    "node": {
+      "type": "object",
+      "required": ["id", "label", "path", "type", "degree"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": "string", "description": "File name (last path segment)." },
+        "path": { "type": "string", "description": "Project-relative path, forward slashes." },
+        "type": { "type": "string", "description": "Node category (e.g. \"code/core\", \"doc/reference\")." },
+        "degree": { "type": "integer", "minimum": 0 },
+        "gitStatus": {
+          "type": "string",
+          "enum": ["clean", "modified", "added", "deleted", "renamed"],
+          "description": "Present only when a git overlay was collected."
+        },
+        "ghost": {
+          "const": true,
+          "description": "Present only on ghost nodes (files deleted in git but still referenced)."
+        }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "required": ["source", "target", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "source": { "type": "string", "description": "Node id." },
+        "target": { "type": "string", "description": "Node id." },
+        "type": { "$ref": "#/$defs/edgeType" },
+        "lines": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1 },
+          "minItems": 1,
+          "description": "Source-file line numbers of the reference. Omitted when unknown."
+        },
+        "weight": {
+          "type": "integer",
+          "minimum": 2,
+          "description": "Number of merged references. Omitted when 1."
+        },
+        "ghost": {
+          "const": true,
+          "description": "Present only on edges touching a ghost node."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/Mr-Freewan/build-graph/main/schema/graph-compact-v2.schema.json",
+  "title": "build-graph compact JSON export (schema v2)",
+  "description": "Snapshot written by `build-graph --compact` (<output>-compact.json). Token-efficient: indexed node array, integer edge references, 3-letter type codes, embedded legend.",
+  "type": "object",
+  "required": ["v", "legend", "stats", "n", "e"],
+  "additionalProperties": false,
+  "properties": {
+    "v": { "const": "2.0" },
+    "legend": {
+      "type": "object",
+      "required": ["i", "n", "e", "t", "c", "s"],
+      "additionalProperties": false,
+      "properties": {
+        "i": {
+          "type": "object",
+          "description": "Node index -> project-relative path.",
+          "patternProperties": {
+            "^(0|[1-9][0-9]*)$": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "n": { "type": "string", "description": "Human-readable key legend for node objects." },
+        "e": { "type": "string", "description": "Human-readable shape legend for edge rows." },
+        "t": {
+          "type": "object",
+          "description": "Edge type -> 3-letter code.",
+          "additionalProperties": { "type": "string" }
+        },
+        "c": {
+          "type": "object",
+          "description": "Node category -> short code.",
+          "additionalProperties": { "type": "string" }
+        },
+        "s": {
+          "type": "object",
+          "description": "Git status -> 3-letter code (clean is omitted from nodes).",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "stats": {
+      "type": "object",
+      "required": ["nodes", "ghosts", "edges"],
+      "additionalProperties": false,
+      "properties": {
+        "nodes": { "type": "integer", "minimum": 0, "description": "Live (non-ghost) node count." },
+        "ghosts": { "type": "integer", "minimum": 0 },
+        "edges": { "type": "integer", "minimum": 0, "description": "Live edge count (ghost edges live in \"ge\")." }
+      }
+    },
+    "n": {
+      "type": "array",
+      "description": "Nodes: live nodes first, then ghost nodes. Array position is the node index edges refer to.",
+      "items": { "$ref": "#/$defs/node" }
+    },
+    "e": {
+      "type": "array",
+      "description": "Live edges.",
+      "items": { "$ref": "#/$defs/edgeRow" }
+    },
+    "ge": {
+      "type": "array",
+      "description": "Ghost edges (present only when a git overlay produced any).",
+      "items": { "$ref": "#/$defs/edgeRow" }
+    }
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "required": ["p", "t", "d"],
+      "additionalProperties": false,
+      "properties": {
+        "p": { "type": "string", "description": "Project-relative path, forward slashes." },
+        "t": { "type": "string", "description": "Category code (see legend.c)." },
+        "d": { "type": "integer", "minimum": 0, "description": "Degree." },
+        "s": {
+          "type": "string",
+          "enum": ["mod", "add", "del", "ren"],
+          "description": "Git status code (see legend.s). Omitted when clean."
+        },
+        "G": { "const": 1, "description": "Present only on ghost nodes." }
+      }
+    },
+    "edgeRow": {
+      "type": "array",
+      "description": "[source_index, target_index, type_code, lines?]",
+      "prefixItems": [
+        { "type": "integer", "minimum": 0 },
+        { "type": "integer", "minimum": 0 },
+        {
+          "type": "string",
+          "enum": ["c2d", "c2c", "d2d", "dcs", "typ", "ren"]
+        },
+        {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1 },
+          "minItems": 1
+        }
+      ],
+      "items": false,
+      "minItems": 3,
+      "maxItems": 4
+    }
+  }
+}
