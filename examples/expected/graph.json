@@ -1,0 +1,65 @@
+{
+  "schema_version": "1.0",
+  "project_root": "/path/to/tiny-project",
+  "stats": {
+    "node_count": 4,
+    "edge_count": 2,
+    "categories": [
+      "code/app",
+      "doc/docs"
+    ],
+    "edge_types": [
+      "code->code",
+      "code->doc"
+    ],
+    "git_available": false
+  },
+  "nodes": [
+    {
+      "id": "design.md",
+      "label": "design.md",
+      "path": "docs/design.md",
+      "type": "doc/docs",
+      "degree": 1
+    },
+    {
+      "id": "app/__init__.py",
+      "label": "__init__.py",
+      "path": "app/__init__.py",
+      "type": "code/app",
+      "degree": 0
+    },
+    {
+      "id": "app/cli.py",
+      "label": "cli.py",
+      "path": "app/cli.py",
+      "type": "code/app",
+      "degree": 2
+    },
+    {
+      "id": "app/core.py",
+      "label": "core.py",
+      "path": "app/core.py",
+      "type": "code/app",
+      "degree": 1
+    }
+  ],
+  "edges": [
+    {
+      "source": "app/cli.py",
+      "target": "design.md",
+      "type": "code->doc",
+      "lines": [
+        3
+      ]
+    },
+    {
+      "source": "app/cli.py",
+      "target": "app/core.py",
+      "type": "code->code",
+      "lines": [
+        1
+      ]
+    }
+  ]
+}

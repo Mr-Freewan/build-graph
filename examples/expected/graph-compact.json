@@ -1,0 +1,15 @@
+{
+  "v": "2.0",
+  "legend": {"i":{"0":"docs/design.md","1":"app/__init__.py","2":"app/cli.py","3":"app/core.py"},"n":"nodes array; p=path t=category d=degree s=git(omitted if clean) G=1(ghost)","e":"edges array; [src_idx, tgt_idx, type, [lines]?]","t":{"code->doc":"c2d","code->code":"c2c","doc->doc":"d2d","docstring":"dcs","type-only":"typ","rename":"ren"},"c":{"code/app":"app","doc/docs":"doc"},"s":{"modified":"mod","added":"add","deleted":"del","renamed":"ren"}},
+  "stats": {"nodes":4,"ghosts":0,"edges":2},
+  "n": [
+    {"p":"docs/design.md","t":"doc","d":1},
+    {"p":"app/__init__.py","t":"app","d":0},
+    {"p":"app/cli.py","t":"app","d":2},
+    {"p":"app/core.py","t":"app","d":1}
+  ],
+  "e": [
+    [2,0,"c2d",[3]],
+    [2,3,"c2c",[1]]
+  ]
+}

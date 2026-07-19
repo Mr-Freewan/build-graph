@@ -12,3 +12,5 @@ graph-compact.json
 demo/
 .coverage
 uv.lock
+!examples/expected/graph.json
+!examples/expected/graph-compact.json
