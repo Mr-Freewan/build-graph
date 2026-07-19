@@ -21,6 +21,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   tooltip, no pointer cursor, and clicking one clears selections instead
   of pinning it.
 
+### Fixed
+
+- Bare entries of tree listings in docs no longer fan out across
+  same-named files: the directory context is reconstructed from the
+  tree's indentation, so `keyboards.py` under `api_manager/` links only
+  that file (previously `__init__.py` in a tree linked every
+  `__init__.py` in the repo). Tree entries whose name merely contains
+  another file's name (`input_screens.py` vs `screens.py`) no longer
+  count as mentions of that file. Unparseable tree shapes keep the old
+  whole-group behavior.
+
 ## [0.2.0] — 2026-07-19
 
 ### Added

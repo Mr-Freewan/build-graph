@@ -409,3 +409,90 @@ class TestCodeDocAttribution:
         ]
         edges = self._run(tmp_path, nodes, "See `b/config.py`.\n")
         assert [e["source"] for e in edges] == ["b/config.py"]
+
+
+class TestTreeListingAttribution:
+    """Bare tree entries credit the file their reconstructed path names."""
+
+    def _setup(self, tmp_path: Path) -> list[dict]:
+        _write(tmp_path, "a/config.py", "A = 1\n")
+        _write(tmp_path, "b/config.py", "B = 1\n")
+        return [
+            {"id": "a/config.py", "path": "a/config.py"},
+            {"id": "b/config.py", "path": "b/config.py"},
+        ]
+
+    def _run(self, tmp_path: Path, nodes: list[dict], doc_body: str) -> list[dict]:
+        from build_graph._build import add_code_doc_edges
+
+        doc = tmp_path / "docs" / "d.md"
+        _write(tmp_path, "docs/d.md", doc_body)
+        content = doc.read_text(encoding="utf-8")
+        cache = [(doc, content, content.splitlines())]
+        return add_code_doc_edges(nodes, {"docs/d.md": "d.md"}, tmp_path, cache)
+
+    def test_tree_entry_credits_only_tree_member(self, tmp_path: Path) -> None:
+        nodes = self._setup(tmp_path)
+        # The tree root (`proj/`) is not part of node paths — the suffix
+        # ladder must still land on a/config.py, and only on it.
+        body = (
+            "Layout:\n\n```text\nproj/\n    a/\n        config.py"
+            "      # the one\n    b/\n        other.py\n```\n"
+        )
+        edges = self._run(tmp_path, nodes, body)
+        assert [(e["source"], e["lines"]) for e in edges] == [("a/config.py", [6])]
+
+    def test_dir_and_files_on_one_line(self, tmp_path: Path) -> None:
+        nodes = self._setup(tmp_path)
+        body = "```text\nproj/\n    a/    config.py, extra.py\n```\n"
+        edges = self._run(tmp_path, nodes, body)
+        assert [(e["source"], e["lines"]) for e in edges] == [("a/config.py", [3])]
+
+    def test_multi_dir_line_taints_branch(self, tmp_path: Path) -> None:
+        nodes = self._setup(tmp_path)
+        body = "```text\nproj/\n    a/ b/\n        config.py\n```\n"
+        edges = self._run(tmp_path, nodes, body)
+        assert sorted(e["source"] for e in edges) == ["a/config.py", "b/config.py"]
+
+    def test_brace_dir_taints_branch(self, tmp_path: Path) -> None:
+        nodes = self._setup(tmp_path)
+        body = "```text\nproj/\n    a/{x,y}/\n        config.py\n```\n"
+        edges = self._run(tmp_path, nodes, body)
+        assert sorted(e["source"] for e in edges) == ["a/config.py", "b/config.py"]
+
+    def test_unresolvable_tree_path_falls_back(self, tmp_path: Path) -> None:
+        nodes = self._setup(tmp_path)
+        body = "```text\nproj/\n    zzz/\n        config.py\n```\n"
+        edges = self._run(tmp_path, nodes, body)
+        assert sorted(e["source"] for e in edges) == ["a/config.py", "b/config.py"]
+
+    def test_tree_paths_by_line_shapes(self) -> None:
+        from build_graph._build import _tree_paths_by_line
+
+        lines = [
+            "prose config.py",  # outside a fence — ignored
+            "```text",
+            "pkg/sub/",
+            "    deep/",
+            "        one.py  # comment column",
+            "    two.py",
+            "```",
+        ]
+        assert _tree_paths_by_line(lines) == {
+            5: ["pkg/sub/deep/one.py"],
+            6: ["pkg/sub/two.py"],
+        }
+
+    def test_tree_entry_for_other_file_credits_nobody(self, tmp_path: Path) -> None:
+        nodes = self._setup(tmp_path)
+        # `model_config.py` contains `config.py` as a substring, so mention
+        # detection fires — but the tree says which file the line is about.
+        body = "```text\nproj/\n    a/\n        model_config.py\n```\n"
+        edges = self._run(tmp_path, nodes, body)
+        assert edges == []
+
+    def test_tree_paths_box_drawing_indent(self) -> None:
+        from build_graph._build import _tree_paths_by_line
+
+        lines = ["```", "root/", "├── a/", "│   └── x.py", "```"]
+        assert _tree_paths_by_line(lines) == {4: ["root/a/x.py"]}

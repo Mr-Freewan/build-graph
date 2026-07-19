@@ -89,28 +89,129 @@ def _is_path_suffix(path: str, suffix: str) -> bool:
     return path == suffix or (path.endswith(suffix) and path[-len(suffix) - 1] == "/")
 
 
+_TREE_TOKEN_RE = re.compile(r"^[\w\-.]+(?:/[\w\-.]+)*/?$")
+
+
+def _tree_paths_by_line(lines: list[str]) -> dict[int, list[str]]:
+    """Reconstruct full paths for file entries of tree listings in fences.
+
+    Docs often describe project layout as an indented tree inside a fenced
+    code block, naming files bare (`keyboards.py`) while their directory
+    context lives only in the indentation. Rebuild that context so a bare
+    tree entry can be credited to the one file it means instead of fanning
+    out to every same-named file in the repo. Anything the parser cannot
+    follow — several directories on one line, glob braces — taints that
+    branch, and its entries keep the old bare-name behavior.
+    """
+    out: dict[int, list[str]] = {}
+    in_fence = False
+    # (indent, dir_name) frames; dir_name=None marks a tainted branch.
+    stack: list[tuple[int, str | None]] = []
+    for lineno, raw in enumerate(lines, 1):
+        stripped = raw.strip()
+        if stripped.startswith("```"):
+            in_fence = not in_fence
+            stack = []
+            continue
+        if not in_fence or not stripped:
+            continue
+        # Cut the trailing comment column; tree paths never contain " #".
+        text = re.split(r"\s+#", raw, maxsplit=1)[0]
+        first = re.search(r"[\w.{]", text)
+        if first is None:
+            continue
+        # Box-drawing prefixes (│ ├── └──) count as indentation.
+        indent = first.start()
+        tokens = [t for t in re.split(r"[,\s]+", text[indent:]) if t]
+        dirs = [t for t in tokens if _TREE_TOKEN_RE.match(t) and t.endswith("/")]
+        files = [
+            t
+            for t in tokens
+            if _TREE_TOKEN_RE.match(t)
+            and not t.endswith("/")
+            and "." in t.rsplit("/", 1)[-1]
+        ]
+        # Directory-shaped junk (`data/{a,b}/`) must taint its subtree —
+        # skipping it silently would attach children to the wrong parent.
+        dirish_junk = any(
+            "{" in t or t.endswith("/") for t in tokens if not _TREE_TOKEN_RE.match(t)
+        )
+        if not dirs and not files and not dirish_junk:
+            continue  # prose / code line inside a fence — not a tree entry
+        while stack and stack[-1][0] >= indent:
+            stack.pop()
+        tainted = any(d is None for _, d in stack)
+        if dirish_junk or len(dirs) > 1:
+            stack.append((indent, None))
+            continue
+        prefix = "" if tainted else "".join(d for _, d in stack)
+        if not tainted and files:
+            base = prefix + (dirs[0] if dirs else "")
+            cands = [base + f for f in files if "/" in base + f]
+            if cands:
+                out[lineno] = cands
+        if dirs:
+            stack.append((indent, None if tainted else dirs[0]))
+    return out
+
+
+def _members_for_candidate(group: list[dict], cand: str) -> list[dict]:
+    """Group members matching a tree-reconstructed path, longest suffix first.
+
+    The reconstructed path may carry extra leading segments (a tree root
+    like `smm_bot_async/…` that node paths don't start with), so retry
+    segment by segment. The bare filename alone is never tried — that
+    would just re-create the fan-out this exists to avoid.
+    """
+    segs = cand.split("/")
+    for start in range(len(segs) - 1):
+        suffix = "/".join(segs[start:])
+        hits = [n for n in group if _is_path_suffix(n["path"], suffix)]
+        if hits:
+            return hits
+    return []
+
+
 def _attribute_mention_lines(
     group: list[dict],
     name: str,
     mentions: list[tuple[int, str]],
+    tree_map: dict[int, list[str]] | None = None,
 ) -> dict[str, list[int]]:
     """Split a doc's mention lines between same-named files.
 
-    A line that names a group member by an explicit path (any `dir/<name>`
-    suffix) credits only the members it matches; a bare-`<name>` line — or a
-    path that resolves to no member — credits the whole group, as before.
+    A bare-`<name>` line inside a tree listing credits the member(s) its
+    reconstructed tree path points to. A line that names a group member by
+    an explicit path (any `dir/<name>` suffix) credits only the members it
+    matches. Any other bare line — or a path that resolves to no member —
+    credits the whole group, as before.
     """
     pathish = re.compile(r"[\w\-.\\/]*" + re.escape(name))
     credited: dict[str, list[int]] = {n["id"]: [] for n in group}
     for lineno, text in mentions:
-        explicit = [
-            m.group(0).replace("\\", "/").lstrip("./")
-            for m in pathish.finditer(text)
-            if "/" in m.group(0)
-        ]
-        matched = [
-            n for n in group if any(_is_path_suffix(n["path"], hit) for hit in explicit)
-        ]
+        cands = tree_map.get(lineno, []) if tree_map else []
+        same_name = [c for c in cands if c.rsplit("/", 1)[-1] == name]
+        matched: list[dict] = []
+        for cand in same_name:
+            for n in _members_for_candidate(group, cand):
+                if n not in matched:
+                    matched.append(n)
+        if not matched:
+            explicit = [
+                m.group(0).replace("\\", "/").lstrip("./")
+                for m in pathish.finditer(text)
+                if "/" in m.group(0)
+            ]
+            matched = [
+                n
+                for n in group
+                if any(_is_path_suffix(n["path"], hit) for hit in explicit)
+            ]
+        if not matched and cands and not same_name:
+            # The line is a tree entry for a *different* file whose name
+            # merely contains this one (`input_screens.py` vs `screens.py`)
+            # — a substring artifact of mention detection. Credit nobody.
+            continue
         for n in matched or group:
             credited[n["id"]].append(lineno)
     return credited
@@ -147,6 +248,18 @@ def add_code_doc_edges(
         if not path.exists():
             continue
         by_name.setdefault(path.name, []).append(node)
+    # Tree listings give bare entries full directory context — index the md
+    # corpus lines once and reconstruct each doc's tree lazily, so a bare
+    # `keyboards.py` under `api_manager/` credits only that file.
+    root_resolved = project_root.resolve()
+    doc_lines: dict[str, list[str]] = {}
+    for md_file, _content, md_lines in md_cache:
+        try:
+            rel = Path(md_file).resolve().relative_to(root_resolved)
+        except (ValueError, OSError):
+            continue
+        doc_lines[rel.as_posix()] = md_lines
+    tree_maps: dict[str, dict[int, list[str]]] = {}
     for name, group in by_name.items():
         rep_path = project_root / group[0]["path"]
         doc_results, verbose_out = find_related_docs(
@@ -158,7 +271,12 @@ def add_code_doc_edges(
                 continue
             mentions = verbose_out.get(doc_key, [])
             if len(group) > 1 and mentions:
-                credited = _attribute_mention_lines(group, name, mentions)
+                dk = doc_key.replace("\\", "/")
+                tm = tree_maps.get(dk)
+                if tm is None:
+                    tm = _tree_paths_by_line(doc_lines.get(dk, []))
+                    tree_maps[dk] = tm
+                credited = _attribute_mention_lines(group, name, mentions, tm)
             else:
                 all_lines = [ln for ln, _ in mentions]
                 credited = {n["id"]: all_lines for n in group}
