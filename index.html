@@ -964,6 +964,7 @@ body.git-mode #legend-git {
       <li data-i18n-html="faq.filters.li9"></li>
       <li data-i18n-html="faq.filters.li10"></li>
       <li data-i18n-html="faq.filters.li11"></li>
+      <li data-i18n-html="faq.filters.li12"></li>
     </ul>
 
     <h3 data-i18n="faq.section.appearance">Appearance</h3>
@@ -1014,12 +1015,12 @@ body.git-mode #legend-git {
 </div>
 <canvas id="graph"></canvas>
 <script>
-const GRAPH_DATA = {"nodes": [{"id": "guide.md", "label": "guide.md", "stem": "guide", "type": "doc/docs", "path": "docs/guide.md", "degree": 4, "size": 11.666666666666666, "gitStatus": "added"}, {"id": ".devcontainer/devcontainer.json", "label": "devcontainer.json", "stem": "devcontainer", "type": "config/.devcontainer", "path": ".devcontainer/devcontainer.json", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": ".github/ISSUE_TEMPLATE/bug_report.yml", "label": "bug_report.yml", "stem": "bug_report", "type": "config/.github", "path": ".github/ISSUE_TEMPLATE/bug_report.yml", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": ".github/ISSUE_TEMPLATE/false_positive.yml", "label": "false_positive.yml", "stem": "false_positive", "type": "config/.github", "path": ".github/ISSUE_TEMPLATE/false_positive.yml", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": ".github/ISSUE_TEMPLATE/feature_request.yml", "label": "feature_request.yml", "stem": "feature_request", "type": "config/.github", "path": ".github/ISSUE_TEMPLATE/feature_request.yml", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": ".github/workflows/ci.yml", "label": "ci.yml", "stem": "ci", "type": "config/.github", "path": ".github/workflows/ci.yml", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": ".github/workflows/publish.yml", "label": "publish.yml", "stem": "publish", "type": "config/.github", "path": ".github/workflows/publish.yml", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": ".gitignore", "label": ".gitignore", "stem": ".gitignore", "type": "config/_root", "path": ".gitignore", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean"}, {"id": "CHANGELOG.md", "label": "CHANGELOG.md", "stem": "CHANGELOG", "type": "doc/_root", "path": "CHANGELOG.md", "degree": 3, "size": 10.0, "gitStatus": "modified"}, {"id": "CONTRIBUTING.md", "label": "CONTRIBUTING.md", "stem": "CONTRIBUTING", "type": "doc/_root", "path": "CONTRIBUTING.md", "degree": 6, "size": 15.0, "gitStatus": "renamed"}, {"id": "LICENSE", "label": "LICENSE", "stem": "LICENSE", "type": "doc/_root", "path": "LICENSE", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": "README.md", "label": "README.md", "stem": "README", "type": "doc/_root", "path": "README.md", "degree": 7, "size": 16.666666666666664, "gitStatus": "clean"}, {"id": "examples/README.md", "label": "README.md", "stem": "README", "type": "doc/examples", "path": "examples/README.md", "degree": 6, "size": 15.0, "gitStatus": "clean"}, {"id": "examples/expected/graph-compact.json", "label": "graph-compact.json", "stem": "graph-compact", "type": "config/examples", "path": "examples/expected/graph-compact.json", "degree": 2, "size": 8.333333333333332, "gitStatus": "clean"}, {"id": "examples/expected/graph.json", "label": "graph.json", "stem": "graph", "type": "config/examples", "path": "examples/expected/graph.json", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean"}, {"id": "examples/tiny-project/app/__init__.py", "label": "__init__.py", "stem": "__init__", "type": "code/examples", "path": "examples/tiny-project/app/__init__.py", "degree": 2, "size": 8.333333333333332, "gitStatus": "modified", "deadExempt": true}, {"id": "examples/tiny-project/app/cli.py", "label": "cli.py", "stem": "cli", "type": "code/examples", "path": "examples/tiny-project/app/cli.py", "degree": 2, "size": 8.333333333333332, "gitStatus": "added"}, {"id": "examples/tiny-project/app/core.py", "label": "core.py", "stem": "core", "type": "code/examples", "path": "examples/tiny-project/app/core.py", "degree": 3, "size": 10.0, "gitStatus": "clean"}, {"id": "examples/tiny-project/docs/design.md", "label": "design.md", "stem": "design", "type": "doc/examples", "path": "examples/tiny-project/docs/design.md", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean"}, {"id": "graph.example.toml", "label": "graph.example.toml", "stem": "graph.example", "type": "config/_root", "path": "graph.example.toml", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean"}, {"id": "pyproject.toml", "label": "pyproject.toml", "stem": "pyproject", "type": "config/_root", "path": "pyproject.toml", "degree": 2, "size": 8.333333333333332, "gitStatus": "clean"}, {"id": "schema/graph-compact-v2.schema.json", "label": "graph-compact-v2.schema.json", "stem": "graph-compact-v2.schema", "type": "config/schema", "path": "schema/graph-compact-v2.schema.json", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean"}, {"id": "schema/graph-v1.schema.json", "label": "graph-v1.schema.json", "stem": "graph-v1.schema", "type": "config/schema", "path": "schema/graph-v1.schema.json", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean"}, {"id": "src/build_graph/__init__.py", "label": "__init__.py", "stem": "__init__", "type": "code/src", "path": "src/build_graph/__init__.py", "degree": 2, "size": 8.333333333333332, "gitStatus": "clean", "deadExempt": true}, {"id": "src/build_graph/_build.py", "label": "_build.py", "stem": "_build", "type": "code/src", "path": "src/build_graph/_build.py", "degree": 5, "size": 13.333333333333334, "gitStatus": "clean"}, {"id": "src/build_graph/_common.py", "label": "_common.py", "stem": "_common", "type": "code/src", "path": "src/build_graph/_common.py", "degree": 3, "size": 10.0, "gitStatus": "clean"}, {"id": "src/build_graph/_config.py", "label": "_config.py", "stem": "_config", "type": "code/src", "path": "src/build_graph/_config.py", "degree": 2, "size": 8.333333333333332, "gitStatus": "clean"}, {"id": "src/build_graph/_console.py", "label": "_console.py", "stem": "_console", "type": "code/src", "path": "src/build_graph/_console.py", "degree": 4, "size": 11.666666666666666, "gitStatus": "clean"}, {"id": "src/build_graph/_git.py", "label": "_git.py", "stem": "_git", "type": "code/src", "path": "src/build_graph/_git.py", "degree": 3, "size": 10.0, "gitStatus": "clean"}, {"id": "src/build_graph/_render.py", "label": "_render.py", "stem": "_render", "type": "code/src", "path": "src/build_graph/_render.py", "degree": 3, "size": 10.0, "gitStatus": "clean"}, {"id": "src/build_graph/graph.py", "label": "graph.py", "stem": "graph", "type": "code/src", "path": "src/build_graph/graph.py", "degree": 9, "size": 20.0, "gitStatus": "clean", "deadExempt": true}, {"id": "src/build_graph/links.py", "label": "links.py", "stem": "links", "type": "code/src", "path": "src/build_graph/links.py", "degree": 6, "size": 15.0, "gitStatus": "clean", "deadExempt": true}, {"id": "src/build_graph/query.py", "label": "query.py", "stem": "query", "type": "code/src", "path": "src/build_graph/query.py", "degree": 4, "size": 11.666666666666666, "gitStatus": "clean", "deadExempt": true}, {"id": "src/build_graph/related.py", "label": "related.py", "stem": "related", "type": "code/src", "path": "src/build_graph/related.py", "degree": 5, "size": 13.333333333333334, "gitStatus": "clean", "deadExempt": true}, {"id": "src/build_graph/resources/body.html", "label": "body.html", "stem": "body", "type": "code/src", "path": "src/build_graph/resources/body.html", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": "src/build_graph/resources/boot.js", "label": "boot.js", "stem": "boot", "type": "code/src", "path": "src/build_graph/resources/boot.js", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean"}, {"id": "src/build_graph/resources/engine.js", "label": "engine.js", "stem": "engine", "type": "code/src", "path": "src/build_graph/resources/engine.js", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean"}, {"id": "src/build_graph/resources/i18n.js", "label": "i18n.js", "stem": "i18n", "type": "code/src", "path": "src/build_graph/resources/i18n.js", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean"}, {"id": "src/build_graph/resources/style.css", "label": "style.css", "stem": "style", "type": "code/src", "path": "src/build_graph/resources/style.css", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": "src/build_graph/resources/ui.js", "label": "ui.js", "stem": "ui", "type": "code/src", "path": "src/build_graph/resources/ui.js", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean"}, {"id": "tests/test_build_edges.py", "label": "test_build_edges.py", "stem": "test_build_edges", "type": "code/tests", "path": "tests/test_build_edges.py", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_cli_smoke.py", "label": "test_cli_smoke.py", "stem": "test_cli_smoke", "type": "code/tests", "path": "tests/test_cli_smoke.py", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_dead_exemptions.py", "label": "test_dead_exemptions.py", "stem": "test_dead_exemptions", "type": "code/tests", "path": "tests/test_dead_exemptions.py", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_examples.py", "label": "test_examples.py", "stem": "test_examples", "type": "code/tests", "path": "tests/test_examples.py", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_export_schemas.py", "label": "test_export_schemas.py", "stem": "test_export_schemas", "type": "code/tests", "path": "tests/test_export_schemas.py", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_extract_file_references.py", "label": "test_extract_file_references.py", "stem": "test_extract_file_references", "type": "code/tests", "path": "tests/test_extract_file_references.py", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_git_overlay.py", "label": "test_git_overlay.py", "stem": "test_git_overlay", "type": "code/tests", "path": "tests/test_git_overlay.py", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_init_lifecycle.py", "label": "test_init_lifecycle.py", "stem": "test_init_lifecycle", "type": "code/tests", "path": "tests/test_init_lifecycle.py", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_links_cli.py", "label": "test_links_cli.py", "stem": "test_links_cli", "type": "code/tests", "path": "tests/test_links_cli.py", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_query.py", "label": "test_query.py", "stem": "test_query", "type": "code/tests", "path": "tests/test_query.py", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_related.py", "label": "test_related.py", "stem": "test_related", "type": "code/tests", "path": "tests/test_related.py", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_related_git_modes.py", "label": "test_related_git_modes.py", "stem": "test_related_git_modes", "type": "code/tests", "path": "tests/test_related_git_modes.py", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_resolve_python_import.py", "label": "test_resolve_python_import.py", "stem": "test_resolve_python_import", "type": "code/tests", "path": "tests/test_resolve_python_import.py", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean", "deadExempt": true}, {"id": "ghost::__demo_renamed_from.md", "label": "__demo_renamed_from.md", "stem": "__demo_renamed_from", "type": "doc/ghost", "path": "__demo_renamed_from.md", "degree": 1, "size": 6, "ghost": true, "gitStatus": "renamed"}, {"id": "ghost::docs/__demo_deleted_with_refs.md", "label": "__demo_deleted_with_refs.md", "stem": "__demo_deleted_with_refs", "type": "doc/ghost", "path": "docs/__demo_deleted_with_refs.md", "degree": 1, "size": 6, "ghost": true, "gitStatus": "deleted"}, {"id": "ghost::__demo_deleted_orphan.md", "label": "__demo_deleted_orphan.md", "stem": "__demo_deleted_orphan", "type": "doc/ghost", "path": "__demo_deleted_orphan.md", "degree": 0, "size": 6, "ghost": true, "gitStatus": "deleted"}], "links": [{"source": "CONTRIBUTING.md", "target": "CHANGELOG.md", "type": "doc->doc", "weight": 1, "lines": [50]}, {"source": "README.md", "target": "guide.md", "type": "doc->doc", "weight": 1, "lines": [39]}, {"source": ".gitignore", "target": "README.md", "type": "code->doc", "weight": 1, "lines": [224]}, {"source": "examples/expected/graph-compact.json", "target": "README.md", "type": "code->doc", "weight": 4, "lines": [69, 104, 168, 306]}, {"source": "examples/expected/graph-compact.json", "target": "examples/README.md", "type": "code->doc", "weight": 2, "lines": [30, 33]}, {"source": "examples/expected/graph.json", "target": "examples/README.md", "type": "code->doc", "weight": 3, "lines": [29, 32, 36]}, {"source": "examples/tiny-project/app/__init__.py", "target": "guide.md", "type": "code->doc", "weight": 1, "lines": [156]}, {"source": "src/build_graph/__init__.py", "target": "guide.md", "type": "code->doc", "weight": 1, "lines": [156]}, {"source": "examples/tiny-project/app/__init__.py", "target": "examples/README.md", "type": "code->doc", "weight": 1, "lines": [12]}, {"source": "src/build_graph/__init__.py", "target": "examples/README.md", "type": "code->doc", "weight": 1, "lines": [12]}, {"source": "examples/tiny-project/app/cli.py", "target": "examples/README.md", "type": "code->doc", "weight": 2, "lines": [14, 16]}, {"source": "examples/tiny-project/app/cli.py", "target": "examples/tiny-project/docs/design.md", "type": "code->doc", "weight": 1, "lines": [3]}, {"source": "examples/tiny-project/app/core.py", "target": "README.md", "type": "code->doc", "weight": 1, "lines": [309]}, {"source": "examples/tiny-project/app/core.py", "target": "examples/README.md", "type": "code->doc", "weight": 2, "lines": [13, 16]}, {"source": "graph.example.toml", "target": "README.md", "type": "code->doc", "weight": 1, "lines": [215]}, {"source": "pyproject.toml", "target": "guide.md", "type": "code->doc", "weight": 1, "lines": [155]}, {"source": "pyproject.toml", "target": "README.md", "type": "code->doc", "weight": 1, "lines": [333]}, {"source": "schema/graph-compact-v2.schema.json", "target": "CHANGELOG.md", "type": "code->doc", "weight": 1, "lines": [17]}, {"source": "schema/graph-v1.schema.json", "target": "CHANGELOG.md", "type": "code->doc", "weight": 1, "lines": [16]}, {"source": "src/build_graph/resources/boot.js", "target": "CONTRIBUTING.md", "type": "code->doc", "weight": 1, "lines": [34]}, {"source": "src/build_graph/resources/engine.js", "target": "CONTRIBUTING.md", "type": "code->doc", "weight": 1, "lines": [34]}, {"source": "src/build_graph/resources/i18n.js", "target": "CONTRIBUTING.md", "type": "code->doc", "weight": 2, "lines": [34, 36]}, {"source": "src/build_graph/resources/ui.js", "target": "CONTRIBUTING.md", "type": "code->doc", "weight": 1, "lines": [34]}, {"source": "src/build_graph/_build.py", "target": "src/build_graph/links.py", "type": "code->code", "weight": 1, "lines": [12]}, {"source": "src/build_graph/_build.py", "target": "src/build_graph/related.py", "type": "code->code", "weight": 1, "lines": [13]}, {"source": "src/build_graph/_config.py", "target": "src/build_graph/_render.py", "type": "code->code", "weight": 1, "lines": [18]}, {"source": "src/build_graph/_git.py", "target": "src/build_graph/links.py", "type": "code->code", "weight": 1, "lines": [12]}, {"source": "src/build_graph/graph.py", "target": "src/build_graph/_build.py", "type": "code->code", "weight": 1, "lines": [64]}, {"source": "src/build_graph/graph.py", "target": "src/build_graph/_config.py", "type": "code->code", "weight": 1, "lines": [71]}, {"source": "src/build_graph/graph.py", "target": "src/build_graph/_console.py", "type": "code->code", "weight": 1, "lines": [77]}, {"source": "src/build_graph/graph.py", "target": "src/build_graph/_git.py", "type": "code->code", "weight": 1, "lines": [78]}, {"source": "src/build_graph/graph.py", "target": "src/build_graph/_render.py", "type": "code->code", "weight": 1, "lines": [84]}, {"source": "src/build_graph/links.py", "target": "src/build_graph/_common.py", "type": "code->code", "weight": 1, "lines": [19]}, {"source": "src/build_graph/links.py", "target": "src/build_graph/_console.py", "type": "code->code", "weight": 1, "lines": [20]}, {"source": "src/build_graph/query.py", "target": "src/build_graph/_common.py", "type": "code->code", "weight": 1, "lines": [22]}, {"source": "src/build_graph/query.py", "target": "src/build_graph/_console.py", "type": "code->code", "weight": 1, "lines": [23]}, {"source": "src/build_graph/related.py", "target": "src/build_graph/_common.py", "type": "code->code", "weight": 1, "lines": [17]}, {"source": "src/build_graph/related.py", "target": "src/build_graph/_console.py", "type": "code->code", "weight": 1, "lines": [18]}, {"source": "tests/test_build_edges.py", "target": "src/build_graph/_build.py", "type": "code->code", "weight": 2, "lines": [5, 363]}, {"source": "tests/test_cli_smoke.py", "target": "src/build_graph/graph.py", "type": "code->code", "weight": 1, "lines": [9]}, {"source": "tests/test_dead_exemptions.py", "target": "src/build_graph/_render.py", "type": "code->code", "weight": 1, "lines": [5]}, {"source": "tests/test_examples.py", "target": "src/build_graph/graph.py", "type": "code->code", "weight": 1, "lines": [10]}, {"source": "tests/test_export_schemas.py", "target": "src/build_graph/graph.py", "type": "code->code", "weight": 1, "lines": [10]}, {"source": "tests/test_extract_file_references.py", "target": "src/build_graph/links.py", "type": "code->code", "weight": 1, "lines": [3]}, {"source": "tests/test_git_overlay.py", "target": "src/build_graph/_git.py", "type": "code->code", "weight": 1, "lines": [8]}, {"source": "tests/test_init_lifecycle.py", "target": "src/build_graph/graph.py", "type": "code->code", "weight": 1, "lines": [9]}, {"source": "tests/test_links_cli.py", "target": "src/build_graph/links.py", "type": "code->code", "weight": 1, "lines": [8]}, {"source": "tests/test_query.py", "target": "src/build_graph/query.py", "type": "code->code", "weight": 2, "lines": [12, 13]}, {"source": "tests/test_related.py", "target": "src/build_graph/related.py", "type": "code->code", "weight": 1, "lines": [7]}, {"source": "tests/test_related_git_modes.py", "target": "src/build_graph/related.py", "type": "code->code", "weight": 2, "lines": [9, 10]}, {"source": "tests/test_resolve_python_import.py", "target": "src/build_graph/_build.py", "type": "code->code", "weight": 1, "lines": [7]}, {"source": "src/build_graph/query.py", "target": "examples/tiny-project/app/core.py", "type": "docstring", "weight": 1, "lines": [119]}, {"source": "ghost::__demo_renamed_from.md", "target": "CONTRIBUTING.md", "type": "rename", "weight": 1, "lines": [], "ghost": true}, {"source": "README.md", "target": "ghost::docs/__demo_deleted_with_refs.md", "type": "doc->doc", "weight": 1, "lines": [42], "ghost": true}]};
+const GRAPH_DATA = {"nodes": [{"id": "guide.md", "label": "guide.md", "stem": "guide", "type": "doc/docs", "path": "docs/guide.md", "degree": 4, "size": 11.666666666666666, "gitStatus": "added"}, {"id": ".devcontainer/devcontainer.json", "label": "devcontainer.json", "stem": "devcontainer", "type": "config/.devcontainer", "path": ".devcontainer/devcontainer.json", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": ".github/ISSUE_TEMPLATE/bug_report.yml", "label": "bug_report.yml", "stem": "bug_report", "type": "config/.github", "path": ".github/ISSUE_TEMPLATE/bug_report.yml", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": ".github/ISSUE_TEMPLATE/false_positive.yml", "label": "false_positive.yml", "stem": "false_positive", "type": "config/.github", "path": ".github/ISSUE_TEMPLATE/false_positive.yml", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": ".github/ISSUE_TEMPLATE/feature_request.yml", "label": "feature_request.yml", "stem": "feature_request", "type": "config/.github", "path": ".github/ISSUE_TEMPLATE/feature_request.yml", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": ".github/workflows/ci.yml", "label": "ci.yml", "stem": "ci", "type": "config/.github", "path": ".github/workflows/ci.yml", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": ".github/workflows/publish.yml", "label": "publish.yml", "stem": "publish", "type": "config/.github", "path": ".github/workflows/publish.yml", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": ".gitignore", "label": ".gitignore", "stem": ".gitignore", "type": "config/_root", "path": ".gitignore", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean"}, {"id": "CHANGELOG.md", "label": "CHANGELOG.md", "stem": "CHANGELOG", "type": "doc/_root", "path": "CHANGELOG.md", "degree": 3, "size": 10.0, "gitStatus": "modified"}, {"id": "CONTRIBUTING.md", "label": "CONTRIBUTING.md", "stem": "CONTRIBUTING", "type": "doc/_root", "path": "CONTRIBUTING.md", "degree": 6, "size": 15.0, "gitStatus": "renamed"}, {"id": "LICENSE", "label": "LICENSE", "stem": "LICENSE", "type": "doc/_root", "path": "LICENSE", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": "README.md", "label": "README.md", "stem": "README", "type": "doc/_root", "path": "README.md", "degree": 7, "size": 16.666666666666664, "gitStatus": "clean"}, {"id": "examples/README.md", "label": "README.md", "stem": "README", "type": "doc/examples", "path": "examples/README.md", "degree": 6, "size": 15.0, "gitStatus": "clean"}, {"id": "examples/expected/graph-compact.json", "label": "graph-compact.json", "stem": "graph-compact", "type": "config/examples", "path": "examples/expected/graph-compact.json", "degree": 2, "size": 8.333333333333332, "gitStatus": "clean"}, {"id": "examples/expected/graph.json", "label": "graph.json", "stem": "graph", "type": "config/examples", "path": "examples/expected/graph.json", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean"}, {"id": "examples/tiny-project/app/__init__.py", "label": "__init__.py", "stem": "__init__", "type": "code/examples", "path": "examples/tiny-project/app/__init__.py", "degree": 2, "size": 8.333333333333332, "gitStatus": "modified", "deadExempt": true}, {"id": "examples/tiny-project/app/cli.py", "label": "cli.py", "stem": "cli", "type": "code/examples", "path": "examples/tiny-project/app/cli.py", "degree": 2, "size": 8.333333333333332, "gitStatus": "added"}, {"id": "examples/tiny-project/app/core.py", "label": "core.py", "stem": "core", "type": "code/examples", "path": "examples/tiny-project/app/core.py", "degree": 3, "size": 10.0, "gitStatus": "clean"}, {"id": "examples/tiny-project/docs/design.md", "label": "design.md", "stem": "design", "type": "doc/examples", "path": "examples/tiny-project/docs/design.md", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean"}, {"id": "graph.example.toml", "label": "graph.example.toml", "stem": "graph.example", "type": "config/_root", "path": "graph.example.toml", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean"}, {"id": "pyproject.toml", "label": "pyproject.toml", "stem": "pyproject", "type": "config/_root", "path": "pyproject.toml", "degree": 2, "size": 8.333333333333332, "gitStatus": "clean"}, {"id": "schema/graph-compact-v2.schema.json", "label": "graph-compact-v2.schema.json", "stem": "graph-compact-v2.schema", "type": "config/schema", "path": "schema/graph-compact-v2.schema.json", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean"}, {"id": "schema/graph-v1.schema.json", "label": "graph-v1.schema.json", "stem": "graph-v1.schema", "type": "config/schema", "path": "schema/graph-v1.schema.json", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean"}, {"id": "src/build_graph/__init__.py", "label": "__init__.py", "stem": "__init__", "type": "code/src", "path": "src/build_graph/__init__.py", "degree": 2, "size": 8.333333333333332, "gitStatus": "clean", "deadExempt": true}, {"id": "src/build_graph/_build.py", "label": "_build.py", "stem": "_build", "type": "code/src", "path": "src/build_graph/_build.py", "degree": 5, "size": 13.333333333333334, "gitStatus": "clean"}, {"id": "src/build_graph/_common.py", "label": "_common.py", "stem": "_common", "type": "code/src", "path": "src/build_graph/_common.py", "degree": 3, "size": 10.0, "gitStatus": "clean"}, {"id": "src/build_graph/_config.py", "label": "_config.py", "stem": "_config", "type": "code/src", "path": "src/build_graph/_config.py", "degree": 2, "size": 8.333333333333332, "gitStatus": "clean"}, {"id": "src/build_graph/_console.py", "label": "_console.py", "stem": "_console", "type": "code/src", "path": "src/build_graph/_console.py", "degree": 4, "size": 11.666666666666666, "gitStatus": "clean"}, {"id": "src/build_graph/_git.py", "label": "_git.py", "stem": "_git", "type": "code/src", "path": "src/build_graph/_git.py", "degree": 3, "size": 10.0, "gitStatus": "clean"}, {"id": "src/build_graph/_render.py", "label": "_render.py", "stem": "_render", "type": "code/src", "path": "src/build_graph/_render.py", "degree": 3, "size": 10.0, "gitStatus": "clean"}, {"id": "src/build_graph/graph.py", "label": "graph.py", "stem": "graph", "type": "code/src", "path": "src/build_graph/graph.py", "degree": 9, "size": 20.0, "gitStatus": "clean", "deadExempt": true}, {"id": "src/build_graph/links.py", "label": "links.py", "stem": "links", "type": "code/src", "path": "src/build_graph/links.py", "degree": 6, "size": 15.0, "gitStatus": "clean", "deadExempt": true}, {"id": "src/build_graph/query.py", "label": "query.py", "stem": "query", "type": "code/src", "path": "src/build_graph/query.py", "degree": 4, "size": 11.666666666666666, "gitStatus": "clean", "deadExempt": true}, {"id": "src/build_graph/related.py", "label": "related.py", "stem": "related", "type": "code/src", "path": "src/build_graph/related.py", "degree": 5, "size": 13.333333333333334, "gitStatus": "clean", "deadExempt": true}, {"id": "src/build_graph/resources/body.html", "label": "body.html", "stem": "body", "type": "code/src", "path": "src/build_graph/resources/body.html", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": "src/build_graph/resources/boot.js", "label": "boot.js", "stem": "boot", "type": "code/src", "path": "src/build_graph/resources/boot.js", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean"}, {"id": "src/build_graph/resources/engine.js", "label": "engine.js", "stem": "engine", "type": "code/src", "path": "src/build_graph/resources/engine.js", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean"}, {"id": "src/build_graph/resources/i18n.js", "label": "i18n.js", "stem": "i18n", "type": "code/src", "path": "src/build_graph/resources/i18n.js", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean"}, {"id": "src/build_graph/resources/style.css", "label": "style.css", "stem": "style", "type": "code/src", "path": "src/build_graph/resources/style.css", "degree": 0, "size": 5.0, "gitStatus": "clean"}, {"id": "src/build_graph/resources/ui.js", "label": "ui.js", "stem": "ui", "type": "code/src", "path": "src/build_graph/resources/ui.js", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean"}, {"id": "tests/test_build_edges.py", "label": "test_build_edges.py", "stem": "test_build_edges", "type": "code/tests", "path": "tests/test_build_edges.py", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_cli_smoke.py", "label": "test_cli_smoke.py", "stem": "test_cli_smoke", "type": "code/tests", "path": "tests/test_cli_smoke.py", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_dead_exemptions.py", "label": "test_dead_exemptions.py", "stem": "test_dead_exemptions", "type": "code/tests", "path": "tests/test_dead_exemptions.py", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_examples.py", "label": "test_examples.py", "stem": "test_examples", "type": "code/tests", "path": "tests/test_examples.py", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_export_schemas.py", "label": "test_export_schemas.py", "stem": "test_export_schemas", "type": "code/tests", "path": "tests/test_export_schemas.py", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_extract_file_references.py", "label": "test_extract_file_references.py", "stem": "test_extract_file_references", "type": "code/tests", "path": "tests/test_extract_file_references.py", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_git_overlay.py", "label": "test_git_overlay.py", "stem": "test_git_overlay", "type": "code/tests", "path": "tests/test_git_overlay.py", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_init_lifecycle.py", "label": "test_init_lifecycle.py", "stem": "test_init_lifecycle", "type": "code/tests", "path": "tests/test_init_lifecycle.py", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_links_cli.py", "label": "test_links_cli.py", "stem": "test_links_cli", "type": "code/tests", "path": "tests/test_links_cli.py", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_query.py", "label": "test_query.py", "stem": "test_query", "type": "code/tests", "path": "tests/test_query.py", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_related.py", "label": "test_related.py", "stem": "test_related", "type": "code/tests", "path": "tests/test_related.py", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_related_git_modes.py", "label": "test_related_git_modes.py", "stem": "test_related_git_modes", "type": "code/tests", "path": "tests/test_related_git_modes.py", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean", "deadExempt": true}, {"id": "tests/test_resolve_python_import.py", "label": "test_resolve_python_import.py", "stem": "test_resolve_python_import", "type": "code/tests", "path": "tests/test_resolve_python_import.py", "degree": 1, "size": 6.666666666666666, "gitStatus": "clean", "deadExempt": true}, {"id": "ghost::__demo_renamed_from.md", "label": "__demo_renamed_from.md", "stem": "__demo_renamed_from", "type": "doc/ghost", "path": "__demo_renamed_from.md", "degree": 1, "size": 6, "ghost": true, "gitStatus": "renamed"}, {"id": "ghost::docs/__demo_deleted_with_refs.md", "label": "__demo_deleted_with_refs.md", "stem": "__demo_deleted_with_refs", "type": "doc/ghost", "path": "docs/__demo_deleted_with_refs.md", "degree": 1, "size": 6, "ghost": true, "gitStatus": "deleted"}, {"id": "ghost::__demo_deleted_orphan.md", "label": "__demo_deleted_orphan.md", "stem": "__demo_deleted_orphan", "type": "doc/ghost", "path": "__demo_deleted_orphan.md", "degree": 0, "size": 6, "ghost": true, "gitStatus": "deleted"}], "links": [{"source": "CONTRIBUTING.md", "target": "CHANGELOG.md", "type": "doc->doc", "weight": 1, "lines": [50]}, {"source": "README.md", "target": "guide.md", "type": "doc->doc", "weight": 1, "lines": [39]}, {"source": ".gitignore", "target": "README.md", "type": "code->doc", "weight": 1, "lines": [226]}, {"source": "examples/expected/graph-compact.json", "target": "README.md", "type": "code->doc", "weight": 4, "lines": [69, 104, 168, 308]}, {"source": "examples/expected/graph-compact.json", "target": "examples/README.md", "type": "code->doc", "weight": 2, "lines": [30, 33]}, {"source": "examples/expected/graph.json", "target": "examples/README.md", "type": "code->doc", "weight": 3, "lines": [29, 32, 36]}, {"source": "examples/tiny-project/app/__init__.py", "target": "guide.md", "type": "code->doc", "weight": 1, "lines": [156]}, {"source": "src/build_graph/__init__.py", "target": "guide.md", "type": "code->doc", "weight": 1, "lines": [156]}, {"source": "examples/tiny-project/app/__init__.py", "target": "examples/README.md", "type": "code->doc", "weight": 1, "lines": [12]}, {"source": "src/build_graph/__init__.py", "target": "examples/README.md", "type": "code->doc", "weight": 1, "lines": [12]}, {"source": "examples/tiny-project/app/cli.py", "target": "examples/README.md", "type": "code->doc", "weight": 2, "lines": [14, 16]}, {"source": "examples/tiny-project/app/cli.py", "target": "examples/tiny-project/docs/design.md", "type": "code->doc", "weight": 1, "lines": [3]}, {"source": "examples/tiny-project/app/core.py", "target": "README.md", "type": "code->doc", "weight": 1, "lines": [311]}, {"source": "examples/tiny-project/app/core.py", "target": "examples/README.md", "type": "code->doc", "weight": 2, "lines": [13, 16]}, {"source": "graph.example.toml", "target": "README.md", "type": "code->doc", "weight": 1, "lines": [217]}, {"source": "pyproject.toml", "target": "guide.md", "type": "code->doc", "weight": 1, "lines": [155]}, {"source": "pyproject.toml", "target": "README.md", "type": "code->doc", "weight": 1, "lines": [335]}, {"source": "schema/graph-compact-v2.schema.json", "target": "CHANGELOG.md", "type": "code->doc", "weight": 1, "lines": [33]}, {"source": "schema/graph-v1.schema.json", "target": "CHANGELOG.md", "type": "code->doc", "weight": 1, "lines": [32]}, {"source": "src/build_graph/resources/boot.js", "target": "CONTRIBUTING.md", "type": "code->doc", "weight": 1, "lines": [34]}, {"source": "src/build_graph/resources/engine.js", "target": "CONTRIBUTING.md", "type": "code->doc", "weight": 1, "lines": [34]}, {"source": "src/build_graph/resources/i18n.js", "target": "CONTRIBUTING.md", "type": "code->doc", "weight": 2, "lines": [34, 36]}, {"source": "src/build_graph/resources/ui.js", "target": "CONTRIBUTING.md", "type": "code->doc", "weight": 1, "lines": [34]}, {"source": "src/build_graph/_build.py", "target": "src/build_graph/links.py", "type": "code->code", "weight": 1, "lines": [12]}, {"source": "src/build_graph/_build.py", "target": "src/build_graph/related.py", "type": "code->code", "weight": 1, "lines": [13]}, {"source": "src/build_graph/_config.py", "target": "src/build_graph/_render.py", "type": "code->code", "weight": 1, "lines": [18]}, {"source": "src/build_graph/_git.py", "target": "src/build_graph/links.py", "type": "code->code", "weight": 1, "lines": [12]}, {"source": "src/build_graph/graph.py", "target": "src/build_graph/_build.py", "type": "code->code", "weight": 1, "lines": [64]}, {"source": "src/build_graph/graph.py", "target": "src/build_graph/_config.py", "type": "code->code", "weight": 1, "lines": [71]}, {"source": "src/build_graph/graph.py", "target": "src/build_graph/_console.py", "type": "code->code", "weight": 1, "lines": [77]}, {"source": "src/build_graph/graph.py", "target": "src/build_graph/_git.py", "type": "code->code", "weight": 1, "lines": [78]}, {"source": "src/build_graph/graph.py", "target": "src/build_graph/_render.py", "type": "code->code", "weight": 1, "lines": [84]}, {"source": "src/build_graph/links.py", "target": "src/build_graph/_common.py", "type": "code->code", "weight": 1, "lines": [19]}, {"source": "src/build_graph/links.py", "target": "src/build_graph/_console.py", "type": "code->code", "weight": 1, "lines": [20]}, {"source": "src/build_graph/query.py", "target": "src/build_graph/_common.py", "type": "code->code", "weight": 1, "lines": [22]}, {"source": "src/build_graph/query.py", "target": "src/build_graph/_console.py", "type": "code->code", "weight": 1, "lines": [23]}, {"source": "src/build_graph/related.py", "target": "src/build_graph/_common.py", "type": "code->code", "weight": 1, "lines": [17]}, {"source": "src/build_graph/related.py", "target": "src/build_graph/_console.py", "type": "code->code", "weight": 1, "lines": [18]}, {"source": "tests/test_build_edges.py", "target": "src/build_graph/_build.py", "type": "code->code", "weight": 2, "lines": [5, 363]}, {"source": "tests/test_cli_smoke.py", "target": "src/build_graph/graph.py", "type": "code->code", "weight": 1, "lines": [9]}, {"source": "tests/test_dead_exemptions.py", "target": "src/build_graph/_render.py", "type": "code->code", "weight": 1, "lines": [5]}, {"source": "tests/test_examples.py", "target": "src/build_graph/graph.py", "type": "code->code", "weight": 1, "lines": [10]}, {"source": "tests/test_export_schemas.py", "target": "src/build_graph/graph.py", "type": "code->code", "weight": 1, "lines": [10]}, {"source": "tests/test_extract_file_references.py", "target": "src/build_graph/links.py", "type": "code->code", "weight": 1, "lines": [3]}, {"source": "tests/test_git_overlay.py", "target": "src/build_graph/_git.py", "type": "code->code", "weight": 1, "lines": [8]}, {"source": "tests/test_init_lifecycle.py", "target": "src/build_graph/graph.py", "type": "code->code", "weight": 1, "lines": [9]}, {"source": "tests/test_links_cli.py", "target": "src/build_graph/links.py", "type": "code->code", "weight": 1, "lines": [8]}, {"source": "tests/test_query.py", "target": "src/build_graph/query.py", "type": "code->code", "weight": 2, "lines": [12, 13]}, {"source": "tests/test_related.py", "target": "src/build_graph/related.py", "type": "code->code", "weight": 1, "lines": [7]}, {"source": "tests/test_related_git_modes.py", "target": "src/build_graph/related.py", "type": "code->code", "weight": 2, "lines": [9, 10]}, {"source": "tests/test_resolve_python_import.py", "target": "src/build_graph/_build.py", "type": "code->code", "weight": 1, "lines": [7]}, {"source": "src/build_graph/query.py", "target": "examples/tiny-project/app/core.py", "type": "docstring", "weight": 1, "lines": [119]}, {"source": "ghost::__demo_renamed_from.md", "target": "CONTRIBUTING.md", "type": "rename", "weight": 1, "lines": [], "ghost": true}, {"source": "README.md", "target": "ghost::docs/__demo_deleted_with_refs.md", "type": "doc->doc", "weight": 1, "lines": [42], "ghost": true}]};
 const NODE_COLORS = {"code/examples": "#eab8ca", "code/src": "#b8eabf", "code/tests": "#b8d1ea", "config/.devcontainer": "#d4b8ea", "config/.github": "#eacbb8", "config/_root": "#b8e8ea", "config/examples": "#eab8d0", "config/schema": "#d3b8ea", "doc/_root": "#d4eab8", "doc/docs": "#e7b8ea", "doc/examples": "#eac9b8"};
 const NODE_COLORS_SATURATED = {"code/examples": "#bd285c", "code/src": "#28bd3f", "code/tests": "#2873bd", "config/.devcontainer": "#7d28bd", "config/.github": "#bd6128", "config/_root": "#28b6bd", "config/examples": "#bd2870", "config/schema": "#7828bd", "doc/_root": "#7dbd28", "doc/docs": "#b328bd", "doc/examples": "#bd5a28"};
 const PROJECT_ROOT = "F:/incontr_work/build-graph";
 const GIT_DATA = {"added": [], "modified": [], "deleted": [], "renamed": {}};
-const APP_VERSION = "0.1.0";
+const APP_VERSION = "0.2.0";
 const APP_AUTHOR = "Yuriy Totyshev";
 const APP_AUTHOR_URL = "https://github.com/Mr-Freewan";
 
@@ -1144,6 +1145,9 @@ const I18N = {
         "btn.deadCodeTitle": "Highlight code files that nothing imports and no doc mentions",
         "btn.untracked": "Unmapped",
         "btn.untrackedTitle": "Highlight files not covered by an explicit graph.toml rule (auto-classified)",
+        "btn.cycles": "Cycles",
+        "btn.cyclesTitle": "Highlight circular imports — files that import each other in a loop",
+        "faq.filters.li12": "<b>Cycles</b> button (in the legend, only when import loops exist) highlights circular <code>import</code> chains between code files in coral. Imports made only under <code>TYPE_CHECKING</code> don't count &mdash; they exist precisely to break such loops.",
         "faq.filters.li11": "<b>Unmapped</b> button (in the legend, only when a graph.toml exists) outlines files classified by the autodiscovery fallback &mdash; no explicit config rule covers them. A hint to refresh the config via <code>--init --diff</code> / <code>--init --merge</code>.",
         "faq.nav.li8": "<b>Shift+click</b> two nodes to highlight the shortest path between them through the graph; <kbd>Esc</kbd> clears.",
         "faq.nav.li9": "<b>Double-click</b> a node to <i>pin</i> its position (the physics simulation will stop moving it); double-click again to release.",
@@ -1273,6 +1277,9 @@ const I18N = {
         "btn.deadCodeTitle": "Подсветить файлы кода, которые никто не импортирует и не упоминают доки",
         "btn.untracked": "Вне правил",
         "btn.untrackedTitle": "Подсветить файлы, не покрытые явным правилом graph.toml (классифицированы автоматически)",
+        "btn.cycles": "Циклы",
+        "btn.cyclesTitle": "Подсветить циклические импорты — файлы, импортирующие друг друга по кругу",
+        "faq.filters.li12": "Кнопка <b>Циклы</b> (в легенде, появляется только при наличии импорт-петель) подсвечивает коралловым цепочки взаимных <code>import</code> между файлами кода. Импорты только под <code>TYPE_CHECKING</code> не учитываются &mdash; они как раз разрывают такие петли.",
         "faq.filters.li11": "Кнопка <b>Вне правил</b> (в легенде, только при наличии graph.toml) обводит файлы, классифицированные fallback-механизмом автодискавери &mdash; их не покрывает явное правило конфига. Подсказка обновить конфиг через <code>--init --diff</code> / <code>--init --merge</code>.",
         "faq.nav.li8": "<b>Shift+клик</b> по двум узлам подсвечивает кратчайший путь между ними через граф; <kbd>Esc</kbd> снимает.",
         "faq.nav.li9": "<b>Двойной клик</b> по узлу <i>фиксирует</i> его позицию (физика перестаёт его двигать); повторный двойной клик освобождает.",
@@ -1402,6 +1409,9 @@ const I18N = {
         "btn.deadCodeTitle": "Code-Dateien hervorheben, die nichts importiert und keine Dokumentation erwähnt",
         "btn.untracked": "Nicht zugeordnet",
         "btn.untrackedTitle": "Dateien hervorheben, die keine explizite graph.toml-Regel abdeckt (automatisch klassifiziert)",
+        "btn.cycles": "Zyklen",
+        "btn.cyclesTitle": "Zirkuläre Importe hervorheben — Dateien, die sich gegenseitig im Kreis importieren",
+        "faq.filters.li12": "Schaltfläche <b>Zyklen</b> (in der Legende, nur bei vorhandenen Import-Schleifen) hebt zirkuläre <code>import</code>-Ketten zwischen Code-Dateien korallenrot hervor. Importe nur unter <code>TYPE_CHECKING</code> zählen nicht &mdash; sie existieren gerade, um solche Schleifen zu durchbrechen.",
         "faq.filters.li11": "Die Schaltfläche <b>Nicht zugeordnet</b> (in der Legende, nur wenn eine graph.toml existiert) umrandet Dateien, die per Autodiscovery-Fallback klassifiziert wurden &mdash; keine explizite Konfigurationsregel deckt sie ab. Ein Hinweis, die Konfiguration per <code>--init --diff</code> / <code>--init --merge</code> zu aktualisieren.",
         "faq.nav.li8": "<b>Shift+Klick</b> auf zwei Knoten hebt den kürzesten Pfad zwischen ihnen durch den Graphen hervor; <kbd>Esc</kbd> löscht.",
         "faq.nav.li9": "<b>Doppelklick</b> auf einen Knoten <i>fixiert</i> seine Position (die Physik bewegt ihn nicht mehr); erneuter Doppelklick gibt ihn frei.",
@@ -1531,6 +1541,9 @@ const I18N = {
         "btn.deadCodeTitle": "Resaltar archivos de código que nada importa y ninguna doc menciona",
         "btn.untracked": "Sin regla",
         "btn.untrackedTitle": "Resaltar archivos no cubiertos por una regla explícita de graph.toml (clasificados automáticamente)",
+        "btn.cycles": "Ciclos",
+        "btn.cyclesTitle": "Resaltar importaciones circulares — archivos que se importan mutuamente en bucle",
+        "faq.filters.li12": "El botón <b>Ciclos</b> (en la leyenda, solo cuando existen bucles de importación) resalta en coral las cadenas circulares de <code>import</code> entre archivos de código. Las importaciones solo bajo <code>TYPE_CHECKING</code> no cuentan &mdash; existen precisamente para romper esos bucles.",
         "faq.filters.li11": "El botón <b>Sin regla</b> (en la leyenda, solo cuando existe un graph.toml) delinea los archivos clasificados por el fallback del autodescubrimiento &mdash; ninguna regla explícita de la configuración los cubre. Una pista para actualizar la configuración con <code>--init --diff</code> / <code>--init --merge</code>.",
         "faq.nav.li8": "<b>Shift+clic</b> en dos nodos resalta la ruta más corta entre ellos a través del grafo; <kbd>Esc</kbd> la limpia.",
         "faq.nav.li9": "<b>Doble clic</b> en un nodo <i>fija</i> su posición (la física dejará de moverlo); otro doble clic lo libera.",
@@ -1660,6 +1673,9 @@ const I18N = {
         "btn.deadCodeTitle": "Evidenzia i file di codice che nulla importa e nessuna doc menziona",
         "btn.untracked": "Senza regola",
         "btn.untrackedTitle": "Evidenzia i file non coperti da una regola esplicita di graph.toml (classificati automaticamente)",
+        "btn.cycles": "Cicli",
+        "btn.cyclesTitle": "Evidenzia le importazioni circolari — file che si importano a vicenda in un ciclo",
+        "faq.filters.li12": "Il pulsante <b>Cicli</b> (nella legenda, solo quando esistono cicli di importazione) evidenzia in corallo le catene circolari di <code>import</code> tra file di codice. Le importazioni solo sotto <code>TYPE_CHECKING</code> non contano &mdash; esistono proprio per spezzare questi cicli.",
         "faq.filters.li11": "Il pulsante <b>Senza regola</b> (nella legenda, solo quando esiste un graph.toml) delinea i file classificati dal fallback dell'autodiscovery &mdash; nessuna regola esplicita della configurazione li copre. Un suggerimento per aggiornare la configurazione con <code>--init --diff</code> / <code>--init --merge</code>.",
         "faq.nav.li8": "<b>Shift+clic</b> su due nodi evidenzia il percorso più breve tra di loro attraverso il grafo; <kbd>Esc</kbd> lo cancella.",
         "faq.nav.li9": "<b>Doppio clic</b> su un nodo <i>fissa</i> la sua posizione (la fisica smette di muoverlo); un altro doppio clic lo libera.",
@@ -1789,6 +1805,9 @@ const I18N = {
         "btn.deadCodeTitle": "Mettre en évidence les fichiers de code que rien n'importe et qu'aucune doc ne mentionne",
         "btn.untracked": "Sans règle",
         "btn.untrackedTitle": "Mettre en évidence les fichiers non couverts par une règle explicite de graph.toml (classés automatiquement)",
+        "btn.cycles": "Cycles",
+        "btn.cyclesTitle": "Mettre en évidence les importations circulaires — des fichiers qui s'importent mutuellement en boucle",
+        "faq.filters.li12": "Le bouton <b>Cycles</b> (dans la légende, uniquement en présence de boucles d'importation) met en évidence en corail les chaînes circulaires d'<code>import</code> entre fichiers de code. Les importations uniquement sous <code>TYPE_CHECKING</code> ne comptent pas &mdash; elles existent précisément pour briser ces boucles.",
         "faq.filters.li11": "Le bouton <b>Sans règle</b> (dans la légende, seulement si un graph.toml existe) entoure les fichiers classés par le repli de l'autodécouverte &mdash; aucune règle explicite de la configuration ne les couvre. Un indice pour mettre à jour la configuration via <code>--init --diff</code> / <code>--init --merge</code>.",
         "faq.nav.li8": "<b>Shift+clic</b> sur deux nœuds met en évidence le chemin le plus court entre eux dans le graphe ; <kbd>Esc</kbd> l'efface.",
         "faq.nav.li9": "<b>Double-clic</b> sur un nœud <i>fixe</i> sa position (la physique cesse de le déplacer) ; un nouveau double-clic le libère.",
@@ -1918,6 +1937,9 @@ const I18N = {
         "btn.deadCodeTitle": "Destacar arquivos de código que nada importa e nenhuma doc menciona",
         "btn.untracked": "Sem regra",
         "btn.untrackedTitle": "Destacar arquivos não cobertos por uma regra explícita do graph.toml (classificados automaticamente)",
+        "btn.cycles": "Ciclos",
+        "btn.cyclesTitle": "Destacar importações circulares — arquivos que se importam mutuamente em loop",
+        "faq.filters.li12": "O botão <b>Ciclos</b> (na legenda, apenas quando existem loops de importação) destaca em coral as cadeias circulares de <code>import</code> entre arquivos de código. Importações apenas sob <code>TYPE_CHECKING</code> não contam &mdash; elas existem justamente para quebrar esses loops.",
         "faq.filters.li11": "O botão <b>Sem regra</b> (na legenda, apenas quando existe um graph.toml) contorna os arquivos classificados pelo fallback da autodescoberta &mdash; nenhuma regra explícita da configuração os cobre. Uma dica para atualizar a configuração via <code>--init --diff</code> / <code>--init --merge</code>.",
         "faq.nav.li8": "<b>Shift+clique</b> em dois nós destaca o caminho mais curto entre eles através do grafo; <kbd>Esc</kbd> limpa.",
         "faq.nav.li9": "<b>Duplo clique</b> em um nó <i>fixa</i> sua posição (a física para de movê-lo); outro duplo clique o libera.",
@@ -2047,6 +2069,9 @@ const I18N = {
         "btn.deadCodeTitle": "高亮没有被任何代码导入且没有文档提到的代码文件",
         "btn.untracked": "未映射",
         "btn.untrackedTitle": "高亮未被 graph.toml 显式规则覆盖的文件（自动分类）",
+        "btn.cycles": "循环",
+        "btn.cyclesTitle": "高亮循环导入——在环路中相互导入的文件",
+        "faq.filters.li12": "<b>循环</b>按钮（位于图例中，仅在存在导入环路时显示）以珊瑚色高亮代码文件之间的循环 <code>import</code> 链。仅在 <code>TYPE_CHECKING</code> 下的导入不计入 &mdash; 它们正是为打破这类环路而存在的。",
         "faq.filters.li11": "<b>未映射</b> 按钮（位于图例，仅在存在 graph.toml 时显示）勾勒出由自动发现回退分类的文件 &mdash; 配置中没有显式规则覆盖它们。提示通过 <code>--init --diff</code> / <code>--init --merge</code> 更新配置。",
         "faq.nav.li8": "<b>Shift+点击</b> 两个节点会高亮它们之间通过图的最短路径；<kbd>Esc</kbd> 清除。",
         "faq.nav.li9": "<b>双击</b> 节点会<i>固定</i>其位置（物理引擎停止移动它）；再次双击解除固定。",
@@ -2176,6 +2201,9 @@ const I18N = {
         "btn.deadCodeTitle": "どこからもインポートされず、どのドキュメントにも言及されていないコードファイルをハイライト",
         "btn.untracked": "未マッピング",
         "btn.untrackedTitle": "graph.toml の明示的なルールでカバーされていないファイルをハイライト（自動分類）",
+        "btn.cycles": "循環",
+        "btn.cyclesTitle": "循環インポートをハイライト — ループ状に相互インポートしているファイル",
+        "faq.filters.li12": "<b>循環</b>ボタン（凡例内、インポートループが存在する場合のみ表示）は、コードファイル間の循環 <code>import</code> チェーンをコーラル色でハイライトします。<code>TYPE_CHECKING</code> 下のみのインポートはカウントされません &mdash; それはまさにこうしたループを断ち切るためのものだからです。",
         "faq.filters.li11": "<b>未マッピング</b> ボタン（凡例にあり、graph.toml が存在する場合のみ表示）は、オートディスカバリーのフォールバックで分類されたファイルを縁取ります &mdash; 設定の明示的なルールがカバーしていません。<code>--init --diff</code> / <code>--init --merge</code> で設定を更新するヒントです。",
         "faq.nav.li8": "<b>Shift+クリック</b> で 2 つのノードを選ぶと、グラフ上の最短経路がハイライトされます；<kbd>Esc</kbd> でクリア。",
         "faq.nav.li9": "<b>ダブルクリック</b> でノードの位置を<i>固定</i>できます（物理シミュレーションが動かさなくなります）；もう一度ダブルクリックで解除。",
@@ -2305,6 +2333,9 @@ const I18N = {
         "btn.deadCodeTitle": "어떤 코드도 임포트하지 않고 어떤 문서에서도 언급되지 않는 코드 파일을 강조",
         "btn.untracked": "미매핑",
         "btn.untrackedTitle": "graph.toml의 명시적 규칙으로 지정되지 않은 파일을 강조 (자동 분류)",
+        "btn.cycles": "순환",
+        "btn.cyclesTitle": "순환 임포트 강조 — 서로를 루프로 임포트하는 파일",
+        "faq.filters.li12": "<b>순환</b> 버튼(범례에 있으며 임포트 루프가 있을 때만 표시)은 코드 파일 간의 순환 <code>import</code> 체인을 산호색으로 강조합니다. <code>TYPE_CHECKING</code> 아래에서만 이루어지는 임포트는 계산되지 않습니다 &mdash; 바로 그런 루프를 끊기 위해 존재하기 때문입니다.",
         "faq.filters.li11": "<b>미매핑</b> 버튼(범례에 있으며 graph.toml이 존재할 때만 표시됨)은 자동 탐색 폴백으로 분류된 파일을 표시합니다 &mdash; 설정의 명시적 규칙이 이를 다루지 않습니다. <code>--init --diff</code> / <code>--init --merge</code>로 설정을 갱신하라는 힌트입니다.",
         "faq.nav.li8": "<b>Shift+클릭</b>으로 두 노드를 선택하면 그래프상 두 노드 사이의 최단 경로가 강조됩니다; <kbd>Esc</kbd> 로 해제.",
         "faq.nav.li9": "<b>더블 클릭</b>으로 노드 위치를 <i>고정</i>합니다(물리 엔진이 더 이상 움직이지 않음); 다시 더블 클릭하면 해제됩니다.",
@@ -2615,6 +2646,86 @@ nodes.forEach(n => {
     if (n.untracked && !n.ghost) untrackedNodes.add(n.id);
 });
 
+// Import cycles: strongly connected components (size > 1) over runtime
+// code->code edges only — type-only (TYPE_CHECKING) imports exist precisely
+// to break cycles, so they don't participate. Computed once at init from
+// the still-string-id'd link refs (same constraint as deadNodes above).
+// Tarjan, iterative — the recursive form can blow the call stack on big
+// graphs. O(V+E), so effectively free.
+const cycleNodes = new Set();
+const cycleLinks = new Set();
+let cycleCount = 0;
+{
+    const adj = new Map();
+    links.forEach(l => {
+        if (l.type !== "code->code") return;
+        if (!adj.has(l.source)) adj.set(l.source, []);
+        adj.get(l.source).push(l.target);
+    });
+    const index = new Map();
+    const low = new Map();
+    const onStack = new Set();
+    const sccOf = new Map();
+    const stack = [];
+    let counter = 0;
+    for (const start of adj.keys()) {
+        if (index.has(start)) continue;
+        const work = [[start, 0]];  // [node id, next-neighbour position]
+        while (work.length) {
+            const frame = work[work.length - 1];
+            const v = frame[0];
+            if (frame[1] === 0) {
+                index.set(v, counter);
+                low.set(v, counter);
+                counter++;
+                stack.push(v);
+                onStack.add(v);
+            }
+            const nbrs = adj.get(v) || [];
+            let descended = false;
+            while (frame[1] < nbrs.length) {
+                const w = nbrs[frame[1]++];
+                if (!index.has(w)) {
+                    work.push([w, 0]);
+                    descended = true;
+                    break;
+                } else if (onStack.has(w)) {
+                    low.set(v, Math.min(low.get(v), index.get(w)));
+                }
+            }
+            if (descended) continue;
+            if (low.get(v) === index.get(v)) {
+                const comp = [];
+                let w;
+                do {
+                    w = stack.pop();
+                    onStack.delete(w);
+                    comp.push(w);
+                } while (w !== v);
+                if (comp.length > 1) {
+                    cycleCount++;
+                    comp.forEach(id => {
+                        cycleNodes.add(id);
+                        sccOf.set(id, cycleCount);
+                    });
+                }
+            }
+            work.pop();
+            if (work.length) {
+                const parent = work[work.length - 1][0];
+                low.set(parent, Math.min(low.get(parent), low.get(v)));
+            }
+        }
+    }
+    links.forEach(l => {
+        if (l.type === "code->code"
+            && sccOf.has(l.source)
+            && sccOf.get(l.source) === sccOf.get(l.target)) {
+            cycleLinks.add(l);
+        }
+    });
+}
+
 const simulation = d3.forceSimulation(nodes)
     .force("link", d3.forceLink(links).id(d => d.id)
         .distance(d => d.type === "code->doc" ? 120 : 80)
@@ -2730,6 +2841,9 @@ let showDead = false;
 // (no explicit graph.toml rule covers them). Set is filled at build time
 // via the node.untracked flag.
 let showUntracked = false;
+// Import-cycle highlight toggle — cycleNodes/cycleLinks are computed at
+// init right after the dead-code block.
+let showCycles = false;
 // Git overlay state — declared before currentNodeColor() so draw() doesn't
 // hit the TDZ for these `let` bindings.
 const GIT_COLORS_PASTEL = {
@@ -2899,11 +3013,17 @@ function draw() {
         // Element opacity channel (old CSS `opacity` on .link): dimmed
         // and dead-mode multiply; stroke-opacity channel sits on top.
         let elemAlpha = 1;
+        const isCycleEdge = cycleLinks.has(l);
         if (dimEdge && dimEdge(l)) elemAlpha *= 0.1;
         if (showDead && !isPath) elemAlpha *= 0.1;
         if (showUntracked && !isPath) elemAlpha *= 0.1;
+        if (showCycles && !isPath && !isCycleEdge) elemAlpha *= 0.1;
         if (isPath) {
             color = "#a855f7"; strokeAlpha = 0.9; w = 3; dash = null;
+        } else if (showCycles && isCycleEdge) {
+            // Cycle mode highlights the loop edges instead of dimming them.
+            color = "#fb7185"; strokeAlpha = 0.9;
+            w = Math.max(edgeWidth * 2, 1.6); dash = null;
         } else {
             color = shadedPair(EDGE_COLORS[l.type] || "#999")[0];
             w = edgeWidth;
@@ -2974,6 +3094,7 @@ function draw() {
             || n._ry < vy0 - r || n._ry > vy1 + r) continue;
         const isDead = deadNodes.has(n.id);
         const isUntracked = untrackedNodes.has(n.id);
+        const isCycle = cycleNodes.has(n.id);
         const isEndpoint = n === pathStart || n === pathEnd;
         const isPinned = pinned !== null && n.id === pinned.id;
         let circleAlpha = (dimNode && dimNode(n)) ? 0.2 : 1;
@@ -2981,6 +3102,9 @@ function draw() {
             circleAlpha = Math.min(circleAlpha, 0.22);
         }
         if (showUntracked && !isUntracked && !isPinned && !isEndpoint) {
+            circleAlpha = Math.min(circleAlpha, 0.22);
+        }
+        if (showCycles && !isCycle && !isPinned && !isEndpoint) {
             circleAlpha = Math.min(circleAlpha, 0.22);
         }
         if (circleAlpha < 0.004) continue;
@@ -2997,6 +3121,8 @@ function draw() {
             ringColor = "#ef4444"; ringWidth = 3; ringDash = null;
         } else if (showUntracked && isUntracked) {
             ringColor = "#f59e0b"; ringWidth = 3; ringDash = [4, 3];
+        } else if (showCycles && isCycle) {
+            ringColor = "#fb7185"; ringWidth = 3; ringDash = null;
         } else if (isEndpoint) {
             ringColor = "#a855f7"; ringWidth = 3; ringDash = null;
         } else if (isPinned) {
@@ -3053,6 +3179,11 @@ function draw() {
                     && n !== pathStart && n !== pathEnd) {
                     a = Math.min(a, 0.10);
                 }
+                else if (showCycles && !cycleNodes.has(n.id)
+                    && !(pinned !== null && n.id === pinned.id)
+                    && n !== pathStart && n !== pathEnd) {
+                    a = Math.min(a, 0.10);
+                }
             }
             if (a > 0.01) {
                 ctx.globalAlpha = a;
@@ -3077,6 +3208,21 @@ function draw() {
 }
 
 // === HIT TESTING ===
+// Exclusive highlight modes (dead / untracked / cycles) dim everything
+// outside their target set. Dimmed elements must not react to the pointer
+// (no hover focus, no tooltip, no pointer cursor, no click-pin) — otherwise
+// sweeping the mouse across the graph lights up faded nodes on the way.
+function isModeDimmedNode(n) {
+    return (showDead && !deadNodes.has(n.id))
+        || (showUntracked && !untrackedNodes.has(n.id))
+        || (showCycles && !cycleNodes.has(n.id));
+}
+function isModeDimmedEdge(l) {
+    // Dead / untracked modes dim every edge; cycles keeps loop edges hot.
+    return showDead || showUntracked
+        || (showCycles && !cycleLinks.has(l));
+}
+
 function pickNode(wx, wy) {
     const grace = 2 / transform.k;
     let best = null, bestD2 = Infinity;
@@ -3182,8 +3328,10 @@ let _lastHoverEdge = null;
 canvas.addEventListener("mousemove", (event) => {
     if (isDragging) return;
     const [wx, wy] = transform.invert(d3.pointer(event, canvas));
-    const n = pickNode(wx, wy);
-    const l = n ? null : pickEdge(wx, wy);
+    let n = pickNode(wx, wy);
+    if (n && isModeDimmedNode(n)) n = null;
+    let l = n ? null : pickEdge(wx, wy);
+    if (l && isModeDimmedEdge(l)) l = null;
     canvas.style.cursor = n ? "pointer" : (l ? "help" : "default");
     if (n !== hoverNode) {
         if (hoverNode) onNodeLeave();
@@ -3613,8 +3761,10 @@ function dropAllSelections() {
     if (typeof updateUrlState === "function") updateUrlState();
 }
 
-// True when a node is faded out by the active pin/edge/path selection.
+// True when a node is faded out by the active pin/edge/path selection or
+// by an exclusive highlight mode (dead / untracked / cycles).
 function isNodeFaded(d) {
+    if (isModeDimmedNode(d)) return true;
     if (pathActive()) return !pathNodeIds.has(d.id);
     if (activeNodeData && !infoPanel.classList.contains("hidden")) {
         const nb = neighborMap.get(activeNodeData.id);
@@ -3625,8 +3775,10 @@ function isNodeFaded(d) {
     }
     return false;
 }
-// True when an edge is faded out by the active pin/edge/path selection.
+// True when an edge is faded out by the active pin/edge/path selection or
+// by an exclusive highlight mode (dead / untracked / cycles).
 function isEdgeFaded(d) {
+    if (isModeDimmedEdge(d)) return true;
     if (pathActive()) return !pathLinks.has(d);
     if (activeNodeData && !infoPanel.classList.contains("hidden")) {
         return d.source.id !== activeNodeData.id
@@ -3842,7 +3994,8 @@ function savePrefs() {
             panels,
             collapsedPanels,
             showDead,
-            showUntracked
+            showUntracked,
+            showCycles
         }));
     } catch(e) {}
     updateUrlState();
@@ -3862,6 +4015,7 @@ function getShareableState() {
         gitMode: gitMode ? "1" : null,
         showDead: showDead ? "1" : null,
         showUnmapped: showUntracked ? "1" : null,
+        showCycles: showCycles ? "1" : null,
         hiddenTypes: hiddenTypes.size ? [...hiddenTypes].join(",") : null,
         hiddenEdges: hiddenEdgeTypes.size
             ? [...hiddenEdgeTypes].join(",") : null,
@@ -3962,6 +4116,11 @@ function applyShareableState(s) {
         if (s.showUnmapped === "1" && untrackedNodes.size > 0) {
             showUntracked = true;
             const btn = document.getElementById("btn-untracked");
+            if (btn) btn.classList.add("active");
+        }
+        if (s.showCycles === "1" && cycleCount > 0) {
+            showCycles = true;
+            const btn = document.getElementById("btn-cycles");
             if (btn) btn.classList.add("active");
         }
         if (s.search) {
@@ -4102,6 +4261,11 @@ function loadPrefs() {
         const btn = document.getElementById("btn-untracked");
         if (btn) btn.classList.add("active");
     }
+    if (prefs.showCycles && cycleCount > 0) {
+        showCycles = true;
+        const btn = document.getElementById("btn-cycles");
+        if (btn) btn.classList.add("active");
+    }
     _prefLoading = false;
     applyAllFilters();
     // Theme may have changed (initial load or prefs import at runtime).
@@ -4141,6 +4305,10 @@ const ICON_SKULL = '<circle cx="9" cy="12" r="1"/>'
     + '<path d="m12.5 17-.5-1-.5 1h1z"/>'
     + '<path d="M16 20a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0'
     + 'A2 2 0 0 0 8 20"/>';
+// Rotating arrow (lucide rotate-cw) — the import-cycles toggle.
+const ICON_CYCLE =
+    '<path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/>'
+    + '<path d="M21 3v5h-5"/>';
 // Target / crosshair — used as "isolate this type" button in legend items.
 const ICON_TARGET = '<circle cx="12" cy="12" r="10"/>'
     + '<circle cx="12" cy="12" r="6"/>'
@@ -4340,6 +4508,24 @@ if (deadNodes.size > 0) {
             "btn.deadCode",
             t("btn.deadCode"),
             " (" + deadNodes.size + ")"
+        ));
+}
+
+// Import-cycle highlight toggle — only visible when Tarjan found any SCC
+// of size > 1 over the runtime code->code edges. Count = number of cycles
+// (components), not member nodes.
+if (cycleCount > 0) {
+    legendEl.append("button")
+        .attr("id", "btn-cycles")
+        .attr("class", "btn btn--sm btn--block btn--ghost view-btn btn-with-icon")
+        .attr("data-i18n-title", "btn.cyclesTitle")
+        .attr("title", t("btn.cyclesTitle"))
+        .style("margin-top", "4px")
+        .html(iconBtnHtml(
+            ICON_CYCLE,
+            "btn.cycles",
+            t("btn.cycles"),
+            " (" + cycleCount + ")"
         ));
 }
 
@@ -4983,6 +5169,15 @@ if (btnUntracked) {
     btnUntracked.addEventListener("click", () => {
         showUntracked = !showUntracked;
         btnUntracked.classList.toggle("active", showUntracked);
+        savePrefs();
+        requestDraw();
+    });
+}
+const btnCycles = document.getElementById("btn-cycles");
+if (btnCycles) {
+    btnCycles.addEventListener("click", () => {
+        showCycles = !showCycles;
+        btnCycles.classList.toggle("active", showCycles);
         savePrefs();
         requestDraw();
     });
