@@ -148,6 +148,20 @@ categories.
 
 ![Git overlay with ghost nodes and rename edges](https://mr-freewan.github.io/build-graph/media/guide/12-git-mode.gif)
 
+## Graph diff
+
+Build with `--diff-base REF` to compare the working tree against a git
+ref (branch, tag, commit) — a code-review view of the dependency graph.
+The page opens with the Git overlay already on: file statuses come from
+git as usual, while dependency edges **new since the ref render green**
+and **removed ones red** (dashed), anchored to ghost nodes when the file
+is gone. The git legend gains +N/−N edge counters and its title shows
+the compared range. Renames are followed — an edge that merely moved
+with a renamed file stays neutral. To diff two arbitrary refs, check out
+the head ref first.
+
+![Graph diff overlay](media/guide/16-diff.png)
+
 ## Analysis aids
 
 **💀 Dead code** (legend, appears when there are candidates) highlights
