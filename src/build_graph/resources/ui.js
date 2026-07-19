@@ -307,6 +307,8 @@ function baseNodeVisible(n) {
     if (!gitMode && n.ghost) return false;
     if (gitMode && n.gitStatus && hiddenGitStatuses.has(n.gitStatus))
         return false;
+    if (heatMode && heatMinCount > 0 && (heatCount.get(n.id) || 0) < heatMinCount)
+        return false;
     return !hiddenTypes.has(n.type)
         && !excludedNames.has(n.label)
         && !excludedNames.has(n.stem);
@@ -422,6 +424,8 @@ function savePrefs() {
             ide: ideScheme,
             lang: currentLang,
             gitMode,
+            heatMode,
+            heatMinCount,
             hiddenGitStatuses: [...hiddenGitStatuses],
             panels,
             collapsedPanels,
@@ -445,6 +449,8 @@ function getShareableState() {
         theme: document.body.classList.contains("light") ? "light" : null,
         palette: currentPalette === "saturated" ? "sat" : null,
         gitMode: gitMode ? "1" : null,
+        heatMode: heatMode ? "1" : null,
+        heatMin: heatMinCount > 0 ? String(heatMinCount) : null,
         showDead: showDead ? "1" : null,
         showUnmapped: showUntracked ? "1" : null,
         showCycles: showCycles ? "1" : null,
@@ -539,6 +545,13 @@ function applyShareableState(s) {
             });
         }
         if (s.gitMode === "1" && GIT_DATA) applyGitMode(true);
+        if (s.heatMin) {
+            heatMinCount = parseInt(s.heatMin, 10) || 0;
+            const slider = document.getElementById("heat-min-slider");
+            if (slider) slider.value = heatMinCount;
+            updateHeatMinLabel();
+        }
+        if (s.heatMode === "1" && HEAT_DATA) applyHeatMode(true);
         if (s.showDead === "1" && deadNodes.size > 0) {
             showDead = true;
             document.body.classList.add("show-dead");
@@ -668,6 +681,15 @@ function loadPrefs() {
     }
     if (prefs.gitMode && GIT_DATA) {
         applyGitMode(true);
+    }
+    if (typeof prefs.heatMinCount === "number" && prefs.heatMinCount > 0) {
+        heatMinCount = prefs.heatMinCount;
+        const slider = document.getElementById("heat-min-slider");
+        if (slider) slider.value = heatMinCount;
+        updateHeatMinLabel();
+    }
+    if (prefs.heatMode && HEAT_DATA) {
+        applyHeatMode(true);
     }
     // IDE scheme
     if (prefs.ide) {
@@ -1057,6 +1079,11 @@ function setupGitButton() {
 
 function applyGitMode(on) {
     if (!GIT_DATA && on) return;
+    // Heat and git are mutually exclusive recolor modes — entering one
+    // exits the other (mirrors how Cycles/Untracked get force-disabled
+    // below). applyHeatMode's own `on && gitMode` guard stops this from
+    // recursing back.
+    if (on && heatMode) applyHeatMode(false);
     gitMode = on;
     // Cycles / Untracked toggles are hidden in git mode (CSS) — drop their
     // highlight state too, so the mode can't stay on without its button.
@@ -1169,6 +1196,104 @@ function buildGitLegend() {
             });
             applyAllFilters(); savePrefs();
         });
+}
+
+// =============================================================================
+// === HEAT OVERLAY ===
+// Heat overlay: recolors nodes by git-activity frequency (commit count per
+// path, log1p-normalized in engine.js at init — heatIntensity / heatMode /
+// heatColor / HEAT_COLD / HEAT_HOT / heatMaxCount live there, same TDZ
+// reasoning as the git overlay state). Mutually exclusive with git mode —
+// see the `on && heatMode` guard inside applyGitMode above.
+// =============================================================================
+function setupHeatButton() {
+    const btn = document.getElementById("btn-heat");
+    if (!HEAT_DATA) {
+        btn.classList.add("disabled");
+        btn.dataset.i18nTitle = "btn.heatNotAvailable";
+        btn.title = t("btn.heatNotAvailable");
+        return;
+    }
+    btn.addEventListener("click", () => {
+        if (btn.classList.contains("disabled")) return;
+        applyHeatMode(!heatMode);
+        savePrefs();
+    });
+}
+
+function applyHeatMode(on) {
+    if (!HEAT_DATA && on) return;
+    if (on && gitMode) applyGitMode(false);
+    heatMode = on;
+    document.body.classList.toggle("heat-mode", on);
+    document.getElementById("btn-heat").classList.toggle("active", on);
+    // heatMode gates the min-edits filter inside baseNodeVisible() — needs
+    // a full recompute, not just a redraw with stale _vis flags.
+    applyAllFilters();
+}
+
+// Gradient legend — a continuum, not a category list: no isolate/show-all,
+// just the cold->hot bar, the collection period, the raw count range (so
+// "hot" has real numbers behind it, not just a color) and a min-edits
+// slider to hide anything colder than the chosen threshold.
+function buildHeatLegend() {
+    if (!HEAT_DATA) return;
+    const container = legendEl.append("div").attr("id", "legend-heat");
+    const heatH4 = container.append("h4")
+        .attr("data-i18n", "legend.heat")
+        .text(t("legend.heat"));
+    if (typeof makeDraggable === "function") {
+        makeDraggable(document.getElementById("legend"), heatH4.node());
+    }
+    container.append("div").attr("id", "heat-period").attr("class", "heat-period");
+    container.append("div")
+        .attr("class", "heat-gradient-bar")
+        .style("background", "linear-gradient(90deg, " + HEAT_COLD + ", " + HEAT_HOT + ")");
+    const labels = container.append("div").attr("class", "heat-gradient-labels");
+    labels.append("span").text("0");
+    labels.append("span").attr("id", "heat-max-label").text(String(heatMaxCount));
+    updateHeatPeriodLabel();
+
+    const filterRow = container.append("div").attr("class", "heat-filter-row");
+    filterRow.append("input")
+        .attr("type", "range")
+        .attr("id", "heat-min-slider")
+        .attr("min", 0)
+        .attr("max", Math.max(heatMaxCount, 1))
+        .attr("step", 1)
+        .attr("value", heatMinCount)
+        .attr("data-i18n-title", "legend.heatMinTitle")
+        .attr("title", t("legend.heatMinTitle"))
+        .on("input", function() {
+            heatMinCount = +this.value;
+            updateHeatMinLabel();
+            applyAllFilters();
+            savePrefs();
+        });
+    filterRow.append("span").attr("id", "heat-min-label").attr("class", "heat-min-label");
+    updateHeatMinLabel();
+}
+
+function updateHeatMinLabel() {
+    const el = document.getElementById("heat-min-label");
+    if (el) el.textContent = "≥ " + heatMinCount;
+}
+
+// Reset the slider to "no filter" — called from Clear filters (btn-show-all).
+function resetHeatMinFilter() {
+    heatMinCount = 0;
+    const slider = document.getElementById("heat-min-slider");
+    if (slider) slider.value = 0;
+    updateHeatMinLabel();
+}
+
+// Re-run on every applyI18n (see i18n.js) — the period text has a
+// translated word ("days"/"дней"/...) that a plain data-i18n span can't
+// carry since it also embeds the HEAT_DAYS number (like #stats/tFmt).
+function updateHeatPeriodLabel() {
+    const el = document.getElementById("heat-period");
+    if (!el) return;
+    el.textContent = HEAT_DAYS == null ? t("heat.allTime") : tFmt("heatPeriod", HEAT_DAYS);
 }
 
 function updateGitLegendSwatches() {
@@ -1607,6 +1732,7 @@ document.getElementById("btn-show-all").addEventListener("click", () => {
     // Deactivate orphans mode
     orphansOnly = false;
     document.getElementById("btn-orphans").classList.remove("active");
+    if (typeof resetHeatMinFilter === "function") resetHeatMinFilter();
     applyAllFilters();
     savePrefs();
 });

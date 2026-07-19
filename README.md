@@ -147,7 +147,8 @@ file reads that burn comparable tokens *per question*, not once. On small
 projects the map is almost free — the compact snapshot of this very repo is
 4 KB ≈ ~1,000 tokens.
 
-Don't take these numbers on faith — measure your own repo:
+<details>
+<summary>Don't take these numbers on faith — measure your own repo</summary>
 
 ```bash
 $ build-graph --root . --bench
@@ -161,6 +162,8 @@ Context cost on this repo (tokens ~= bytes / 4):
 ```
 
 `--bench` only measures — it writes no files.
+
+</details>
 
 ### A prompt to start from
 
@@ -193,6 +196,12 @@ Verify any surprising claim against the actual source before acting.
   git ref: file statuses feed the Git overlay, new dependency edges show
   green and removed ones red (dashed), with counters in the legend. Add
   `--diff-head REF` to compare two specific refs instead.
+- **Heat overlay** — node colour by git-commit frequency (blue→red
+  gradient), whole history by default or the last N days with
+  `--heat-days N`. A min-edits slider in the legend hides anything colder
+  than the chosen threshold — edges follow. Mutually exclusive with the Git
+  overlay — both recolour nodes, so only one is on at a time; unlike Git
+  mode, it's additive: Node types stays visible and usable underneath.
 - **Analysis aids** — dead-code candidates, import-cycle detector (Tarjan
   SCC over runtime imports; `TYPE_CHECKING` edges don't count), orphan ring,
   shortest path between two nodes (Shift+click), isolate-a-type,
@@ -245,6 +254,7 @@ Two optional plain-text companions, both looked up in the project root:
 | `--mock-git` | synthetic git overlay for demos/testing |
 | `--diff-base REF` | ref-diff build: statuses + edge changes vs a git ref (head = working tree unless `--diff-head` is set) |
 | `--diff-head REF` | with `--diff-base`: diff against this ref instead of the working tree |
+| `--heat-days N` | restrict the Heat overlay to the last N days (default: whole history) |
 | `--init [--diff\|--merge\|--force]` | config lifecycle (see above) |
 
 ## Companion tools
@@ -259,6 +269,9 @@ already-built snapshot.
 Reverse lookup: which docs mention a given code file. Run it before editing a
 file to know which pages need updating afterwards, or wire `--git-added` into
 a pre-commit hook so undocumented changes get flagged before they land.
+
+<details>
+<summary>Flags &amp; examples</summary>
 
 ```bash
 find-related-docs src/mypkg/core/access.py   # single file (bare filename works too)
@@ -275,10 +288,15 @@ find-related-docs --git-modified             # working tree: staged + unstaged m
 | `--git-modified` | check all modified files (staged + unstaged) |
 | `-v` / `--verbose` | print `docs/<file>.md:<line>` for every mention |
 
+</details>
+
 ### verify-doc-links
 
 Check that every file reference in your `.md` files points to a real file.
 Exit codes make it a drop-in CI gate:
+
+<details>
+<summary>Flags &amp; examples</summary>
 
 | Exit | Meaning |
 |---|---|
@@ -309,11 +327,16 @@ comments (invisible in rendered Markdown): `<!-- broken-link-ok -->` on the
 same line, `<!-- broken-links-ok-start -->` / `<!-- broken-links-ok-end -->`
 around a block, or `<!-- ignore-ref: path/to/file.py -->` anywhere in the file.
 
+</details>
+
 ### graph-query
 
 Ask the graph questions without opening a browser. Works on the JSON written
 by `--json` or `--compact` (auto-detected; defaults to
 `docs/graph-compact.json`):
+
+<details>
+<summary>Flags &amp; examples</summary>
 
 ```bash
 graph-query blast-radius app/core.py   # transitive importers + every doc mentioning them
@@ -331,6 +354,8 @@ graph-query orphans --type code        # files with no edges at all
 
 Every command takes `--json` for machine-readable output — pipe it to `jq`
 or feed it to an agent.
+
+</details>
 
 ## Known limitations
 

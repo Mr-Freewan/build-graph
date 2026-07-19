@@ -457,6 +457,45 @@ body.git-mode #legend-git {
     border-bottom: 1px solid var(--border-faint);
     padding-bottom: 8px;
 }
+/* Heat button disabled/active state — mirrors #btn-git */
+#btn-heat.disabled {
+    opacity: 0.4; cursor: not-allowed;
+}
+#btn-heat.disabled:hover { background: var(--btn-bg); color: var(--btn-color); }
+#btn-heat.active {
+    background: #c2410c; color: #fff; border-color: #c2410c;
+}
+#btn-heat.active:hover { background: #9a3412; }
+/* Heat mode is additive, unlike git mode: Node types / Edge types / Cycles
+ * / Untracked / actions all stay exactly as they are — heat only changes
+ * node fill color, it doesn't redefine what "type" means or disable
+ * type-based filtering. The Activity heat section is the only addition,
+ * shown just in heat mode and pinned above everything else via `order: -1`. */
+#legend-heat { display: none; }
+body.heat-mode #legend-heat {
+    display: flex; flex-direction: column;
+    order: -1;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border-faint);
+    padding-bottom: 8px;
+}
+.heat-period { font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+.heat-gradient-bar { height: 10px; border-radius: 5px; margin-bottom: 4px; }
+.heat-gradient-labels {
+    display: flex; justify-content: space-between;
+    font-size: 10px; color: var(--muted);
+}
+.heat-filter-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 6px;
+}
+.heat-filter-row input[type="range"] {
+    flex: 1 1 0; min-width: 0;
+}
+.heat-min-label {
+    font-size: 10px; color: var(--muted);
+    min-width: 22px; text-align: right; flex-shrink: 0;
+}
 #exclude-panel {
     position: fixed; bottom: 20px; right: 20px; z-index: 10;
     background: var(--panel-bg); padding: 12px 16px;

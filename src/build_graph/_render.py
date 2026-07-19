@@ -226,6 +226,8 @@ def render_html(
     embed_d3: bool = False,
     git_data: dict | None = None,
     diff_info: dict | None = None,
+    heat_data: dict | None = None,
+    heat_days: int | None = None,
 ) -> None:
     """Write a self-contained HTML graph file to output_path."""
     graph_json = _safe_json({"nodes": nodes, "links": edges})
@@ -233,6 +235,11 @@ def render_html(
     colors_sat_json = _safe_json(colors_saturated)
     git_json = _safe_json(git_data) if git_data else "null"
     diff_json = _safe_json(diff_info) if diff_info else "null"
+    # heat_data == {} is a valid "available, nothing in window" result and
+    # must stay distinct from "unavailable" (null) — check `is not None`,
+    # not truthiness (an empty dict is falsy but still means "available").
+    heat_json = _safe_json(heat_data) if heat_data is not None else "null"
+    heat_days_json = _safe_json(heat_days)
     d3_tag = _get_d3_script(embed_d3)
     # --no-cdn means "no external requests at all": along with embedding D3,
     # drop the Google Fonts link — the CSS font stack falls back to system-ui.
@@ -268,6 +275,10 @@ def render_html(
         + git_json
         + ";\nconst DIFF_INFO = "
         + diff_json
+        + ";\nconst HEAT_DATA = "
+        + heat_json
+        + ";\nconst HEAT_DAYS = "
+        + heat_days_json
         + ";\nconst APP_VERSION = "
         + _safe_json(__version__)
         + ";\nconst APP_AUTHOR = "

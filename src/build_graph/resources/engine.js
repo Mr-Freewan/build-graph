@@ -272,6 +272,40 @@ let cycleCount = 0;
     });
 }
 
+// Heat overlay: per-node activity intensity (0..1), computed once at init
+// from HEAT_DATA (path -> raw commit count over the configured window, or
+// the whole history — see HEAT_DAYS). log1p-scaled: commit frequency is
+// typically power-law (a handful of files change constantly, most rarely),
+// so a linear 0..max scale would wash every file but the single hottest
+// one into the same color. Ghost nodes never participate — they only
+// render in git mode, which is mutually exclusive with heat mode anyway.
+const heatIntensity = new Map();  // node id -> 0..1 (log-scaled, for color)
+const heatCount = new Map();      // node id -> raw commit count (for the min-edits filter)
+let heatMaxCount = 0;
+if (HEAT_DATA) {
+    let maxLog = 0;
+    const rawLog = new Map();
+    nodes.forEach(n => {
+        if (n.ghost) return;
+        const count = HEAT_DATA[n.path] || 0;
+        heatCount.set(n.id, count);
+        if (count > heatMaxCount) heatMaxCount = count;
+        const v = Math.log1p(count);
+        rawLog.set(n.id, v);
+        if (v > maxLog) maxLog = v;
+    });
+    rawLog.forEach((v, id) => heatIntensity.set(id, maxLog > 0 ? v / maxLog : 0));
+}
+// Min-edits threshold (slider in the Activity heat legend, ui.js): nodes
+// with fewer than heatMinCount recorded commits are hidden while heat mode
+// is on — see baseNodeVisible() in ui.js.
+let heatMinCount = 0;
+const HEAT_COLD = "#3b82f6";
+const HEAT_HOT = "#ef4444";
+function heatColor(intensity) {
+    return d3.interpolateRgb(HEAT_COLD, HEAT_HOT)(intensity);
+}
+
 const simulation = d3.forceSimulation(nodes)
     .force("link", d3.forceLink(links).id(d => d.id)
         .distance(d => d.type === "code->doc" ? 120 : 80)
@@ -413,8 +447,13 @@ let activeGitColors = GIT_COLORS_PASTEL;
 const DIFF_EDGE_COLORS = { added: "#22c55e", removed: "#ef4444" };
 let gitMode = false;
 const hiddenGitStatuses = new Set();
+// Heat mode — mutually exclusive with git mode (enforced in ui.js:
+// applyGitMode/applyHeatMode); both recolor nodes by a different signal,
+// so only one "what am I colouring by" state can be active at a time.
+let heatMode = false;
 function currentNodeColor(d) {
     if (gitMode && d.gitStatus) return activeGitColors[d.gitStatus] || "#999";
+    if (heatMode && heatIntensity.has(d.id)) return heatColor(heatIntensity.get(d.id));
     return activeColors[d.type] || "#999";
 }
 let searchQuery = "";

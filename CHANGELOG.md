@@ -24,6 +24,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Graph diff: `--diff-head REF` compares two specific refs instead of the
   working tree — both sides are built from `git archive` snapshots, so
   worktree changes made after the head ref are excluded from the diff.
+- Heat overlay: a third node-coloring mode, alongside Type and Git status —
+  a blue→red gradient by how often each file has changed in git (commit
+  count over the whole history, or the last N days with `--heat-days N`).
+  Mutually exclusive with the Git overlay (both recolor nodes), but unlike
+  Git mode it's additive — Node types, Edge types and the rest of the
+  legend stay exactly as they are. The legend shows the collection period,
+  the raw commit-count range, and a min-edits slider that hides anything
+  colder than the chosen threshold (edges follow).
 
 ### Changed
 

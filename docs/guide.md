@@ -166,6 +166,29 @@ changes made after the head ref are not part of the diff. Without it,
 
 ![Graph diff overlay](media/guide/16-diff.png)
 
+## Heat mode
+
+The **Heatmap** button switches node colours from types to **git-activity
+frequency**: a blue→red gradient by how often each file has changed,
+log-scaled so a handful of constantly-edited files don't wash out
+everything else into the same shade. By default it covers the whole
+history; build with `--heat-days N` to restrict it to the last N days
+instead. The **Activity heat** panel shows the collection period and the
+raw commit-count range (`0` to the hottest file's count), plus a
+**min-edits slider** — drag it up to hide anything colder than the chosen
+threshold (connected edges hide with it). "Clear filters" resets it back
+to 0 along with everything else.
+
+Unlike Git mode, Heat mode is additive: Node types (and Edge types, and
+the rest of the legend) stay exactly as they are underneath the Activity
+heat panel, still filterable by type as usual — heat only changes what
+colour a node is drawn in, it doesn't redefine what "type" means. Heat and
+Git mode are still mutually exclusive with each other: both recolour
+nodes, so turning one on turns the other off. The button is disabled (with
+a tooltip) when git isn't available.
+
+![Heat mode: gradient legend, min-edits slider, Node types still usable underneath](media/guide/18-heat.gif)
+
 ## Analysis aids
 
 **💀 Dead code** (legend, appears when there are candidates) highlights

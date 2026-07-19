@@ -20,6 +20,7 @@ Module layout:
             rename edges, --mock-git synthetic data
         _diff.py   — ref-diff mode (--diff-base[/--diff-head]): ref
             snapshots via git archive, edge-set diff, removed-edge ghosts
+        _heat.py   — Heat overlay: per-file commit counts (--heat-days)
         _render.py — layout hints, palette, dead-code exemptions,
             packaged front-end resources, HTML assembly, D3 pinning
         graph.py   — LLM JSON exports (verbose + compact), CLI entry
@@ -85,6 +86,7 @@ from build_graph._git import (
     apply_mock_git_status,
     collect_git_status,
 )
+from build_graph._heat import collect_heat_data
 from build_graph._render import (
     apply_dead_exemptions,
     build_palette,
@@ -368,6 +370,16 @@ def parse_args() -> argparse.Namespace:
             "working tree — both sides are built from git archive "
             "snapshots, so worktree changes after REF are not part of "
             "the diff."
+        ),
+    )
+    p.add_argument(
+        "--heat-days",
+        type=int,
+        default=None,
+        metavar="N",
+        help=(
+            "Restrict the Heat overlay (node color by git-commit frequency) "
+            "to the last N days. Without this flag: the whole history."
         ),
     )
     p.add_argument(
@@ -660,6 +672,22 @@ def main() -> None:
         else:
             print("  git unavailable; skipping git overlay")
 
+    heat_data: dict[str, int] | None
+    if not git_used:
+        heat_data = None
+        print("Collecting heat data... skipped (no git — overlay disabled)")
+    else:
+        window_label = (
+            "all-time" if args.heat_days is None else f"last {args.heat_days}d"
+        )
+        print(f"Collecting heat data ({window_label})...")
+        heat_data = collect_heat_data(project_root, args.heat_days)
+        if heat_data is None:
+            print("  git unavailable; skipping heat overlay")
+        else:
+            touched = sum(1 for c in heat_data.values() if c > 0)
+            print(f"  {touched} paths with commit history in window")
+
     if head_tmp is not None:
         head_tmp.cleanup()
 
@@ -695,6 +723,8 @@ def main() -> None:
         embed_d3=args.no_cdn,
         git_data=git_data,
         diff_info=diff_info,
+        heat_data=heat_data,
+        heat_days=args.heat_days,
     )
     if args.json:
         json_path = output_path.with_suffix(".json")
