@@ -5,6 +5,12 @@
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
 ![Zero dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![LLM-Agent friendly](https://img.shields.io/badge/LLM--Agent-friendly-blueviolet)](#designed-for-ai-agents)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](CONTRIBUTING.md)
+
+[![Live demo](https://img.shields.io/badge/demo-online-blueviolet?style=for-the-badge&logo=googlechrome&logoColor=white)](https://mr-freewan.github.io/build-graph/)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/Mr-Freewan/build-graph)
 
 > **Architectural memory for your refactors.** See the blast radius of your
 > changes across code, docs, and git — on one interactive map that both you
