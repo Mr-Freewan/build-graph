@@ -50,12 +50,13 @@ class TestCollectEntryPointModules:
         assert collect_entry_point_modules(tmp_path) == set()
 
     def test_own_repo_entry_points(self) -> None:
-        # The build-graph repo itself declares three console scripts.
+        # The build-graph repo itself declares four console scripts.
         repo = Path(__file__).parent.parent
         assert collect_entry_point_modules(repo) == {
             "src/build_graph/graph.py",
             "src/build_graph/related.py",
             "src/build_graph/links.py",
+            "src/build_graph/query.py",
         }
 
 
