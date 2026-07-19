@@ -407,6 +407,10 @@ const GIT_COLORS_SATURATED = {
     clean:    "#888"
 };
 let activeGitColors = GIT_COLORS_PASTEL;
+// Ref-diff edge highlight — fixed colours (like the cycle coral), NOT the
+// git palette: pastel "added" green blends into the code->code edge green,
+// which made new edges indistinguishable from ordinary ones.
+const DIFF_EDGE_COLORS = { added: "#22c55e", removed: "#ef4444" };
 let gitMode = false;
 const hiddenGitStatuses = new Set();
 function currentNodeColor(d) {
@@ -564,6 +568,10 @@ function draw() {
         if (showDead && !isPath) elemAlpha *= 0.1;
         if (showUntracked && !isPath) elemAlpha *= 0.1;
         if (showCycles && !isPath && !isCycleEdge) elemAlpha *= 0.1;
+        // Diff build in git mode: unchanged edges recede so the
+        // added/removed ones actually stand out.
+        if (DIFF_INFO && gitMode && !isPath && l.diffStatus === "same")
+            elemAlpha *= 0.15;
         if (isPath) {
             color = "#a855f7"; strokeAlpha = 0.9; w = 3; dash = null;
         } else if (showCycles && isCycleEdge) {
@@ -572,11 +580,11 @@ function draw() {
             w = Math.max(edgeWidth * 2, 1.6); dash = null;
         } else if (gitMode && l.diffStatus === "removed") {
             // Ref-diff overlay: edges gone since the base ref.
-            color = activeGitColors.deleted; strokeAlpha = 0.85;
+            color = DIFF_EDGE_COLORS.removed; strokeAlpha = 0.85;
             w = Math.max(edgeWidth, 1.2); dash = [5, 4];
         } else if (gitMode && l.diffStatus === "added") {
             // Ref-diff overlay: edges new since the base ref.
-            color = activeGitColors.added; strokeAlpha = 0.9;
+            color = DIFF_EDGE_COLORS.added; strokeAlpha = 0.9;
             w = Math.max(edgeWidth * 1.5, 1.4); dash = null;
         } else {
             color = shadedPair(EDGE_COLORS[l.type] || "#999")[0];
@@ -772,9 +780,11 @@ function isModeDimmedNode(n) {
         || (showCycles && !cycleNodes.has(n.id));
 }
 function isModeDimmedEdge(l) {
-    // Dead / untracked modes dim every edge; cycles keeps loop edges hot.
+    // Dead / untracked modes dim every edge; cycles keeps loop edges hot;
+    // a diff build in git mode dims the unchanged edges.
     return showDead || showUntracked
-        || (showCycles && !cycleLinks.has(l));
+        || (showCycles && !cycleLinks.has(l))
+        || (DIFF_INFO && gitMode && l.diffStatus === "same");
 }
 
 function pickNode(wx, wy) {

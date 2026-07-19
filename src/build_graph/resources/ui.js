@@ -1115,14 +1115,13 @@ function buildGitLegend() {
         gitH4.attr("title", DIFF_INFO.base + " → " + DIFF_INFO.head);
         [
             ["added", DIFF_INFO.edgesAdded, "legend.diffEdgesAdded", "+"],
-            ["deleted", DIFF_INFO.edgesRemoved, "legend.diffEdgesRemoved", "−"],
+            ["removed", DIFF_INFO.edgesRemoved, "legend.diffEdgesRemoved", "−"],
         ].forEach(([status, count, key, sign]) => {
             const item = container.append("div")
-                .attr("class", "legend-item legend-diff-row")
-                .attr("data-diff-swatch", status);
+                .attr("class", "legend-item legend-diff-row");
             item.append("div")
                 .attr("class", "legend-swatch")
-                .style("background", activeGitColors[status]);
+                .style("background", DIFF_EDGE_COLORS[status]);
             item.append("span").attr("data-i18n", key).text(t(key));
             item.append("span")
                 .attr("class", "git-count")
@@ -1166,11 +1165,6 @@ function updateGitLegendSwatches() {
         const status = el.getAttribute("data-git-status");
         const sw = el.querySelector(".legend-swatch");
         if (sw) sw.style.background = activeGitColors[status] || "#999";
-    });
-    document.querySelectorAll("[data-diff-swatch]").forEach(el => {
-        const sw = el.querySelector(".legend-swatch");
-        if (sw) sw.style.background =
-            activeGitColors[el.getAttribute("data-diff-swatch")] || "#999";
     });
 }
 
