@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `graph-query` — a fourth CLI that answers questions over a `--json` /
+  `--compact` snapshot without the browser: `blast-radius` (transitive
+  importers + affected docs), `hubs`, `stale-docs` (last-commit times,
+  `--check` CI gate) and `orphans`; all commands offer `--json` output.
 - JSON Schemas for both exports (`schema/graph-v1.schema.json`,
   `schema/graph-compact-v2.schema.json`); the exports are validated against
   them in CI.

@@ -141,6 +141,21 @@ file reads that burn comparable tokens *per question*, not once. On small
 projects the map is almost free — the compact snapshot of this very repo is
 4 KB ≈ ~1,000 tokens.
 
+Don't take these numbers on faith — measure your own repo:
+
+```bash
+$ build-graph --root . --bench
+
+Context cost on this repo (tokens ~= bytes / 4):
+
+  What you put in context            Size      ~Tokens  vs corpus
+  raw corpus (1070 files)         14.3 MB    3,757,913     100.0%
+  --json export (schema v1)        1.5 MB      397,419      10.6%
+  --compact export (schema v2)   311.4 KB       79,729       2.1%
+```
+
+`--bench` only measures — it writes no files.
+
 ### A prompt to start from
 
 ```text
@@ -218,8 +233,10 @@ Two optional plain-text companions, both looked up in the project root:
 
 ## Companion tools
 
-Both CLIs run the same reference scanner the graph is built from — what the
-map draws as a code↔docs edge is exactly what they look up and verify.
+`find-related-docs` and `verify-doc-links` run the same reference scanner the
+graph is built from — what the map draws as a code↔docs edge is exactly what
+they look up and verify. `graph-query` answers questions over an
+already-built snapshot.
 
 ### find-related-docs
 
@@ -275,6 +292,29 @@ Besides `known-brokens.txt`, false positives can be silenced inline with HTML
 comments (invisible in rendered Markdown): `<!-- broken-link-ok -->` on the
 same line, `<!-- broken-links-ok-start -->` / `<!-- broken-links-ok-end -->`
 around a block, or `<!-- ignore-ref: path/to/file.py -->` anywhere in the file.
+
+### graph-query
+
+Ask the graph questions without opening a browser. Works on the JSON written
+by `--json` or `--compact` (auto-detected; defaults to
+`docs/graph-compact.json`):
+
+```bash
+graph-query blast-radius app/core.py   # transitive importers + every doc mentioning them
+graph-query hubs --top 15              # most-connected files, in/out breakdown
+graph-query stale-docs --check         # docs older than the code they describe (CI gate: exit 1)
+graph-query orphans --type code        # files with no edges at all
+```
+
+| Command | Answers |
+|---|---|
+| `blast-radius <path>` | "what breaks if I touch this file" — transitive incoming imports (`--depth`, `--edges` to tune), plus affected docs |
+| `hubs` | "where is the center of gravity" — top nodes by in+out edges (`--top N`) |
+| `stale-docs` | "which docs lag behind the code" — compares last-commit times (one `git log` pass; mtime fallback), `--check` for CI |
+| `orphans` | "what is connected to nothing" — degree-0 nodes, filterable by category |
+
+Every command takes `--json` for machine-readable output — pipe it to `jq`
+or feed it to an agent.
 
 ## Known limitations
 
