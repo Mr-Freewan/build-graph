@@ -10,6 +10,6 @@ a single dependency map that both humans (interactive HTML) and AI agents
 - ``graph-query`` — query a snapshot: blast radius, hubs, stale docs
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 __author__ = "Yuriy Totyshev"
 __author_url__ = "https://github.com/Mr-Freewan"

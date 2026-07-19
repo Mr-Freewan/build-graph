@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-07-19
+
 ### Added
 
 - Import-cycle detector: a legend toggle (visible only when cycles exist)
@@ -131,5 +133,6 @@ Initial public release.
   as too similar to an existing unrelated project. The CLI commands keep the
   `build-graph` family of names.
 
+[0.3.0]: https://github.com/Mr-Freewan/build-graph/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Mr-Freewan/build-graph/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Mr-Freewan/build-graph/releases/tag/v0.1.0
