@@ -252,6 +252,9 @@ loadPrefs();
 if (location.hash && location.hash.length > 1) {
     applyShareableState(decodeStateHash(location.hash));
 }
+// A ref-diff build is meaningless without the overlay — start in git mode
+// regardless of saved prefs (the user can still toggle it off).
+if (DIFF_INFO && GIT_DATA && !gitMode) applyGitMode(true);
 // Match legend width to exclude-panel so they look balanced on the right side
 // (theme-toggle & help-panel widths are pinned via CSS). MUST run before
 // clampAllPanels(): on a fresh session (no saved prefs) #legend is still

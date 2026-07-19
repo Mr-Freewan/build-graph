@@ -570,6 +570,14 @@ function draw() {
             // Cycle mode highlights the loop edges instead of dimming them.
             color = "#fb7185"; strokeAlpha = 0.9;
             w = Math.max(edgeWidth * 2, 1.6); dash = null;
+        } else if (gitMode && l.diffStatus === "removed") {
+            // Ref-diff overlay: edges gone since the base ref.
+            color = activeGitColors.deleted; strokeAlpha = 0.85;
+            w = Math.max(edgeWidth, 1.2); dash = [5, 4];
+        } else if (gitMode && l.diffStatus === "added") {
+            // Ref-diff overlay: edges new since the base ref.
+            color = activeGitColors.added; strokeAlpha = 0.9;
+            w = Math.max(edgeWidth * 1.5, 1.4); dash = null;
         } else {
             color = shadedPair(EDGE_COLORS[l.type] || "#999")[0];
             w = edgeWidth;

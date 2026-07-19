@@ -189,6 +189,9 @@ Verify any surprising claim against the actual source before acting.
   (`TYPE_CHECKING`), docstring mentions, git renames.
 - **Git overlay** — status colours + ghost nodes + rename edges; `--mock-git`
   for a synthetic demo.
+- **Graph diff** — `--diff-base REF` compares the working tree against a
+  git ref: file statuses feed the Git overlay, new dependency edges show
+  green and removed ones red (dashed), with counters in the legend.
 - **Analysis aids** — dead-code candidates, import-cycle detector (Tarjan
   SCC over runtime imports; `TYPE_CHECKING` edges don't count), orphan ring,
   shortest path between two nodes (Shift+click), isolate-a-type,
@@ -237,6 +240,7 @@ Two optional plain-text companions, both looked up in the project root:
 | `--docs-only` / `--no-tests` | trim the node set |
 | `--no-cdn` | fully offline output: embed D3.js inline (SHA-256 verified) and drop the external font link |
 | `--mock-git` | synthetic git overlay for demos/testing |
+| `--diff-base REF` | ref-diff build: statuses + edge changes vs a git ref (checkout the head ref first to diff two refs) |
 | `--init [--diff\|--merge\|--force]` | config lifecycle (see above) |
 
 ## Companion tools

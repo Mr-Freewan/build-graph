@@ -250,6 +250,9 @@ button { cursor: pointer; }
 }
 .legend-item:hover { opacity: 0.8; }
 .legend-item.hidden-type { opacity: 0.3; }
+/* Ref-diff edge counters are informational, not filters. */
+.legend-diff-row { cursor: default; }
+.legend-diff-row:hover { opacity: 1; }
 /* Node-types scroll container: ~10 rows visible, the rest scrolls —
  * autodiscovery can mint 20+ categories. */
 #legend-node-types {

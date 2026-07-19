@@ -18,6 +18,8 @@ Module layout:
             (AST imports incl. TYPE_CHECKING / dynamic), docstring refs
         _git.py    — git overlay: status collection, ghost nodes,
             rename edges, --mock-git synthetic data
+        _diff.py   — ref-diff mode (--diff-base): base-ref snapshot via
+            git archive, edge-set diff, removed-edge ghosts
         _render.py — layout hints, palette, dead-code exemptions,
             packaged front-end resources, HTML assembly, D3 pinning
         graph.py   — LLM JSON exports (verbose + compact), CLI entry
@@ -75,6 +77,7 @@ from build_graph._config import (
     load_config,
 )
 from build_graph._console import ensure_utf8_stdout
+from build_graph._diff import apply_edge_diff, collect_ref_diff
 from build_graph._git import (
     add_ghost_nodes_and_edges,
     apply_git_status_to_live_nodes,
@@ -345,6 +348,17 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     p.add_argument(
+        "--diff-base",
+        metavar="REF",
+        default=None,
+        help=(
+            "Compare the working tree against a git ref (branch, tag, "
+            "commit): file statuses feed the Git overlay, new dependency "
+            "edges show green and removed ones red in git mode. To diff "
+            "two arbitrary refs, check out the head ref first."
+        ),
+    )
+    p.add_argument(
         "--json",
         action="store_true",
         help=(
@@ -467,6 +481,9 @@ def main() -> None:
         if not args.init:
             print("--diff / --merge only make sense with --init.", file=sys.stderr)
             sys.exit(2)
+    if args.diff_base and args.mock_git:
+        print("--diff-base and --mock-git are mutually exclusive.", file=sys.stderr)
+        sys.exit(2)
     if args.init:
         handle_init(args, project_root, config_path)
         return
@@ -537,7 +554,50 @@ def main() -> None:
         all_edges.extend(docstring_edges)
 
     git_data: dict[str, Any] | None
-    if args.mock_git:
+    diff_info: dict[str, Any] | None = None
+    if args.diff_base:
+        print(f"Collecting ref diff vs {args.diff_base}...")
+        git_data = collect_ref_diff(project_root, args.diff_base)
+        if git_data is None:
+            print(
+                f"Error: git unavailable or unknown ref: {args.diff_base}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        apply_git_status_to_live_nodes(all_nodes, git_data)
+        add_ghost_nodes_and_edges(
+            all_nodes, all_edges, git_data, md_nodes, project_root
+        )
+        print(
+            f"  added={len(git_data['added'])}, "
+            f"modified={len(git_data['modified'])}, "
+            f"renamed={len(git_data['renamed'])}, "
+            f"deleted={len(git_data['deleted'])}"
+        )
+        print(f"Building base graph at {args.diff_base} (git archive)...")
+        edge_diff = apply_edge_diff(
+            all_nodes,
+            all_edges,
+            project_root,
+            args.diff_base,
+            git_data["renamed"],
+            config,
+            args.scope,
+            not args.no_tests,
+            args.docs_only,
+        )
+        if edge_diff is None:
+            print(
+                f"Error: could not materialize base ref {args.diff_base}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        diff_info = {"base": args.diff_base, "head": "worktree", **edge_diff}
+        print(
+            f"  edges: +{edge_diff['edgesAdded']} new, "
+            f"-{edge_diff['edgesRemoved']} removed"
+        )
+    elif args.mock_git:
         print("Collecting git status... [MOCK]")
         apply_mock_git_status(all_nodes, all_edges)
         # Non-empty placeholder so JS treats GIT_DATA as available.
@@ -597,6 +657,7 @@ def main() -> None:
         output_path,
         embed_d3=args.no_cdn,
         git_data=git_data,
+        diff_info=diff_info,
     )
     if args.json:
         json_path = output_path.with_suffix(".json")

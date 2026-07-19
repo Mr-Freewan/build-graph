@@ -1098,6 +1098,27 @@ function buildGitLegend() {
             savePrefs();
         });
     });
+    // Ref-diff builds: static counters for edge changes vs the base ref.
+    if (DIFF_INFO) {
+        gitH4.attr("title", DIFF_INFO.base + " → " + DIFF_INFO.head);
+        [
+            ["added", DIFF_INFO.edgesAdded, "legend.diffEdgesAdded", "+"],
+            ["deleted", DIFF_INFO.edgesRemoved, "legend.diffEdgesRemoved", "−"],
+        ].forEach(([status, count, key, sign]) => {
+            const item = container.append("div")
+                .attr("class", "legend-item legend-diff-row")
+                .attr("data-diff-swatch", status);
+            item.append("div")
+                .attr("class", "legend-swatch")
+                .style("background", activeGitColors[status]);
+            item.append("span").attr("data-i18n", key).text(t(key));
+            item.append("span")
+                .attr("class", "git-count")
+                .style("color", "var(--muted)")
+                .style("font-size", "10px")
+                .text("(" + sign + count + ")");
+        });
+    }
     // Show all / Hide all bulk toggles for git statuses
     const actions = container.append("div").attr("class", "legend-actions");
     actions.append("button")
@@ -1133,6 +1154,11 @@ function updateGitLegendSwatches() {
         const status = el.getAttribute("data-git-status");
         const sw = el.querySelector(".legend-swatch");
         if (sw) sw.style.background = activeGitColors[status] || "#999";
+    });
+    document.querySelectorAll("[data-diff-swatch]").forEach(el => {
+        const sw = el.querySelector(".legend-swatch");
+        if (sw) sw.style.background =
+            activeGitColors[el.getAttribute("data-diff-swatch")] || "#999";
     });
 }
 

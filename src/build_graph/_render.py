@@ -225,12 +225,14 @@ def render_html(
     output_path: Path,
     embed_d3: bool = False,
     git_data: dict | None = None,
+    diff_info: dict | None = None,
 ) -> None:
     """Write a self-contained HTML graph file to output_path."""
     graph_json = _safe_json({"nodes": nodes, "links": edges})
     colors_json = _safe_json(colors)
     colors_sat_json = _safe_json(colors_saturated)
     git_json = _safe_json(git_data) if git_data else "null"
+    diff_json = _safe_json(diff_info) if diff_info else "null"
     d3_tag = _get_d3_script(embed_d3)
     # --no-cdn means "no external requests at all": along with embedding D3,
     # drop the Google Fonts link — the CSS font stack falls back to system-ui.
@@ -264,6 +266,8 @@ def render_html(
         + _safe_json(project_root_posix)
         + ";\nconst GIT_DATA = "
         + git_json
+        + ";\nconst DIFF_INFO = "
+        + diff_json
         + ";\nconst APP_VERSION = "
         + _safe_json(__version__)
         + ";\nconst APP_AUTHOR = "

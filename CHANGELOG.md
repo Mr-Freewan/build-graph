@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   highlights circular `import` chains in coral — Tarjan SCC over runtime
   `code->code` edges, `TYPE_CHECKING`-only imports excluded. Shareable via
   the URL state, persisted in prefs.
+- Graph diff: `--diff-base REF` compares the working tree against a git
+  ref. File statuses (added / modified / renamed / deleted) feed the
+  existing Git overlay; dependency edges new since the ref render green
+  and removed ones red (dashed, anchored to ghost nodes when the file is
+  gone), with counters in the git legend. Renames are followed, so an
+  edge that merely moved with a renamed file stays neutral. The build
+  opens with the Git overlay already on.
 
 ### Changed
 
