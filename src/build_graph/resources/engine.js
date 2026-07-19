@@ -192,6 +192,86 @@ nodes.forEach(n => {
     if (n.untracked && !n.ghost) untrackedNodes.add(n.id);
 });
 
+// Import cycles: strongly connected components (size > 1) over runtime
+// code->code edges only — type-only (TYPE_CHECKING) imports exist precisely
+// to break cycles, so they don't participate. Computed once at init from
+// the still-string-id'd link refs (same constraint as deadNodes above).
+// Tarjan, iterative — the recursive form can blow the call stack on big
+// graphs. O(V+E), so effectively free.
+const cycleNodes = new Set();
+const cycleLinks = new Set();
+let cycleCount = 0;
+{
+    const adj = new Map();
+    links.forEach(l => {
+        if (l.type !== "code->code") return;
+        if (!adj.has(l.source)) adj.set(l.source, []);
+        adj.get(l.source).push(l.target);
+    });
+    const index = new Map();
+    const low = new Map();
+    const onStack = new Set();
+    const sccOf = new Map();
+    const stack = [];
+    let counter = 0;
+    for (const start of adj.keys()) {
+        if (index.has(start)) continue;
+        const work = [[start, 0]];  // [node id, next-neighbour position]
+        while (work.length) {
+            const frame = work[work.length - 1];
+            const v = frame[0];
+            if (frame[1] === 0) {
+                index.set(v, counter);
+                low.set(v, counter);
+                counter++;
+                stack.push(v);
+                onStack.add(v);
+            }
+            const nbrs = adj.get(v) || [];
+            let descended = false;
+            while (frame[1] < nbrs.length) {
+                const w = nbrs[frame[1]++];
+                if (!index.has(w)) {
+                    work.push([w, 0]);
+                    descended = true;
+                    break;
+                } else if (onStack.has(w)) {
+                    low.set(v, Math.min(low.get(v), index.get(w)));
+                }
+            }
+            if (descended) continue;
+            if (low.get(v) === index.get(v)) {
+                const comp = [];
+                let w;
+                do {
+                    w = stack.pop();
+                    onStack.delete(w);
+                    comp.push(w);
+                } while (w !== v);
+                if (comp.length > 1) {
+                    cycleCount++;
+                    comp.forEach(id => {
+                        cycleNodes.add(id);
+                        sccOf.set(id, cycleCount);
+                    });
+                }
+            }
+            work.pop();
+            if (work.length) {
+                const parent = work[work.length - 1][0];
+                low.set(parent, Math.min(low.get(parent), low.get(v)));
+            }
+        }
+    }
+    links.forEach(l => {
+        if (l.type === "code->code"
+            && sccOf.has(l.source)
+            && sccOf.get(l.source) === sccOf.get(l.target)) {
+            cycleLinks.add(l);
+        }
+    });
+}
+
 const simulation = d3.forceSimulation(nodes)
     .force("link", d3.forceLink(links).id(d => d.id)
         .distance(d => d.type === "code->doc" ? 120 : 80)
@@ -307,6 +387,9 @@ let showDead = false;
 // (no explicit graph.toml rule covers them). Set is filled at build time
 // via the node.untracked flag.
 let showUntracked = false;
+// Import-cycle highlight toggle — cycleNodes/cycleLinks are computed at
+// init right after the dead-code block.
+let showCycles = false;
 // Git overlay state — declared before currentNodeColor() so draw() doesn't
 // hit the TDZ for these `let` bindings.
 const GIT_COLORS_PASTEL = {
@@ -476,11 +559,17 @@ function draw() {
         // Element opacity channel (old CSS `opacity` on .link): dimmed
         // and dead-mode multiply; stroke-opacity channel sits on top.
         let elemAlpha = 1;
+        const isCycleEdge = cycleLinks.has(l);
         if (dimEdge && dimEdge(l)) elemAlpha *= 0.1;
         if (showDead && !isPath) elemAlpha *= 0.1;
         if (showUntracked && !isPath) elemAlpha *= 0.1;
+        if (showCycles && !isPath && !isCycleEdge) elemAlpha *= 0.1;
         if (isPath) {
             color = "#a855f7"; strokeAlpha = 0.9; w = 3; dash = null;
+        } else if (showCycles && isCycleEdge) {
+            // Cycle mode highlights the loop edges instead of dimming them.
+            color = "#fb7185"; strokeAlpha = 0.9;
+            w = Math.max(edgeWidth * 2, 1.6); dash = null;
         } else {
             color = shadedPair(EDGE_COLORS[l.type] || "#999")[0];
             w = edgeWidth;
@@ -551,6 +640,7 @@ function draw() {
             || n._ry < vy0 - r || n._ry > vy1 + r) continue;
         const isDead = deadNodes.has(n.id);
         const isUntracked = untrackedNodes.has(n.id);
+        const isCycle = cycleNodes.has(n.id);
         const isEndpoint = n === pathStart || n === pathEnd;
         const isPinned = pinned !== null && n.id === pinned.id;
         let circleAlpha = (dimNode && dimNode(n)) ? 0.2 : 1;
@@ -558,6 +648,9 @@ function draw() {
             circleAlpha = Math.min(circleAlpha, 0.22);
         }
         if (showUntracked && !isUntracked && !isPinned && !isEndpoint) {
+            circleAlpha = Math.min(circleAlpha, 0.22);
+        }
+        if (showCycles && !isCycle && !isPinned && !isEndpoint) {
             circleAlpha = Math.min(circleAlpha, 0.22);
         }
         if (circleAlpha < 0.004) continue;
@@ -574,6 +667,8 @@ function draw() {
             ringColor = "#ef4444"; ringWidth = 3; ringDash = null;
         } else if (showUntracked && isUntracked) {
             ringColor = "#f59e0b"; ringWidth = 3; ringDash = [4, 3];
+        } else if (showCycles && isCycle) {
+            ringColor = "#fb7185"; ringWidth = 3; ringDash = null;
         } else if (isEndpoint) {
             ringColor = "#a855f7"; ringWidth = 3; ringDash = null;
         } else if (isPinned) {
@@ -630,6 +725,11 @@ function draw() {
                     && n !== pathStart && n !== pathEnd) {
                     a = Math.min(a, 0.10);
                 }
+                else if (showCycles && !cycleNodes.has(n.id)
+                    && !(pinned !== null && n.id === pinned.id)
+                    && n !== pathStart && n !== pathEnd) {
+                    a = Math.min(a, 0.10);
+                }
             }
             if (a > 0.01) {
                 ctx.globalAlpha = a;
@@ -654,6 +754,21 @@ function draw() {
 }
 
 // === HIT TESTING ===
+// Exclusive highlight modes (dead / untracked / cycles) dim everything
+// outside their target set. Dimmed elements must not react to the pointer
+// (no hover focus, no tooltip, no pointer cursor, no click-pin) — otherwise
+// sweeping the mouse across the graph lights up faded nodes on the way.
+function isModeDimmedNode(n) {
+    return (showDead && !deadNodes.has(n.id))
+        || (showUntracked && !untrackedNodes.has(n.id))
+        || (showCycles && !cycleNodes.has(n.id));
+}
+function isModeDimmedEdge(l) {
+    // Dead / untracked modes dim every edge; cycles keeps loop edges hot.
+    return showDead || showUntracked
+        || (showCycles && !cycleLinks.has(l));
+}
+
 function pickNode(wx, wy) {
     const grace = 2 / transform.k;
     let best = null, bestD2 = Infinity;
@@ -759,8 +874,10 @@ let _lastHoverEdge = null;
 canvas.addEventListener("mousemove", (event) => {
     if (isDragging) return;
     const [wx, wy] = transform.invert(d3.pointer(event, canvas));
-    const n = pickNode(wx, wy);
-    const l = n ? null : pickEdge(wx, wy);
+    let n = pickNode(wx, wy);
+    if (n && isModeDimmedNode(n)) n = null;
+    let l = n ? null : pickEdge(wx, wy);
+    if (l && isModeDimmedEdge(l)) l = null;
     canvas.style.cursor = n ? "pointer" : (l ? "help" : "default");
     if (n !== hoverNode) {
         if (hoverNode) onNodeLeave();

@@ -5,6 +5,22 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Import-cycle detector: a legend toggle (visible only when cycles exist)
+  highlights circular `import` chains in coral — Tarjan SCC over runtime
+  `code->code` edges, `TYPE_CHECKING`-only imports excluded. Shareable via
+  the URL state, persisted in prefs.
+
+### Changed
+
+- In the exclusive highlight modes (dead code, untracked, cycles) faded
+  nodes and edges no longer react to the pointer: no hover highlight, no
+  tooltip, no pointer cursor, and clicking one clears selections instead
+  of pinning it.
+
 ## [0.2.0] — 2026-07-19
 
 ### Added

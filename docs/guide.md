@@ -157,6 +157,16 @@ are exempt automatically: `[project.scripts]` from `pyproject.toml`,
 by `[dead_code].exempt` globs in `graph.toml`. The 💀 toggle is shown at
 the end of the Git-mode clip above.
 
+**Cycles** (legend, appears when import loops exist) highlights strongly
+connected components in the runtime `code->code` import graph: loop edges
+turn coral, loop members get a coral ring, everything else fades. Type-only
+(`TYPE_CHECKING`) imports don't count — they are the legal way to break a
+cycle. The counter is the number of independent loops, and while a mode
+like this is active, faded nodes and edges ignore the pointer — hovering
+past them won't light them up.
+
+![Import cycles highlighted](media/guide/15-cycles.png)
+
 **Orphan ring** — zero-degree files aren't scattered; they sit on a circle
 around the live cluster, so "connected core vs loose files" is readable at
 a glance. Files that autodiscovery couldn't classify get an amber ring and

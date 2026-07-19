@@ -189,8 +189,10 @@ Verify any surprising claim against the actual source before acting.
   (`TYPE_CHECKING`), docstring mentions, git renames.
 - **Git overlay** — status colours + ghost nodes + rename edges; `--mock-git`
   for a synthetic demo.
-- **Analysis aids** — dead-code candidates, orphan ring, shortest path
-  between two nodes (Shift+click), isolate-a-type, exclude-by-name.
+- **Analysis aids** — dead-code candidates, import-cycle detector (Tarjan
+  SCC over runtime imports; `TYPE_CHECKING` edges don't count), orphan ring,
+  shortest path between two nodes (Shift+click), isolate-a-type,
+  exclude-by-name.
 - **Sharing** — URL-encoded views (Copy link), Mermaid export of the focused
   subgraph, full/compact JSON export.
 - **Comfort** — 10 UI languages, dark/light themes, hue-aligned

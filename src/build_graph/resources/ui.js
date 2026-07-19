@@ -182,8 +182,10 @@ function dropAllSelections() {
     if (typeof updateUrlState === "function") updateUrlState();
 }
 
-// True when a node is faded out by the active pin/edge/path selection.
+// True when a node is faded out by the active pin/edge/path selection or
+// by an exclusive highlight mode (dead / untracked / cycles).
 function isNodeFaded(d) {
+    if (isModeDimmedNode(d)) return true;
     if (pathActive()) return !pathNodeIds.has(d.id);
     if (activeNodeData && !infoPanel.classList.contains("hidden")) {
         const nb = neighborMap.get(activeNodeData.id);
@@ -194,8 +196,10 @@ function isNodeFaded(d) {
     }
     return false;
 }
-// True when an edge is faded out by the active pin/edge/path selection.
+// True when an edge is faded out by the active pin/edge/path selection or
+// by an exclusive highlight mode (dead / untracked / cycles).
 function isEdgeFaded(d) {
+    if (isModeDimmedEdge(d)) return true;
     if (pathActive()) return !pathLinks.has(d);
     if (activeNodeData && !infoPanel.classList.contains("hidden")) {
         return d.source.id !== activeNodeData.id
@@ -411,7 +415,8 @@ function savePrefs() {
             panels,
             collapsedPanels,
             showDead,
-            showUntracked
+            showUntracked,
+            showCycles
         }));
     } catch(e) {}
     updateUrlState();
@@ -431,6 +436,7 @@ function getShareableState() {
         gitMode: gitMode ? "1" : null,
         showDead: showDead ? "1" : null,
         showUnmapped: showUntracked ? "1" : null,
+        showCycles: showCycles ? "1" : null,
         hiddenTypes: hiddenTypes.size ? [...hiddenTypes].join(",") : null,
         hiddenEdges: hiddenEdgeTypes.size
             ? [...hiddenEdgeTypes].join(",") : null,
@@ -531,6 +537,11 @@ function applyShareableState(s) {
         if (s.showUnmapped === "1" && untrackedNodes.size > 0) {
             showUntracked = true;
             const btn = document.getElementById("btn-untracked");
+            if (btn) btn.classList.add("active");
+        }
+        if (s.showCycles === "1" && cycleCount > 0) {
+            showCycles = true;
+            const btn = document.getElementById("btn-cycles");
             if (btn) btn.classList.add("active");
         }
         if (s.search) {
@@ -671,6 +682,11 @@ function loadPrefs() {
         const btn = document.getElementById("btn-untracked");
         if (btn) btn.classList.add("active");
     }
+    if (prefs.showCycles && cycleCount > 0) {
+        showCycles = true;
+        const btn = document.getElementById("btn-cycles");
+        if (btn) btn.classList.add("active");
+    }
     _prefLoading = false;
     applyAllFilters();
     // Theme may have changed (initial load or prefs import at runtime).
@@ -710,6 +726,10 @@ const ICON_SKULL = '<circle cx="9" cy="12" r="1"/>'
     + '<path d="m12.5 17-.5-1-.5 1h1z"/>'
     + '<path d="M16 20a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0'
     + 'A2 2 0 0 0 8 20"/>';
+// Rotating arrow (lucide rotate-cw) — the import-cycles toggle.
+const ICON_CYCLE =
+    '<path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/>'
+    + '<path d="M21 3v5h-5"/>';
 // Target / crosshair — used as "isolate this type" button in legend items.
 const ICON_TARGET = '<circle cx="12" cy="12" r="10"/>'
     + '<circle cx="12" cy="12" r="6"/>'
@@ -909,6 +929,24 @@ if (deadNodes.size > 0) {
             "btn.deadCode",
             t("btn.deadCode"),
             " (" + deadNodes.size + ")"
+        ));
+}
+
+// Import-cycle highlight toggle — only visible when Tarjan found any SCC
+// of size > 1 over the runtime code->code edges. Count = number of cycles
+// (components), not member nodes.
+if (cycleCount > 0) {
+    legendEl.append("button")
+        .attr("id", "btn-cycles")
+        .attr("class", "btn btn--sm btn--block btn--ghost view-btn btn-with-icon")
+        .attr("data-i18n-title", "btn.cyclesTitle")
+        .attr("title", t("btn.cyclesTitle"))
+        .style("margin-top", "4px")
+        .html(iconBtnHtml(
+            ICON_CYCLE,
+            "btn.cycles",
+            t("btn.cycles"),
+            " (" + cycleCount + ")"
         ));
 }
 
@@ -1552,6 +1590,15 @@ if (btnUntracked) {
     btnUntracked.addEventListener("click", () => {
         showUntracked = !showUntracked;
         btnUntracked.classList.toggle("active", showUntracked);
+        savePrefs();
+        requestDraw();
+    });
+}
+const btnCycles = document.getElementById("btn-cycles");
+if (btnCycles) {
+    btnCycles.addEventListener("click", () => {
+        showCycles = !showCycles;
+        btnCycles.classList.toggle("active", showCycles);
         savePrefs();
         requestDraw();
     });
