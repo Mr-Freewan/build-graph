@@ -192,6 +192,22 @@ their own counter button in the top bar.
 
 ![Orphan ring](media/guide/13-orphan-ring.png)
 
+**Ambiguous group nodes** — a doc that mentions a bare filename like
+`__init__.py` or `config.py` without a path (and outside a file-tree
+listing) can't be resolved to one specific file when dozens of files share
+that name. Instead of guessing and fanning the edge out to every same-named
+file, that mention is credited to a single synthetic node in its own
+`ambiguous` legend category, labelled with the match count (`__init__.py
+(×N)`). It has no real file behind it — clicking shows the label only, no
+IDE-open or copy-path. Its **Connections** list is fully normal, though:
+every doc that mentions the bare name is listed with the exact line
+number(s), IDE-open link included — click through, and if the mention
+should point at one specific file, rewrite it as an explicit path
+(`dir/config.py` instead of bare `config.py`) so it resolves to that file
+directly next build.
+
+![Ambiguous group node](media/guide/17-ambiguous.png)
+
 ## Sharing and export
 
 The **File menu** collects the outputs:

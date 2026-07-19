@@ -177,17 +177,21 @@ def _attribute_mention_lines(
     name: str,
     mentions: list[tuple[int, str]],
     tree_map: dict[int, list[str]] | None = None,
-) -> dict[str, list[int]]:
+) -> tuple[dict[str, list[int]], list[int]]:
     """Split a doc's mention lines between same-named files.
 
     A bare-`<name>` line inside a tree listing credits the member(s) its
     reconstructed tree path points to. A line that names a group member by
     an explicit path (any `dir/<name>` suffix) credits only the members it
-    matches. Any other bare line — or a path that resolves to no member —
-    credits the whole group, as before.
+    matches. Any other bare line — one that names none of the group members
+    specifically — is ambiguous: nobody in the group is credited (no more
+    fan-out to everyone); its line number is returned separately so the
+    caller can attribute it to a single synthetic "ambiguous group" node
+    instead.
     """
     pathish = re.compile(r"[\w\-.\\/]*" + re.escape(name))
     credited: dict[str, list[int]] = {n["id"]: [] for n in group}
+    ambiguous_lines: list[int] = []
     for lineno, text in mentions:
         cands = tree_map.get(lineno, []) if tree_map else []
         same_name = [c for c in cands if c.rsplit("/", 1)[-1] == name]
@@ -212,9 +216,12 @@ def _attribute_mention_lines(
             # merely contains this one (`input_screens.py` vs `screens.py`)
             # — a substring artifact of mention detection. Credit nobody.
             continue
-        for n in matched or group:
+        if not matched:
+            ambiguous_lines.append(lineno)
+            continue
+        for n in matched:
             credited[n["id"]].append(lineno)
-    return credited
+    return credited, ambiguous_lines
 
 
 def add_code_doc_edges(
@@ -222,7 +229,7 @@ def add_code_doc_edges(
     path_to_doc_id: dict[str, str],
     project_root: Path,
     md_cache: list,
-) -> list[dict]:
+) -> tuple[list[dict], list[dict]]:
     """Add code->doc edges: which docs mention each non-doc file.
 
     Sources are all non-doc nodes — .py as before, plus config / locale /
@@ -230,18 +237,22 @@ def add_code_doc_edges(
     filename, so nothing code-specific is required. The md corpus and the
     scan base dir are project-wide, hence doc keys come back relative to
     project_root and resolve through `path_to_doc_id`.
+
+    Returns ``(edges, ambiguous_nodes)``. Files sharing a name — ~100
+    __init__.py / conftest.py / callbacks.py etc. — produce identical
+    find_related_docs results; mention lines that name a member by an
+    explicit path (or tree context) are credited to that member only. A
+    bare mention line that names none of them specifically no longer fans
+    out to the whole group — it is credited to one synthetic "ambiguous
+    group" node per basename (id ``ambiguous::<name>``, returned in
+    ``ambiguous_nodes``) instead, so a doc's loose "see __init__.py" reads
+    as one edge to one clearly-marked node rather than ~90 misleading
+    code->doc edges.
     """
     edges: list[dict] = []
     seen: set[tuple[str, str]] = set()
+    cluster_nodes: dict[str, dict] = {}
     root_str = str(project_root.resolve())
-    # Matching in find_related_docs is filename-based (the absolute-path and
-    # dotted-module patterns never occur in project docs), so files sharing
-    # a name — ~100 __init__.py / conftest.py / callbacks.py etc. — produce
-    # identical scan results. Scan once per unique filename; before fanning
-    # the hits out to the group, mention lines that name a member by an
-    # explicit path are credited to that member only (bare-name lines still
-    # go to everyone) — otherwise `integrations/base/config.py` in a doc
-    # would also link every other config.py in the repo.
     by_name: dict[str, list[dict]] = {}
     for node in source_nodes:
         path = project_root / node["path"]
@@ -270,13 +281,16 @@ def add_code_doc_edges(
             if doc_id is None:
                 continue
             mentions = verbose_out.get(doc_key, [])
+            ambiguous_lines: list[int] = []
             if len(group) > 1 and mentions:
                 dk = doc_key.replace("\\", "/")
                 tm = tree_maps.get(dk)
                 if tm is None:
                     tm = _tree_paths_by_line(doc_lines.get(dk, []))
                     tree_maps[dk] = tm
-                credited = _attribute_mention_lines(group, name, mentions, tm)
+                credited, ambiguous_lines = _attribute_mention_lines(
+                    group, name, mentions, tm
+                )
             else:
                 all_lines = [ln for ln, _ in mentions]
                 credited = {n["id"]: all_lines for n in group}
@@ -297,7 +311,34 @@ def add_code_doc_edges(
                         "lines": line_nums,
                     }
                 )
-    return edges
+            if ambiguous_lines:
+                cluster_id = "ambiguous::" + name
+                cluster = cluster_nodes.get(cluster_id)
+                if cluster is None:
+                    cluster = {
+                        "id": cluster_id,
+                        "label": f"{name} (×{len(group)})",
+                        "stem": Path(name).stem,
+                        "type": "ambiguous",
+                        "path": cluster_id,
+                        "degree": 0,
+                        "size": 6,
+                        "ambiguous": True,
+                    }
+                    cluster_nodes[cluster_id] = cluster
+                key = (cluster_id, doc_id)
+                if key not in seen:
+                    seen.add(key)
+                    edges.append(
+                        {
+                            "source": cluster_id,
+                            "target": doc_id,
+                            "type": "code->doc",
+                            "weight": len(ambiguous_lines),
+                            "lines": sorted(set(ambiguous_lines)),
+                        }
+                    )
+    return edges, list(cluster_nodes.values())
 
 
 def _resolve_python_import(

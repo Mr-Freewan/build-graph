@@ -561,11 +561,15 @@ def main() -> None:
                 print(f"Warning: Could not read {f}: {exc}")
                 continue
             md_cache.append((f, content, content.splitlines()))
-        code_edges = add_code_doc_edges(
+        code_edges, ambiguous_nodes = add_code_doc_edges(
             other_nodes, path_to_doc_id, build_root, md_cache
         )
-        print(f"  {len(code_edges)} code->doc edges")
+        print(
+            f"  {len(code_edges)} code->doc edges "
+            f"({len(ambiguous_nodes)} ambiguous-group nodes)"
+        )
         all_edges.extend(code_edges)
+        all_nodes.extend(ambiguous_nodes)
 
         print("Finding code->code imports (AST)...")
         code_trees = _parse_code_trees(py_nodes, build_root)

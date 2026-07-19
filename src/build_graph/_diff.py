@@ -185,7 +185,11 @@ def _build_snapshot(
             except Exception:
                 continue
             md_cache.append((f, content, content.splitlines()))
-        edges.extend(add_code_doc_edges(other_nodes, path_to_doc_id, root, md_cache))
+        code_edges, ambiguous_nodes = add_code_doc_edges(
+            other_nodes, path_to_doc_id, root, md_cache
+        )
+        edges.extend(code_edges)
+        nodes.extend(ambiguous_nodes)
         code_trees = _parse_code_trees(py_nodes, root)
         edges.extend(add_code_code_edges(py_nodes, root, code_trees))
         node_ids = {n["id"] for n in nodes}

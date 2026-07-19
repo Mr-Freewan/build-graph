@@ -43,8 +43,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   that file (previously `__init__.py` in a tree linked every
   `__init__.py` in the repo). Tree entries whose name merely contains
   another file's name (`input_screens.py` vs `screens.py`) no longer
-  count as mentions of that file. Unparseable tree shapes keep the old
-  whole-group behavior.
+  count as mentions of that file. Unparseable tree shapes now route to
+  the ambiguous-group node below instead of the old whole-group fan-out.
+- A doc's bare mention of a same-named file — no explicit path, no tree
+  context — no longer fans out real code→doc edges to every file sharing
+  that name. It is credited to one synthetic node per basename instead, in
+  its own `ambiguous` legend category (`__init__.py (×N)`, N = group
+  size), with the doc + line number still visible in its Connections list.
 
 ## [0.2.0] — 2026-07-19
 

@@ -359,7 +359,9 @@ class TestCodeDocAttribution:
             cache.append((f, content, content.splitlines()))
         return cache
 
-    def _run(self, tmp_path: Path, nodes: list[dict], doc_body: str) -> list[dict]:
+    def _run(
+        self, tmp_path: Path, nodes: list[dict], doc_body: str
+    ) -> tuple[list[dict], list[dict]]:
         from build_graph._build import add_code_doc_edges
 
         doc = tmp_path / "docs" / "d.md"
@@ -370,34 +372,49 @@ class TestCodeDocAttribution:
 
     def test_explicit_path_credits_only_named_member(self, tmp_path: Path) -> None:
         nodes = self._setup(tmp_path)
-        edges = self._run(tmp_path, nodes, "See `a/config.py` for details.\n")
+        edges, ambiguous = self._run(
+            tmp_path, nodes, "See `a/config.py` for details.\n"
+        )
         assert [(e["source"], e["lines"], e["weight"]) for e in edges] == [
             ("a/config.py", [1], 1)
         ]
+        assert ambiguous == []
 
-    def test_bare_name_still_credits_whole_group(self, tmp_path: Path) -> None:
+    def test_bare_name_credits_ambiguous_cluster_node(self, tmp_path: Path) -> None:
+        # A bare mention that names no group member specifically no longer
+        # fans out real edges to every same-named file — it is credited to
+        # one synthetic "ambiguous group" node instead.
         nodes = self._setup(tmp_path)
-        edges = self._run(tmp_path, nodes, "Every module has a `config.py`.\n")
-        assert sorted(e["source"] for e in edges) == ["a/config.py", "b/config.py"]
-        assert all(e["lines"] == [1] for e in edges)
+        edges, ambiguous = self._run(
+            tmp_path, nodes, "Every module has a `config.py`.\n"
+        )
+        assert [e["source"] for e in edges] == ["ambiguous::config.py"]
+        assert edges[0]["lines"] == [1]
+        assert [n["id"] for n in ambiguous] == ["ambiguous::config.py"]
+        assert ambiguous[0]["label"] == "config.py (×2)"
+        assert ambiguous[0]["type"] == "ambiguous"
 
     def test_mixed_lines_split_correctly(self, tmp_path: Path) -> None:
         nodes = self._setup(tmp_path)
-        edges = self._run(
+        edges, ambiguous = self._run(
             tmp_path,
             nodes,
             "Start from `a/config.py`.\nThen check every `config.py`.\n",
         )
         by_src = {e["source"]: e for e in edges}
-        assert by_src["a/config.py"]["lines"] == [1, 2]
-        assert by_src["a/config.py"]["weight"] == 2
-        assert by_src["b/config.py"]["lines"] == [2]
-        assert by_src["b/config.py"]["weight"] == 1
+        assert by_src["a/config.py"]["lines"] == [1]
+        assert by_src["a/config.py"]["weight"] == 1
+        assert "b/config.py" not in by_src
+        assert by_src["ambiguous::config.py"]["lines"] == [2]
+        assert len(ambiguous) == 1
 
-    def test_unresolvable_path_falls_back_to_group(self, tmp_path: Path) -> None:
+    def test_unresolvable_path_falls_back_to_ambiguous(self, tmp_path: Path) -> None:
         nodes = self._setup(tmp_path)
-        edges = self._run(tmp_path, nodes, "Legacy `old/gone/config.py` note.\n")
-        assert sorted(e["source"] for e in edges) == ["a/config.py", "b/config.py"]
+        edges, ambiguous = self._run(
+            tmp_path, nodes, "Legacy `old/gone/config.py` note.\n"
+        )
+        assert [e["source"] for e in edges] == ["ambiguous::config.py"]
+        assert len(ambiguous) == 1
 
     def test_segment_boundary_not_substring(self, tmp_path: Path) -> None:
         # `b/config.py` must not match a path ending in `web/config.py`.
@@ -407,8 +424,9 @@ class TestCodeDocAttribution:
             {"id": "web/config.py", "path": "web/config.py"},
             {"id": "b/config.py", "path": "b/config.py"},
         ]
-        edges = self._run(tmp_path, nodes, "See `b/config.py`.\n")
+        edges, ambiguous = self._run(tmp_path, nodes, "See `b/config.py`.\n")
         assert [e["source"] for e in edges] == ["b/config.py"]
+        assert ambiguous == []
 
 
 class TestTreeListingAttribution:
@@ -422,7 +440,9 @@ class TestTreeListingAttribution:
             {"id": "b/config.py", "path": "b/config.py"},
         ]
 
-    def _run(self, tmp_path: Path, nodes: list[dict], doc_body: str) -> list[dict]:
+    def _run(
+        self, tmp_path: Path, nodes: list[dict], doc_body: str
+    ) -> tuple[list[dict], list[dict]]:
         from build_graph._build import add_code_doc_edges
 
         doc = tmp_path / "docs" / "d.md"
@@ -439,32 +459,39 @@ class TestTreeListingAttribution:
             "Layout:\n\n```text\nproj/\n    a/\n        config.py"
             "      # the one\n    b/\n        other.py\n```\n"
         )
-        edges = self._run(tmp_path, nodes, body)
+        edges, ambiguous = self._run(tmp_path, nodes, body)
         assert [(e["source"], e["lines"]) for e in edges] == [("a/config.py", [6])]
+        assert ambiguous == []
 
     def test_dir_and_files_on_one_line(self, tmp_path: Path) -> None:
         nodes = self._setup(tmp_path)
         body = "```text\nproj/\n    a/    config.py, extra.py\n```\n"
-        edges = self._run(tmp_path, nodes, body)
+        edges, ambiguous = self._run(tmp_path, nodes, body)
         assert [(e["source"], e["lines"]) for e in edges] == [("a/config.py", [3])]
+        assert ambiguous == []
 
     def test_multi_dir_line_taints_branch(self, tmp_path: Path) -> None:
+        # Ambiguous tree indentation (two dirs on one line) can't be
+        # resolved to a single member — it's ambiguous, not a fan-out.
         nodes = self._setup(tmp_path)
         body = "```text\nproj/\n    a/ b/\n        config.py\n```\n"
-        edges = self._run(tmp_path, nodes, body)
-        assert sorted(e["source"] for e in edges) == ["a/config.py", "b/config.py"]
+        edges, ambiguous = self._run(tmp_path, nodes, body)
+        assert [e["source"] for e in edges] == ["ambiguous::config.py"]
+        assert len(ambiguous) == 1
 
     def test_brace_dir_taints_branch(self, tmp_path: Path) -> None:
         nodes = self._setup(tmp_path)
         body = "```text\nproj/\n    a/{x,y}/\n        config.py\n```\n"
-        edges = self._run(tmp_path, nodes, body)
-        assert sorted(e["source"] for e in edges) == ["a/config.py", "b/config.py"]
+        edges, ambiguous = self._run(tmp_path, nodes, body)
+        assert [e["source"] for e in edges] == ["ambiguous::config.py"]
+        assert len(ambiguous) == 1
 
     def test_unresolvable_tree_path_falls_back(self, tmp_path: Path) -> None:
         nodes = self._setup(tmp_path)
         body = "```text\nproj/\n    zzz/\n        config.py\n```\n"
-        edges = self._run(tmp_path, nodes, body)
-        assert sorted(e["source"] for e in edges) == ["a/config.py", "b/config.py"]
+        edges, ambiguous = self._run(tmp_path, nodes, body)
+        assert [e["source"] for e in edges] == ["ambiguous::config.py"]
+        assert len(ambiguous) == 1
 
     def test_tree_paths_by_line_shapes(self) -> None:
         from build_graph._build import _tree_paths_by_line
@@ -488,8 +515,9 @@ class TestTreeListingAttribution:
         # `model_config.py` contains `config.py` as a substring, so mention
         # detection fires — but the tree says which file the line is about.
         body = "```text\nproj/\n    a/\n        model_config.py\n```\n"
-        edges = self._run(tmp_path, nodes, body)
+        edges, ambiguous = self._run(tmp_path, nodes, body)
         assert edges == []
+        assert ambiguous == []
 
     def test_tree_paths_box_drawing_indent(self) -> None:
         from build_graph._build import _tree_paths_by_line

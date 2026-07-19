@@ -62,28 +62,39 @@ function renderInfoPanel(d) {
                 node: l.source, dir: cd ? "→" : "←", type: l.type, edge: l});
     });
     infoTitle.textContent = d.label;
-    // Path as clickable breadcrumbs: each directory segment becomes a span
-    // that, on click, filters the graph by that path prefix (via the search
-    // box). The filename segment keeps its IDE-open / copy-path behavior.
-    const segs = d.path.split("/");
-    const filename = segs.pop();
-    let bc = "";
-    let acc = "";
-    segs.forEach((seg, i) => {
-        acc = i === 0 ? seg : acc + "/" + seg;
-        bc += '<span class="bc-seg" data-prefix="' + esc(acc) + '" title="'
-            + esc(acc) + '">' + esc(seg) + '</span>'
-            + '<span class="bc-sep">/</span>';
-    });
-    const pathHref = buildFileHref(d.path, null);
-    const fileLink = pathHref
-        ? '<a href="' + esc(pathHref) + '" class="conn-link">'
-            + esc(filename) + "</a>"
-        : '<span class="conn-link conn-copy" data-copy="'
-            + esc(PROJECT_ROOT + "/" + d.path)
-            + '" title="' + esc(t("info.copyTitle")) + '">'
-            + esc(filename) + "</span>";
-    infoPath.innerHTML = bc + fileLink;
+    if (d.ambiguous) {
+        // Synthetic "ambiguous group" node — no real file behind it, so no
+        // breadcrumbs and no IDE-open / copy-path affordance.
+        infoPath.textContent = "";
+        const span = document.createElement("span");
+        span.className = "conn-link";
+        span.textContent = d.label;
+        infoPath.appendChild(span);
+    } else {
+        // Path as clickable breadcrumbs: each directory segment becomes a
+        // span that, on click, filters the graph by that path prefix (via
+        // the search box). The filename segment keeps its IDE-open /
+        // copy-path behavior.
+        const segs = d.path.split("/");
+        const filename = segs.pop();
+        let bc = "";
+        let acc = "";
+        segs.forEach((seg, i) => {
+            acc = i === 0 ? seg : acc + "/" + seg;
+            bc += '<span class="bc-seg" data-prefix="' + esc(acc) + '" title="'
+                + esc(acc) + '">' + esc(seg) + '</span>'
+                + '<span class="bc-sep">/</span>';
+        });
+        const pathHref = buildFileHref(d.path, null);
+        const fileLink = pathHref
+            ? '<a href="' + esc(pathHref) + '" class="conn-link">'
+                + esc(filename) + "</a>"
+            : '<span class="conn-link conn-copy" data-copy="'
+                + esc(PROJECT_ROOT + "/" + d.path)
+                + '" title="' + esc(t("info.copyTitle")) + '">'
+                + esc(filename) + "</span>";
+        infoPath.innerHTML = bc + fileLink;
+    }
     const typeColor = activeColors[d.type] || "#999";
     infoTypeEl.innerHTML =
         '<span style="display:inline-block;width:9px;height:9px;'
