@@ -361,6 +361,15 @@ def parse_args() -> argparse.Namespace:
             "integer node IDs, 3-letter type codes, legend embedded."
         ),
     )
+    p.add_argument(
+        "--bench",
+        action="store_true",
+        help=(
+            "Print a context-cost report for this repo (raw corpus vs "
+            "--json vs --compact sizes with token estimates) and exit "
+            "without writing any files."
+        ),
+    )
     return p.parse_args()
 
 
@@ -390,6 +399,58 @@ def _compact_json(obj: dict) -> str:
             parts.append(f'  "{key}": {s}{sep}')
     parts.append("}")
     return "\n".join(parts)
+
+
+def _fmt_size(n: int) -> str:
+    if n >= 1024 * 1024:
+        return f"{n / (1024 * 1024):.1f} MB"
+    if n >= 1024:
+        return f"{n / 1024:.1f} KB"
+    return f"{n} B"
+
+
+def print_bench_report(
+    nodes: list[dict],
+    edges: list[dict],
+    project_root: Path,
+    git_available: bool,
+    cat_codes: dict[str, str],
+) -> None:
+    """Print a context-cost report: raw corpus vs the two JSON exports.
+
+    Reproduces the README numbers on the user's own repo. Token counts use
+    the usual rough estimate of one token per 4 bytes; nothing is written.
+    """
+    live = [n for n in nodes if not n.get("ghost")]
+    corpus_bytes = 0
+    corpus_files = 0
+    for n in live:
+        try:
+            corpus_bytes += (project_root / n["path"]).stat().st_size
+        except OSError:
+            continue
+        corpus_files += 1
+    verbose = json.dumps(
+        build_llm_export(nodes, edges, project_root, git_available),
+        ensure_ascii=False,
+        indent=2,
+    ).encode("utf-8")
+    compact = _compact_json(
+        build_llm_export_compact(nodes, edges, project_root, git_available, cat_codes)
+    ).encode("utf-8")
+
+    def row(label: str, size: int) -> str:
+        pct = f"{size / corpus_bytes * 100:.1f}%" if corpus_bytes else "n/a"
+        return f"  {label:<29} {_fmt_size(size):>9}  {size // 4:>11,}  {pct:>9}"
+
+    header = f"  {'What you put in context':<29} {'Size':>9}  {'~Tokens':>11}  {'vs corpus':>9}"
+    print()
+    print("Context cost on this repo (tokens ~= bytes / 4):")
+    print()
+    print(header)
+    print(row(f"raw corpus ({corpus_files} files)", corpus_bytes))
+    print(row("--json export (schema v1)", len(verbose)))
+    print(row("--compact export (schema v2)", len(compact)))
 
 
 def main() -> None:
@@ -518,6 +579,12 @@ def main() -> None:
         categories, config.get("colors", {}), config.get("colors_saturated", {})
     )
     cat_codes = build_cat_codes(categories)
+
+    if args.bench:
+        print_bench_report(
+            all_nodes, all_edges, project_root, git_data is not None, cat_codes
+        )
+        return
 
     print(f"Rendering HTML to {output_path}...")
     project_root_posix = str(project_root).replace("\\", "/")

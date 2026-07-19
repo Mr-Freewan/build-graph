@@ -59,3 +59,27 @@ def test_build_graph_end_to_end(
     assert compact["legend"]
     assert compact["n"]
     assert compact["e"]
+
+
+def test_bench_reports_sizes_without_writing(
+    tiny_project: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["build-graph", "--root", str(tiny_project), "--bench"],
+    )
+    graph.main()
+
+    out = capsys.readouterr().out
+    assert "Context cost on this repo" in out
+    assert "raw corpus (4 files)" in out
+    assert "--json export (schema v1)" in out
+    assert "--compact export (schema v2)" in out
+
+    docs = tiny_project / "docs"
+    assert not (docs / "graph.html").exists()
+    assert not (docs / "graph.json").exists()
+    assert not (docs / "graph-compact.json").exists()
