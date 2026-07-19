@@ -21,6 +21,8 @@ Module layout:
         _diff.py   — ref-diff mode (--diff-base[/--diff-head]): ref
             snapshots via git archive, edge-set diff, removed-edge ghosts
         _heat.py   — Heat overlay: per-file commit counts (--heat-days)
+        _coverage.py — Coverage overlay: per-file % from Cobertura XML
+            (--coverage), hardened expat parser (no defusedxml dependency)
         _render.py — layout hints, palette, dead-code exemptions,
             packaged front-end resources, HTML assembly, D3 pinning
         graph.py   — LLM JSON exports (verbose + compact), CLI entry
@@ -86,6 +88,7 @@ from build_graph._git import (
     apply_mock_git_status,
     collect_git_status,
 )
+from build_graph._coverage import collect_coverage_data
 from build_graph._heat import collect_heat_data
 from build_graph._render import (
     apply_dead_exemptions,
@@ -380,6 +383,17 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Restrict the Heat overlay (node color by git-commit frequency) "
             "to the last N days. Without this flag: the whole history."
+        ),
+    )
+    p.add_argument(
+        "--coverage",
+        metavar="PATH",
+        default=None,
+        help=(
+            "Enable the Coverage overlay (node color by test-line coverage) "
+            "from a Cobertura coverage.xml report, e.g. from "
+            "'pytest --cov-report=xml'. Off by default — no coverage.xml, "
+            "no overlay."
         ),
     )
     p.add_argument(
@@ -688,6 +702,21 @@ def main() -> None:
             touched = sum(1 for c in heat_data.values() if c > 0)
             print(f"  {touched} paths with commit history in window")
 
+    coverage_data: dict[str, float] | None = None
+    if args.coverage:
+        coverage_xml_path = Path(args.coverage)
+        if not coverage_xml_path.is_absolute():
+            coverage_xml_path = project_root / coverage_xml_path
+        print(f"Collecting coverage data from {coverage_xml_path}...")
+        known_paths = {n["path"] for n in py_nodes}
+        coverage_data = collect_coverage_data(coverage_xml_path, known_paths)
+        if coverage_data is None:
+            print(
+                f"  could not read/parse {coverage_xml_path}; skipping coverage overlay"
+            )
+        else:
+            print(f"  {len(coverage_data)} files matched")
+
     if head_tmp is not None:
         head_tmp.cleanup()
 
@@ -725,6 +754,7 @@ def main() -> None:
         diff_info=diff_info,
         heat_data=heat_data,
         heat_days=args.heat_days,
+        coverage_data=coverage_data,
     )
     if args.json:
         json_path = output_path.with_suffix(".json")

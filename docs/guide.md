@@ -82,6 +82,15 @@ The legend is interactive:
 
 ## Inspecting a node
 
+Hovering a node for a moment shows a small **tooltip** with its name and
+path — a quicker glance than opening the full panel below. In Heat or
+Coverage mode it adds the number behind the colour (edit count / coverage
+%), since that's otherwise only visible by clicking through. The delay is
+deliberately longer than a typical hover effect so sweeping the cursor
+across many nodes doesn't flash a tooltip per node. Edge tooltips (below)
+turn off while Heat or Coverage mode is active — edges keep their normal
+type colour there, so hovering one has nothing useful to say.
+
 Click a node — the **info-panel** opens and the selection stays highlighted
 (pinned) after the cursor leaves:
 
@@ -187,7 +196,40 @@ Git mode are still mutually exclusive with each other: both recolour
 nodes, so turning one on turns the other off. The button is disabled (with
 a tooltip) when git isn't available.
 
-![Heat mode: gradient legend, min-edits slider, Node types still usable underneath](media/guide/18-heat.gif)
+![Heat mode: gradient legend, min-edits slider, Node types still usable underneath](https://mr-freewan.github.io/build-graph/media/guide/18-heat.gif)
+
+## Coverage mode
+
+The **Cov.** button switches node colours from types to **test-line
+coverage**: a green→red gradient from a Cobertura `coverage.xml` (build
+with `--coverage PATH`, e.g. the report from
+`pytest --cov=your_pkg --cov-report=xml` — `--cov` needs the package name;
+`--cov-report=xml` alone collects nothing).
+The direction is deliberately reversed from Heat mode: the whole point of
+this overlay is finding badly-covered files, so green (100%, good) sits on
+the left and red (0%, bad) on the right. The slider under it is a
+**ceiling, not a floor**: drag it down from 100% and it hides anything
+covered *more* than that percentage, leaving only the worst-covered files
+on screen — the opposite of Heat's min-edits slider, which keeps the
+busiest files instead of the quietest ones. Same additive behaviour as
+Heat mode (Node types stays usable underneath) and the same three-way
+mutual exclusion with Git and Heat — only one of the three can recolour
+nodes at a time.
+
+Unlike Git and Heat, whose buttons stay in the bar (disabled, with a
+tooltip) when their data source is unavailable, the Coverage button is
+**hidden entirely** when no `coverage.xml` was given at build time —
+running coverage is opt-in and far less universal than having a git
+history, so a permanently-greyed-out button would just be clutter.
+
+Turning Coverage mode on also auto-hides every Node type except `code/*`
+in the legend — a coverage report can never say anything about docs or
+config files, so there's no point cluttering the view with nodes that
+will always render neutral gray. It's the same hide mechanism as clicking
+a type in the legend, just pre-applied: any category can be shown again
+from there.
+
+![Coverage mode: gradient legend, max-coverage slider isolating badly-covered files, node tooltip](https://mr-freewan.github.io/build-graph/media/guide/19-coverage.gif)
 
 ## Analysis aids
 

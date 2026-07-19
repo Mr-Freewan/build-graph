@@ -228,6 +228,7 @@ def render_html(
     diff_info: dict | None = None,
     heat_data: dict | None = None,
     heat_days: int | None = None,
+    coverage_data: dict | None = None,
 ) -> None:
     """Write a self-contained HTML graph file to output_path."""
     graph_json = _safe_json({"nodes": nodes, "links": edges})
@@ -240,6 +241,7 @@ def render_html(
     # not truthiness (an empty dict is falsy but still means "available").
     heat_json = _safe_json(heat_data) if heat_data is not None else "null"
     heat_days_json = _safe_json(heat_days)
+    coverage_json = _safe_json(coverage_data) if coverage_data is not None else "null"
     d3_tag = _get_d3_script(embed_d3)
     # --no-cdn means "no external requests at all": along with embedding D3,
     # drop the Google Fonts link — the CSS font stack falls back to system-ui.
@@ -279,6 +281,8 @@ def render_html(
         + heat_json
         + ";\nconst HEAT_DAYS = "
         + heat_days_json
+        + ";\nconst COVERAGE_DATA = "
+        + coverage_json
         + ";\nconst APP_VERSION = "
         + _safe_json(__version__)
         + ";\nconst APP_AUTHOR = "

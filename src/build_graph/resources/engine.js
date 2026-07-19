@@ -306,6 +306,43 @@ function heatColor(intensity) {
     return d3.interpolateRgb(HEAT_COLD, HEAT_HOT)(intensity);
 }
 
+// Coverage overlay: per-node test-line coverage percent (0..100), from
+// COVERAGE_DATA (Cobertura XML, --coverage; path -> percent, already
+// resolved against project paths in Python). Linear scale — unlike heat's
+// commit frequency, coverage percentages aren't power-law distributed, so
+// no log-scaling is needed. Nodes absent from COVERAGE_DATA (docs, config,
+// non-Python files, or code the report simply didn't cover) are left out of
+// the map entirely and fall back to the type color in currentNodeColor —
+// same "not applicable" treatment as ghost nodes in heat mode.
+const coveragePercent = new Map();  // node id -> 0..100
+if (COVERAGE_DATA) {
+    nodes.forEach(n => {
+        if (n.ghost) return;
+        if (Object.prototype.hasOwnProperty.call(COVERAGE_DATA, n.path)) {
+            coveragePercent.set(n.id, COVERAGE_DATA[n.path]);
+        }
+    });
+}
+// The whole point of this overlay is finding badly-covered files, so the
+// gradient reads green(good)->red(bad) — reversed from heat's cold->hot —
+// and the max-coverage slider (ui.js) matches: 100%/off on the left
+// (green side), 0% (strictest — only 0%-covered files pass) on the right.
+const COVERAGE_GOOD = "#22c55e";
+const COVERAGE_BAD = "#ef4444";
+function coverageColor(percent) {
+    return d3.interpolateRgb(COVERAGE_BAD, COVERAGE_GOOD)(percent / 100);
+}
+let coverageMode = false;
+// Max-coverage ceiling (slider in the Coverage legend, ui.js): the whole
+// point of this overlay is finding BADLY covered files, so the slider
+// isolates them — nodes covered MORE than coverageMaxPercent are hidden
+// while coverage mode is on (see baseNodeVisible() in ui.js), leaving
+// only the worse-covered files as the ceiling is lowered. Default 100 =
+// off (nothing exceeds 100%, so nothing is hidden). Nodes with no
+// coverage data at all are exempt from this filter (not the same as
+// "0% covered").
+let coverageMaxPercent = 100;
+
 const simulation = d3.forceSimulation(nodes)
     .force("link", d3.forceLink(links).id(d => d.id)
         .distance(d => d.type === "code->doc" ? 120 : 80)
@@ -447,13 +484,15 @@ let activeGitColors = GIT_COLORS_PASTEL;
 const DIFF_EDGE_COLORS = { added: "#22c55e", removed: "#ef4444" };
 let gitMode = false;
 const hiddenGitStatuses = new Set();
-// Heat mode — mutually exclusive with git mode (enforced in ui.js:
-// applyGitMode/applyHeatMode); both recolor nodes by a different signal,
-// so only one "what am I colouring by" state can be active at a time.
+// Heat mode — mutually exclusive with git mode AND coverage mode
+// (enforced in ui.js: applyGitMode/applyHeatMode/applyCoverageMode all
+// gate each other); all three recolor nodes by a different signal, so
+// only one "what am I colouring by" state can be active at a time.
 let heatMode = false;
 function currentNodeColor(d) {
     if (gitMode && d.gitStatus) return activeGitColors[d.gitStatus] || "#999";
     if (heatMode && heatIntensity.has(d.id)) return heatColor(heatIntensity.get(d.id));
+    if (coverageMode && coveragePercent.has(d.id)) return coverageColor(coveragePercent.get(d.id));
     return activeColors[d.type] || "#999";
 }
 let searchQuery = "";
@@ -928,6 +967,11 @@ bindCanvasZoom();
 // Priority mirrors the old DOM stacking: nodes on top, then edges, then
 // the background.
 let _lastHoverEdge = null;
+// Node tooltip: independent, longer delay than the dim-highlight peek
+// above — sweeping the cursor across many nodes in one pass shouldn't
+// flash a tooltip per node underneath it.
+const NODE_TOOLTIP_DELAY = 400;
+let _nodeTooltipTimer = null;
 canvas.addEventListener("mousemove", (event) => {
     if (isDragging) return;
     const [wx, wy] = transform.invert(d3.pointer(event, canvas));
@@ -941,12 +985,26 @@ canvas.addEventListener("mousemove", (event) => {
         hoverNode = n;
         if (n) onNodeEnter(n);
         requestDraw();
+        clearTimeout(_nodeTooltipTimer);
+        if (n) {
+            _nodeTooltipTimer = setTimeout(() => {
+                if (hoverNode === n) showNodeTooltip(event, n);
+            }, NODE_TOOLTIP_DELAY);
+        } else {
+            hideNodeTooltip();
+        }
+    } else if (n) {
+        moveNodeTooltip(event);
     }
+    // Edge tooltip makes no sense in Heat/Coverage mode — edges keep
+    // their type-based color there (see currentNodeColor), but hovering
+    // one while scanning for hot/badly-covered nodes is just noise.
+    const edgeTooltipsAllowed = !heatMode && !coverageMode;
     if (l !== _lastHoverEdge) {
         _lastHoverEdge = l;
-        if (l) showEdgeTooltip(event, l);
+        if (l && edgeTooltipsAllowed) showEdgeTooltip(event, l);
         else hideEdgeTooltip();
-    } else if (l) {
+    } else if (l && edgeTooltipsAllowed) {
         moveEdgeTooltip(event);
     }
 });
@@ -956,6 +1014,8 @@ canvas.addEventListener("mouseleave", () => {
         hoverNode = null;
         requestDraw();
     }
+    clearTimeout(_nodeTooltipTimer);
+    hideNodeTooltip();
     if (_lastHoverEdge) {
         hideEdgeTooltip();
         _lastHoverEdge = null;

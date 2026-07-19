@@ -32,6 +32,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   legend stay exactly as they are. The legend shows the collection period,
   the raw commit-count range, and a min-edits slider that hides anything
   colder than the chosen threshold (edges follow).
+- Coverage overlay: a fourth node-coloring mode from a Cobertura
+  `coverage.xml` (`--coverage PATH`, e.g. `pytest --cov=your_pkg --cov-report=xml`) — a
+  green→red gradient by test-line coverage. Reversed direction from Heat
+  on purpose: the point of this overlay is finding badly-covered files,
+  so green (good) sits on the left, and the slider is a ceiling — it
+  hides anything covered *more* than the chosen percentage, isolating
+  the worst-covered files as you lower it. Turning it on also auto-hides
+  every Node type except code in the legend (a coverage report can't say
+  anything about docs/config files); any category can be shown again from
+  there. Additive like Heat mode otherwise; mutually exclusive with both
+  Git and Heat. Off by default, and its button is hidden entirely (not
+  just disabled) when no report is given — unlike git, most builds won't
+  have one.
+- Node tooltip: hovering any node now shows its name and path after a
+  short delay; in Heat or Coverage mode it also shows the edit count or
+  coverage percentage behind the color, so the number doesn't require
+  opening the info-panel. Edge tooltips are suppressed while Heat or
+  Coverage mode is on — edges keep their type-based color there, so
+  hovering one is just noise.
 
 ### Changed
 

@@ -202,6 +202,18 @@ Verify any surprising claim against the actual source before acting.
   than the chosen threshold — edges follow. Mutually exclusive with the Git
   overlay — both recolour nodes, so only one is on at a time; unlike Git
   mode, it's additive: Node types stays visible and usable underneath.
+- **Coverage overlay** — node colour by test-line coverage (green→red
+  gradient — this one's about finding badly-covered files, so it reads
+  the opposite way from Heat) from a Cobertura `coverage.xml`
+  (`--coverage PATH`, e.g. `pytest --cov=your_pkg --cov-report=xml`). A max-coverage
+  slider hides anything covered *more* than the chosen ceiling, isolating
+  the worst-covered files as you lower it; turning it on also auto-hides
+  every Node type but code in the legend (shown again with one click).
+  Mutually exclusive with Git and Heat too. Off — and its button hidden —
+  when no report is given.
+- **Node tooltip** — hover any node to see its name and path; in Heat or
+  Coverage mode, also the edit count or coverage percentage behind the
+  colour. Edge tooltips turn off while either of those modes is active.
 - **Analysis aids** — dead-code candidates, import-cycle detector (Tarjan
   SCC over runtime imports; `TYPE_CHECKING` edges don't count), orphan ring,
   shortest path between two nodes (Shift+click), isolate-a-type,
@@ -255,6 +267,7 @@ Two optional plain-text companions, both looked up in the project root:
 | `--diff-base REF` | ref-diff build: statuses + edge changes vs a git ref (head = working tree unless `--diff-head` is set) |
 | `--diff-head REF` | with `--diff-base`: diff against this ref instead of the working tree |
 | `--heat-days N` | restrict the Heat overlay to the last N days (default: whole history) |
+| `--coverage PATH` | enable the Coverage overlay from a Cobertura `coverage.xml` |
 | `--init [--diff\|--merge\|--force]` | config lifecycle (see above) |
 
 ## Companion tools

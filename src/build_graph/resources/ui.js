@@ -309,6 +309,9 @@ function baseNodeVisible(n) {
         return false;
     if (heatMode && heatMinCount > 0 && (heatCount.get(n.id) || 0) < heatMinCount)
         return false;
+    if (coverageMode && coverageMaxPercent < 100 && coveragePercent.has(n.id)
+        && coveragePercent.get(n.id) > coverageMaxPercent)
+        return false;
     return !hiddenTypes.has(n.type)
         && !excludedNames.has(n.label)
         && !excludedNames.has(n.stem);
@@ -426,6 +429,8 @@ function savePrefs() {
             gitMode,
             heatMode,
             heatMinCount,
+            coverageMode,
+            coverageMaxPercent,
             hiddenGitStatuses: [...hiddenGitStatuses],
             panels,
             collapsedPanels,
@@ -451,6 +456,8 @@ function getShareableState() {
         gitMode: gitMode ? "1" : null,
         heatMode: heatMode ? "1" : null,
         heatMin: heatMinCount > 0 ? String(heatMinCount) : null,
+        coverageMode: coverageMode ? "1" : null,
+        coverageMax: coverageMaxPercent < 100 ? String(coverageMaxPercent) : null,
         showDead: showDead ? "1" : null,
         showUnmapped: showUntracked ? "1" : null,
         showCycles: showCycles ? "1" : null,
@@ -552,6 +559,14 @@ function applyShareableState(s) {
             updateHeatMinLabel();
         }
         if (s.heatMode === "1" && HEAT_DATA) applyHeatMode(true);
+        if (s.coverageMax) {
+            coverageMaxPercent = parseInt(s.coverageMax, 10);
+            if (Number.isNaN(coverageMaxPercent)) coverageMaxPercent = 100;
+            const covSlider = document.getElementById("coverage-max-slider");
+            if (covSlider) covSlider.value = _coverageSliderRaw(coverageMaxPercent);
+            updateCoverageMaxLabel();
+        }
+        if (s.coverageMode === "1" && COVERAGE_DATA) applyCoverageMode(true);
         if (s.showDead === "1" && deadNodes.size > 0) {
             showDead = true;
             document.body.classList.add("show-dead");
@@ -690,6 +705,15 @@ function loadPrefs() {
     }
     if (prefs.heatMode && HEAT_DATA) {
         applyHeatMode(true);
+    }
+    if (typeof prefs.coverageMaxPercent === "number" && prefs.coverageMaxPercent < 100) {
+        coverageMaxPercent = prefs.coverageMaxPercent;
+        const covSlider = document.getElementById("coverage-max-slider");
+        if (covSlider) covSlider.value = _coverageSliderRaw(coverageMaxPercent);
+        updateCoverageMaxLabel();
+    }
+    if (prefs.coverageMode && COVERAGE_DATA) {
+        applyCoverageMode(true);
     }
     // IDE scheme
     if (prefs.ide) {
@@ -1081,9 +1105,10 @@ function applyGitMode(on) {
     if (!GIT_DATA && on) return;
     // Heat and git are mutually exclusive recolor modes — entering one
     // exits the other (mirrors how Cycles/Untracked get force-disabled
-    // below). applyHeatMode's own `on && gitMode` guard stops this from
-    // recursing back.
+    // below). applyHeatMode's/applyCoverageMode's own `on && gitMode`
+    // guards stop this from recursing back.
     if (on && heatMode) applyHeatMode(false);
+    if (on && coverageMode) applyCoverageMode(false);
     gitMode = on;
     // Cycles / Untracked toggles are hidden in git mode (CSS) — drop their
     // highlight state too, so the mode can't stay on without its button.
@@ -1224,6 +1249,7 @@ function setupHeatButton() {
 function applyHeatMode(on) {
     if (!HEAT_DATA && on) return;
     if (on && gitMode) applyGitMode(false);
+    if (on && coverageMode) applyCoverageMode(false);
     heatMode = on;
     document.body.classList.toggle("heat-mode", on);
     document.getElementById("btn-heat").classList.toggle("active", on);
@@ -1294,6 +1320,132 @@ function updateHeatPeriodLabel() {
     const el = document.getElementById("heat-period");
     if (!el) return;
     el.textContent = HEAT_DAYS == null ? t("heat.allTime") : tFmt("heatPeriod", HEAT_DAYS);
+}
+
+// =============================================================================
+// === COVERAGE OVERLAY ===
+// Coverage overlay: recolors nodes by test-line coverage percent (Cobertura
+// XML, --coverage). Additive like heat mode (Node types stays usable),
+// mutually exclusive with git AND heat (see the `on && ...` guards in all
+// three applyXMode functions). Unlike Git/Heat, whose buttons stay in the
+// bar disabled-with-a-tooltip when their data source is missing, the
+// Coverage button is fully hidden when there's no coverage.xml — it's a
+// much rarer opt-in artifact than git, a permanently-greyed-out button
+// would just be clutter for the common case of "nobody ran coverage".
+// =============================================================================
+function setupCoverageButton() {
+    const btn = document.getElementById("btn-coverage");
+    if (!COVERAGE_DATA) {
+        btn.style.display = "none";
+        return;
+    }
+    btn.addEventListener("click", () => {
+        applyCoverageMode(!coverageMode);
+        savePrefs();
+    });
+}
+
+// Snapshot of hiddenTypes taken the moment coverage mode turns on, so
+// turning it back off restores exactly what the user had before — not
+// left however the auto-hide (or any manual re-showing done while in
+// coverage mode) happened to leave it.
+let _hiddenTypesBeforeCoverage = null;
+function applyCoverageMode(on) {
+    if (!COVERAGE_DATA && on) return;
+    if (on && gitMode) applyGitMode(false);
+    if (on && heatMode) applyHeatMode(false);
+    coverageMode = on;
+    if (on) {
+        // Coverage only ever applies to code files — auto-hide every other
+        // category via the normal Node-types legend mechanism (not a
+        // separate mode-only rule) so doc/config/etc nodes, which will
+        // always render neutral gray here, don't clutter the view. Items
+        // stay in the legend and clickable — the user can re-show any of
+        // them, same as hiding any other type.
+        _hiddenTypesBeforeCoverage = new Set(hiddenTypes);
+        deactivateShowAll();
+        Object.keys(activeColors).forEach(type => {
+            if (!type.startsWith("code/")) hiddenTypes.add(type);
+        });
+    } else if (_hiddenTypesBeforeCoverage) {
+        hiddenTypes.clear();
+        _hiddenTypesBeforeCoverage.forEach(t => hiddenTypes.add(t));
+        _hiddenTypesBeforeCoverage = null;
+    }
+    refreshLegendState();
+    document.body.classList.toggle("coverage-mode", on);
+    document.getElementById("btn-coverage").classList.toggle("active", on);
+    applyAllFilters();
+}
+
+// Gradient legend, mirroring buildHeatLegend — but the point of this
+// overlay is finding BADLY covered files, so the direction is reversed:
+// green (100%, good) on the left, red (0%, bad) on the right — and the
+// slider is a CEILING, not a floor: it hides anything covered MORE than
+// the chosen percentage, isolating the worst files as you lower it.
+//
+// Physically: left = 100% (off — nothing exceeds 100%, so nothing hides),
+// right = 0% (strictest — only 0%-covered files survive). Done with a
+// PLAIN left-to-right <input type="range"> plus an inverted value mapping
+// in JS (rawSliderValue = 100 - coverageMaxPercent), not CSS
+// `direction: rtl` — that was tried first and looked right in one
+// browser's screenshot but is exactly the kind of engine-dependent
+// range-input quirk that isn't guaranteed to render the same everywhere.
+// Arithmetic inversion is deterministic on every browser; see
+// _coverageSliderRaw below. It's its own inverse (100 - (100 - x) = x),
+// so the same helper converts both ways.
+function _coverageSliderRaw(percent) {
+    return 100 - percent;
+}
+function buildCoverageLegend() {
+    if (!COVERAGE_DATA) return;
+    const container = legendEl.append("div").attr("id", "legend-coverage");
+    const covH4 = container.append("h4")
+        .attr("data-i18n", "legend.coverage")
+        .text(t("legend.coverage"));
+    if (typeof makeDraggable === "function") {
+        makeDraggable(document.getElementById("legend"), covH4.node());
+    }
+    container.append("div")
+        .attr("class", "heat-gradient-bar")
+        .style("background", "linear-gradient(90deg, " + COVERAGE_GOOD + ", " + COVERAGE_BAD + ")");
+    const labels = container.append("div").attr("class", "heat-gradient-labels");
+    labels.append("span").text("100%");
+    labels.append("span").text("0%");
+
+    const filterRow = container.append("div").attr("class", "heat-filter-row");
+    filterRow.append("input")
+        .attr("type", "range")
+        .attr("id", "coverage-max-slider")
+        .attr("min", 0)
+        .attr("max", 100)
+        .attr("step", 1)
+        .attr("value", _coverageSliderRaw(coverageMaxPercent))
+        .attr("data-i18n-title", "legend.coverageMaxTitle")
+        .attr("title", t("legend.coverageMaxTitle"))
+        .on("input", function() {
+            coverageMaxPercent = 100 - (+this.value);
+            updateCoverageMaxLabel();
+            applyAllFilters();
+            savePrefs();
+        });
+    filterRow.append("span").attr("id", "coverage-max-label").attr("class", "heat-min-label");
+    updateCoverageMaxLabel();
+}
+
+function updateCoverageMaxLabel() {
+    const el = document.getElementById("coverage-max-label");
+    if (el) el.textContent = "≤ " + coverageMaxPercent + "%";
+}
+
+// Reset the slider to "no filter" — called from Clear filters (btn-show-all).
+// Raw DOM value 0 (== _coverageSliderRaw(100)) is the resting/off position,
+// physically on the left (100% end) — see buildCoverageLegend.
+function resetCoverageMaxFilter() {
+    coverageMaxPercent = 100;
+    const slider = document.getElementById("coverage-max-slider");
+    if (slider) slider.value = _coverageSliderRaw(100);
+    updateCoverageMaxLabel();
 }
 
 function updateGitLegendSwatches() {
@@ -1733,6 +1885,7 @@ document.getElementById("btn-show-all").addEventListener("click", () => {
     orphansOnly = false;
     document.getElementById("btn-orphans").classList.remove("active");
     if (typeof resetHeatMinFilter === "function") resetHeatMinFilter();
+    if (typeof resetCoverageMaxFilter === "function") resetCoverageMaxFilter();
     applyAllFilters();
     savePrefs();
 });
@@ -1836,6 +1989,45 @@ function moveEdgeTooltip(event) {
 }
 function hideEdgeTooltip() {
     edgeTooltip.classList.add("hidden");
+}
+
+// === NODE TOOLTIP ===
+// Node tooltip: label + path always; in Heat/Coverage mode, also the
+// metric behind the node's color (edit count / coverage %) — otherwise
+// that number is only visible by clicking through to the info-panel.
+// Shown after a longer delay than the dim-highlight peek (engine.js) —
+// see NODE_TOOLTIP_DELAY there — so sweeping the cursor across many
+// nodes doesn't flash a tooltip per node.
+const nodeTooltip = document.getElementById("node-tooltip");
+function showNodeTooltip(event, d) {
+    let extra = "";
+    if (heatMode && heatCount.has(d.id)) {
+        extra = '<div class="nt-metric">' + esc(tFmt("heatCount", heatCount.get(d.id))) + "</div>";
+    } else if (coverageMode && coveragePercent.has(d.id)) {
+        extra = '<div class="nt-metric">' + esc(t("tooltip.coverage")) + ": "
+            + coveragePercent.get(d.id).toFixed(1) + "%</div>";
+    }
+    // Ambiguous cluster nodes have a synthetic id as "path" (no real file
+    // behind them) — showing it would just confuse, so skip the path line.
+    const pathLine = (!d.ambiguous && d.path)
+        ? '<div class="nt-path">' + esc(d.path) + "</div>" : "";
+    nodeTooltip.innerHTML =
+        '<div class="nt-label">' + esc(d.label) + "</div>"
+        + pathLine + extra;
+    nodeTooltip.classList.remove("hidden");
+    moveNodeTooltip(event);
+}
+function moveNodeTooltip(event) {
+    const x = event.clientX + 14;
+    const y = event.clientY + 14;
+    const rect = nodeTooltip.getBoundingClientRect();
+    const maxX = window.innerWidth - rect.width - 8;
+    const maxY = window.innerHeight - rect.height - 8;
+    nodeTooltip.style.left = Math.min(x, maxX) + "px";
+    nodeTooltip.style.top  = Math.min(y, maxY) + "px";
+}
+function hideNodeTooltip() {
+    nodeTooltip.classList.add("hidden");
 }
 
 // Left-panel sliders

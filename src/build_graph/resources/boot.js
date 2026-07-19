@@ -17,6 +17,8 @@ updateGitLegendCounts();
 setupGitButton();
 buildHeatLegend();
 setupHeatButton();
+buildCoverageLegend();
+setupCoverageButton();
 
 // Apply default language (RU) to all data-i18n* elements before loadPrefs
 // may overwrite it. The stats line uses tFmt — set after applyI18n.

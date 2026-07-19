@@ -496,6 +496,23 @@ body.heat-mode #legend-heat {
     font-size: 10px; color: var(--muted);
     min-width: 22px; text-align: right; flex-shrink: 0;
 }
+/* Coverage button active state. No .disabled variant — the button is
+ * fully hidden (display:none, set in ui.js::setupCoverageButton) rather
+ * than shown-and-greyed-out when there's no coverage.xml, since that's
+ * the common case (unlike git, which almost every build has). */
+#btn-coverage.active {
+    background: #15803d; color: #fff; border-color: #15803d;
+}
+#btn-coverage.active:hover { background: #166534; }
+/* Coverage mode is additive, same reasoning as heat mode above. */
+#legend-coverage { display: none; }
+body.coverage-mode #legend-coverage {
+    display: flex; flex-direction: column;
+    order: -1;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border-faint);
+    padding-bottom: 8px;
+}
 #exclude-panel {
     position: fixed; bottom: 20px; right: 20px; z-index: 10;
     background: var(--panel-bg); padding: 12px 16px;
@@ -698,6 +715,21 @@ body.heat-mode #legend-heat {
 #edge-tooltip .et-files b { color: var(--fg); font-weight: 600; }
 #edge-tooltip .et-files .et-arrow { color: var(--muted); margin: 0 4px; }
 #edge-tooltip .et-lines { color: var(--dim); font-size: 11px; }
+#node-tooltip {
+    position: fixed; z-index: 90;
+    background: var(--panel-bg-heavy); color: var(--fg);
+    padding: 8px 12px; border-radius: 6px;
+    border: 1px solid var(--border-color);
+    font-size: 12px; line-height: 1.4;
+    pointer-events: none;
+    max-width: 360px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    backdrop-filter: blur(2px);
+}
+#node-tooltip.hidden { display: none; }
+#node-tooltip .nt-label { color: var(--fg); font-weight: 600; word-break: break-all; }
+#node-tooltip .nt-path { color: var(--muted); font-size: 11px; word-break: break-all; margin-top: 2px; }
+#node-tooltip .nt-metric { color: var(--dim); font-size: 11px; margin-top: 4px; }
 #btn-faq { font-weight: bold; padding: 5px 9px; }
 #faq-overlay {
     position: fixed; inset: 0; z-index: 100;
