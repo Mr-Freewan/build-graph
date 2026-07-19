@@ -1047,6 +1047,18 @@ function setupGitButton() {
 function applyGitMode(on) {
     if (!GIT_DATA && on) return;
     gitMode = on;
+    // Cycles / Untracked toggles are hidden in git mode (CSS) — drop their
+    // highlight state too, so the mode can't stay on without its button.
+    if (on && showCycles) {
+        showCycles = false;
+        const b = document.getElementById("btn-cycles");
+        if (b) b.classList.remove("active");
+    }
+    if (on && showUntracked) {
+        showUntracked = false;
+        const b = document.getElementById("btn-untracked");
+        if (b) b.classList.remove("active");
+    }
     document.body.classList.toggle("git-mode", on);
     document.getElementById("btn-git").classList.toggle("active", on);
     if (on) updateGitLegendCounts();

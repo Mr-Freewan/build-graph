@@ -442,6 +442,12 @@ body.git-mode #legend > .legend-actions,
 body.git-mode #legend > .legend-sep {
     display: none;
 }
+/* Structure-analysis toggles make no sense over git colouring: Cycles and
+ * Untracked hide in git mode (Dead code stays — demoed in the guide). */
+body.git-mode #btn-cycles,
+body.git-mode #btn-untracked {
+    display: none;
+}
 /* Show Git status section only in git mode, on top of everything else */
 #legend-git { display: none; }
 body.git-mode #legend-git {

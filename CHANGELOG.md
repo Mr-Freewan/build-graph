@@ -27,6 +27,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   nodes and edges no longer react to the pointer: no hover highlight, no
   tooltip, no pointer cursor, and clicking one clears selections instead
   of pinning it.
+- The Cycles and Untracked legend toggles hide in git mode, and turning
+  the git overlay on drops their active highlight; Dead code stays
+  available on top of git colouring.
 
 ### Fixed
 
