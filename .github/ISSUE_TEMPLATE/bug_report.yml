@@ -1,0 +1,39 @@
+name: Bug report
+description: Something crashed, rendered wrong, or behaved unexpectedly
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What went wrong, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to reproduce
+      description: Exact command line, and the relevant part of graph.toml if you use one.
+      placeholder: |
+        build-graph --root . --compact
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: graph-build version
+      placeholder: "0.1.0 (pip show graph-build)"
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Python version and OS
+      placeholder: "Python 3.12 / Windows 11"
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Console output / traceback
+      render: text

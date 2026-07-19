@@ -1,0 +1,59 @@
+name: False positive / false negative edge
+description: The graph shows a connection that shouldn't exist, or misses one that should
+labels: [matcher]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options:
+        - "False positive — edge exists but shouldn't"
+        - "False negative — expected edge is missing"
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Source file
+      placeholder: "docs/design.md"
+    validations:
+      required: true
+  - type: input
+    id: target
+    attributes:
+      label: Target file
+      placeholder: "app/core.py"
+    validations:
+      required: true
+  - type: input
+    id: edge-type
+    attributes:
+      label: Edge type
+      placeholder: "code->doc / code->code / doc->doc / docstring / type-only"
+    validations:
+      required: true
+  - type: textarea
+    id: line
+    attributes:
+      label: The exact line that caused (or should cause) the edge
+      description: >
+        Copy the source line — the markdown reference, import statement, or
+        docstring mention. This is usually all that's needed to reproduce.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Why it's wrong / expected
+      description: >
+        E.g. "several files share this basename and the edge points at the
+        wrong one", or "this import is inside TYPE_CHECKING but shows as
+        runtime".
+  - type: input
+    id: version
+    attributes:
+      label: graph-build version
+      placeholder: "0.1.0"
+    validations:
+      required: true
