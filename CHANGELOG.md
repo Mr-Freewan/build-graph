@@ -5,6 +5,21 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- JSON Schemas for both exports (`schema/graph-v1.schema.json`,
+  `schema/graph-compact-v2.schema.json`); the exports are validated against
+  them in CI.
+- `--bench` — context-cost report (raw corpus vs `--json` vs `--compact`
+  sizes with token estimates) that reproduces the README numbers on any
+  repo; writes no files.
+- `examples/tiny-project` — a minimal runnable project with reference
+  exports, kept in sync with the code by a test.
+- Contributing guide and GitHub issue templates (bug, feature,
+  false-positive/negative edge).
+
 ## [0.1.0] — 2026-07-19
 
 Initial public release.
