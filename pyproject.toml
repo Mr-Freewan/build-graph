@@ -72,7 +72,11 @@ pattern = '\(docs/media/hero\.gif\)'
 replacement = '(https://raw.githubusercontent.com/Mr-Freewan/build-graph/main/docs/media/hero-dark.jpg)'
 
 [[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
-pattern = '\]\((docs/guide\.md|graph\.example\.toml|LICENSE|CHANGELOG\.md|CONTRIBUTING\.md)\)'
+pattern = 'src="docs/media/banner\.jpg"'
+replacement = 'src="https://raw.githubusercontent.com/Mr-Freewan/build-graph/main/docs/media/banner.jpg"'
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '\]\((docs/guide\.md|docs/agent-prompts\.md|graph\.example\.toml|LICENSE|CHANGELOG\.md|CONTRIBUTING\.md)\)'
 replacement = '](https://github.com/Mr-Freewan/build-graph/blob/main/\g<1>)'
 
 [tool.hatch.build.targets.wheel]

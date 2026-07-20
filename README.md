@@ -1,4 +1,8 @@
-# build-graph
+<div align="center">
+
+<img src="docs/media/banner.jpg" alt="build-graph" width="840">
+
+[Deutsch](https://github.com/Mr-Freewan/build-graph/blob/main/i18n/README.de.md) | **English** | [Español](https://github.com/Mr-Freewan/build-graph/blob/main/i18n/README.es.md) | [Français](https://github.com/Mr-Freewan/build-graph/blob/main/i18n/README.fr.md) | [Italiano](https://github.com/Mr-Freewan/build-graph/blob/main/i18n/README.it.md) | [日本語](https://github.com/Mr-Freewan/build-graph/blob/main/i18n/README.ja.md) | [한국어](https://github.com/Mr-Freewan/build-graph/blob/main/i18n/README.ko.md) | [Português](https://github.com/Mr-Freewan/build-graph/blob/main/i18n/README.pt.md) | [Русский](https://github.com/Mr-Freewan/build-graph/blob/main/i18n/README.ru.md) | [中文](https://github.com/Mr-Freewan/build-graph/blob/main/i18n/README.zh.md)
 
 [![CI](https://github.com/Mr-Freewan/build-graph/actions/workflows/ci.yml/badge.svg)](https://github.com/Mr-Freewan/build-graph/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/graph-build)](https://pypi.org/project/graph-build/)
@@ -12,17 +16,25 @@
 [![Live demo](https://img.shields.io/badge/demo-online-blueviolet?style=for-the-badge&logo=googlechrome&logoColor=white)](https://mr-freewan.github.io/build-graph/)
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/Mr-Freewan/build-graph)
 
+</div>
+
 > **Architectural memory for your refactors.** See the blast radius of your
 > changes across code, docs, and git — on one interactive map that both you
-> and your AI agent can read.
+> and your AI agent can read. A set of lightweight utilities and a simple but
+> highly functional UI, delivered as a self-contained HTML file you can share
+> as-is. Lightweight and private.
 
 `build-graph` renders a **single-file interactive HTML graph** connecting
-three layers no other tool combines:
+five layers no other tool combines:
 
 - **code → code** — Python imports (AST-based, `TYPE_CHECKING`-aware)
 - **code ↔ docs** — which markdown files mention which source files
 - **git drift** — added / modified / renamed / deleted overlay with ghost
   nodes for files that no longer exist
+- **file-change heat map** — surface and tame the hottest spots of churn, and
+  the likely sources of bugs
+- **test-coverage map** — reads the project's `coverage.xml` and shows test
+  coverage at a glance, highlighting the least-covered files
 
 …and exports the same map as a **compact, token-efficient JSON** designed to
 drop into an LLM agent's context.
@@ -35,8 +47,9 @@ SRI-pinned from CDN or fully embedded with `--no-cdn`.
 
 **[▶ Live demo](https://mr-freewan.github.io/build-graph/)** — the graph of
 this very repository (dogfood), with a synthetic `--mock-git` overlay so the
-Git mode is clickable too.
-**[📖 UI guide](docs/guide.md)** — every feature, one by one.
+Git and coverage modes are clickable too.
+**[📖 UI guide](docs/guide.md)** — a concise step-by-step walkthrough of the
+core features.
 
 ## Install
 
@@ -44,7 +57,7 @@ Git mode is clickable too.
 pip install graph-build        # or: uv tool install graph-build
 ```
 
-No PyPI needed — install straight from GitHub:
+Install straight from GitHub:
 
 ```bash
 pip install git+https://github.com/Mr-Freewan/build-graph.git
@@ -53,9 +66,6 @@ pip install git+https://github.com/Mr-Freewan/build-graph.git
 git clone https://github.com/Mr-Freewan/build-graph.git
 pip install ./build-graph
 ```
-
-Zero dependencies — stdlib only, Python 3.11+. The HTML output needs only a
-browser (D3.js from CDN with SRI pinning, or fully embedded via `--no-cdn`).
 
 > The PyPI distribution is named `graph-build` (the straight name is taken);
 > the installed commands keep their names: `build-graph`, `find-related-docs`,
@@ -82,6 +92,10 @@ see [Companion tools](#companion-tools).
 - **Repomix / Gitingest** — pack the repo *text* for LLMs; build-graph gives
   the *structure*: ~2 % of the tokens the raw text would cost (see
   [the numbers](#what-it-costs-in-context)).
+- **Graphify / Understand-Anything** — knowledge-graph tools that drag in
+  heavier dependency stacks and lean on a non-deterministic LLM for the
+  analysis; build-graph is deterministic and dependency-free, and adds the git
+  and doc-sync layers neither of them has.
 
 ## Designed for AI agents
 
