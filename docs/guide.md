@@ -1,5 +1,7 @@
 # UI guide
 
+[Deutsch](../i18n/guide.de.md) | **English** | [Español](../i18n/guide.es.md) | [Français](../i18n/guide.fr.md) | [Italiano](../i18n/guide.it.md) | [日本語](../i18n/guide.ja.md) | [한국어](../i18n/guide.ko.md) | [Português](../i18n/guide.pt.md) | [Русский](../i18n/guide.ru.md) | [中文](../i18n/guide.zh.md)
+
 Every feature of the interactive graph, one by one. Try them live on the
 [demo](https://mr-freewan.github.io/build-graph/) — it's the graph of the
 build-graph repository itself, with a synthetic git overlay enabled.
