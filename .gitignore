@@ -6,6 +6,7 @@ build/
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
+.idea/
 graph.html
 graph.json
 graph-compact.json
