@@ -32,8 +32,8 @@ def build_doc_edges(
         src_id = n["id"]
         try:
             content = f.read_text(encoding="utf-8")
-        except Exception:
-            continue
+        except (OSError, UnicodeDecodeError):
+            continue  # unreadable or not UTF-8: no references to harvest
         for ref in extract_file_references(content):
             if not ref.endswith(".md"):
                 continue
@@ -62,8 +62,8 @@ def build_doc_edges(
         src_id = n["id"]
         try:
             file_lines = f.read_text(encoding="utf-8").splitlines()
-        except Exception:
-            continue
+        except (OSError, UnicodeDecodeError):
+            continue  # unreadable or not UTF-8: no references to harvest
         for lineno, line_text in enumerate(file_lines, 1):
             for ref in extract_file_references(line_text):
                 if not ref.endswith(".md"):
@@ -387,9 +387,7 @@ def _is_type_checking_test(test: ast.expr) -> bool:
     """True if an `If` test expression is `TYPE_CHECKING` (any prefix)."""
     if isinstance(test, ast.Name) and test.id == "TYPE_CHECKING":
         return True
-    if isinstance(test, ast.Attribute) and test.attr == "TYPE_CHECKING":
-        return True
-    return False
+    return isinstance(test, ast.Attribute) and test.attr == "TYPE_CHECKING"
 
 
 def _collect_module_string_consts(tree: ast.Module) -> dict[str, str]:

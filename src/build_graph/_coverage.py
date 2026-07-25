@@ -6,8 +6,8 @@ interaction with the git-status/heat collection in `graph.py`.
 """
 
 import xml.etree.ElementTree as ET
-import xml.parsers.expat as expat
 from pathlib import Path
+from xml.parsers import expat
 
 
 class _RejectedEntity(Exception):

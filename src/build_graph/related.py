@@ -45,9 +45,7 @@ def _line_mentions(
         return True
     if "|" in line and fname in line:
         return True
-    if (in_code_block or in_mermaid) and fname in line:
-        return True
-    return False
+    return (in_code_block or in_mermaid) and fname in line
 
 
 _RESOLVED_DIR_CACHE: dict[str, Path] = {}
@@ -146,7 +144,7 @@ def load_md_files(
         try:
             content = md_file.read_text(encoding="utf-8")
             result.append((md_file, content, content.splitlines()))
-        except Exception as e:
+        except (OSError, UnicodeDecodeError) as e:
             print(f"Warning: Could not read {md_file}: {e}")
     return result
 
@@ -244,7 +242,7 @@ def find_related_docs_by_filename(
             if mentioned_lines:
                 results[md_rel] = len(mentioned_lines)
 
-        except Exception as e:
+        except (OSError, UnicodeDecodeError) as e:
             print(f"Warning: Could not read {md_file}: {e}")
 
     return results, verbose_output
@@ -368,7 +366,7 @@ def find_related_docs(
             if mentioned_lines:
                 results[md_rel] = len(mentioned_lines)
 
-        except Exception as e:
+        except (OSError, UnicodeDecodeError) as e:
             print(f"Warning: Could not read {md_file}: {e}")
 
     return results, verbose_output
@@ -634,7 +632,7 @@ def _print_git_report(
         print_separator()
         for git_file, count, verbose_output in files_not_found:
             print(
-                f"{Colors.YELLOW}⚠️{Colors.RESET} {Colors.YELLOW}WARNING{Colors.RESET}: "  # noqa: E501
+                f"{Colors.YELLOW}⚠️{Colors.RESET} {Colors.YELLOW}WARNING{Colors.RESET}: "
                 f"File not found - mentioned in {count} doc(s): {git_file}"
             )
             for doc_file, lines in verbose_output.items():
@@ -670,12 +668,12 @@ def main() -> None:
     """Main entry point for the script."""
     ensure_utf8_stdout()
     parser = argparse.ArgumentParser(
-        description="Find documentation files that mention a given code file or directory"  # noqa: E501
+        description="Find documentation files that mention a given code file or directory"
     )
     parser.add_argument(
         "path",
         nargs="?",
-        help="Path to the code file or directory to search for (can be just a filename)",  # noqa: E501
+        help="Path to the code file or directory to search for (can be just a filename)",
     )
     parser.add_argument(
         "--docs-dir",
@@ -701,12 +699,12 @@ def main() -> None:
     parser.add_argument(
         "--git-added",
         action="store_true",
-        help="Check all staged files (added, renamed, deleted) for documentation mentions",  # noqa: E501
+        help="Check all staged files (added, renamed, deleted) for documentation mentions",
     )
     parser.add_argument(
         "--git-modified",
         action="store_true",
-        help="Check all modified files (committed before, now changed) for documentation mentions",  # noqa: E501
+        help="Check all modified files (committed before, now changed) for documentation mentions",
     )
 
     args = parser.parse_args()

@@ -182,8 +182,8 @@ def _build_snapshot(
             f = root / n["path"]
             try:
                 content = f.read_text(encoding="utf-8")
-            except Exception:
-                continue
+            except (OSError, UnicodeDecodeError):
+                continue  # unreadable or not UTF-8: no references to harvest
             md_cache.append((f, content, content.splitlines()))
         code_edges, ambiguous_nodes = add_code_doc_edges(
             other_nodes, path_to_doc_id, root, md_cache

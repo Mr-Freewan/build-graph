@@ -459,7 +459,7 @@ def generate_toml(files: list[str]) -> str:
             "# Generic dir → category rules (any file kind). `kind` restricts",
             "# a rule when one dir holds several kinds (code vs config etc.).",
         ]
-        for _dir, entries in rules_by_dir.items():
+        for entries in rules_by_dir.values():
             for d, kind, cat in entries:
                 out += ["", "[[rules]]", f'dir  = "{d}"']
                 if len(entries) > 1:
@@ -494,7 +494,7 @@ def _uncovered_report(
 
 def init_diff(files: list[str], config: dict, config_path: Path) -> None:
     """Print a drift report: scan state vs the existing graph.toml."""
-    uncovered, uncovered_cats = _uncovered_report(files, config)
+    uncovered, _uncovered_cats = _uncovered_report(files, config)
     print(f"Drift report for {config_path}:")
     if not uncovered:
         print("  config covers every discovered file — no drift.")
@@ -548,13 +548,13 @@ def init_merge(files: list[str], config: dict, config_path: Path) -> None:
     if not uncovered:
         print("Nothing to merge — config already covers every discovered file.")
         return
-    docs_dirname, _, rules_by_dir, _ = _discover_structure(files)
+    _docs_dirname, _, rules_by_dir, _ = _discover_structure(files)
     text = config_path.read_text(encoding="utf-8")
     lines = text.split("\n")
 
     # New [[rules]] for dirs that produce uncovered categories.
     new_rule_lines: list[str] = []
-    for _dir, entries in rules_by_dir.items():
+    for entries in rules_by_dir.values():
         for d, kind, cat in entries:
             if cat not in uncovered_cats:
                 continue

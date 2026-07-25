@@ -297,8 +297,8 @@ def _clean_url(raw: str) -> str:
             url = url[:idx]
     try:
         url = urllib.parse.unquote(url)
-    except Exception:
-        pass
+    except UnicodeDecodeError:
+        pass  # malformed percent-escapes: keep the raw form
     return url.strip()
 
 
@@ -324,9 +324,7 @@ def _is_external(url: str) -> bool:
     if url.startswith(("/etc/", "/var/", "/usr/", "/tmp/", "/opt/", "/proc/")):
         return True
     # Absolute Windows paths.
-    if len(url) > 2 and url[1] == ":" and url[2] in ("\\", "/"):
-        return True
-    return False
+    return len(url) > 2 and url[1] == ":" and url[2] in ("\\", "/")
 
 
 def _has_valid_extension(url: str) -> bool:
@@ -460,7 +458,7 @@ def check_md_file(
                         broken_refs[ref].append((line_num, line.strip()))
 
         return broken_refs
-    except Exception as e:
+    except (OSError, UnicodeDecodeError) as e:
         print(f"Warning: Could not read {md_file}: {e}")
         return {}
 
@@ -477,12 +475,12 @@ def load_known_brokens(known_brokens_file: Path) -> set[str]:
     try:
         content = known_brokens_file.read_text(encoding="utf-8")
         # Each line is a reference pattern, skip comments (#) and empty lines
-        return set(
+        return {
             line.strip()
             for line in content.splitlines()
             if line.strip() and not line.strip().startswith("#")
-        )
-    except Exception as e:
+        }
+    except (OSError, UnicodeDecodeError) as e:
         print(f"Warning: Could not read known brokens file: {e}")
         return set()
 

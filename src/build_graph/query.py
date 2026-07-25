@@ -16,7 +16,7 @@ import json
 import subprocess
 import sys
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from build_graph._common import Colors
@@ -390,6 +390,7 @@ def _git_commit_times(root: Path) -> dict[str, int] | None:
             encoding="utf-8",
             errors="replace",
             timeout=60,
+            check=False,  # a non-repo exits non-zero; handled below
         )
     except (OSError, subprocess.TimeoutExpired):
         return None
@@ -441,7 +442,7 @@ def cmd_stale_docs(snap: Snapshot, args: argparse.Namespace) -> int:
     stale.sort(reverse=True)
 
     def day(ts: int) -> str:
-        return datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d")
+        return datetime.fromtimestamp(ts, tz=UTC).strftime("%Y-%m-%d")
 
     if args.as_json:
         print(

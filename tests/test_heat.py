@@ -2,7 +2,7 @@
 
 import os
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from build_graph._heat import collect_heat_data
@@ -45,7 +45,7 @@ class TestCollectHeatData:
     def test_since_window_excludes_older_commits(self, tmp_path: Path) -> None:
         _git(tmp_path, "init", "-q")
         _commit_at(tmp_path, "old.py", "O = 1\n", "2020-01-01T12:00:00")
-        now_iso = datetime.now(timezone.utc).isoformat()
+        now_iso = datetime.now(UTC).isoformat()
         _commit_at(tmp_path, "recent.py", "R = 1\n", now_iso)
         # Whole history sees both paths.
         assert collect_heat_data(tmp_path) == {"old.py": 1, "recent.py": 1}

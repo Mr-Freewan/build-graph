@@ -81,6 +81,7 @@ from build_graph._config import (
     load_config,
 )
 from build_graph._console import ensure_utf8_stdout
+from build_graph._coverage import collect_coverage_data
 from build_graph._diff import apply_edge_diff, collect_ref_diff, materialize_ref
 from build_graph._git import (
     add_ghost_nodes_and_edges,
@@ -88,7 +89,6 @@ from build_graph._git import (
     apply_mock_git_status,
     collect_git_status,
 )
-from build_graph._coverage import collect_coverage_data
 from build_graph._heat import collect_heat_data
 from build_graph._render import (
     apply_dead_exemptions,
@@ -741,10 +741,9 @@ def main() -> None:
     if not config_path.is_absolute():
         config_path = project_root / config_path
 
-    if args.diff or args.merge:
-        if not args.init:
-            print("--diff / --merge only make sense with --init.", file=sys.stderr)
-            sys.exit(2)
+    if (args.diff or args.merge) and not args.init:
+        print("--diff / --merge only make sense with --init.", file=sys.stderr)
+        sys.exit(2)
     if args.diff_base and args.mock_git:
         print("--diff-base and --mock-git are mutually exclusive.", file=sys.stderr)
         sys.exit(2)
@@ -779,7 +778,7 @@ def main() -> None:
 
     print(f"Discovering files (scope={args.scope})...")
     files, git_used = list_project_files(build_root)
-    all_nodes, docs_dirname = build_all_nodes(
+    all_nodes, _docs_dirname = build_all_nodes(
         files,
         config,
         scope=args.scope,
@@ -809,7 +808,7 @@ def main() -> None:
             f = build_root / n["path"]
             try:
                 content = f.read_text(encoding="utf-8")
-            except Exception as exc:  # mirror load_md_files behaviour
+            except (OSError, UnicodeDecodeError) as exc:
                 print(f"Warning: Could not read {f}: {exc}")
                 continue
             md_cache.append((f, content, content.splitlines()))
