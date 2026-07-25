@@ -40,11 +40,15 @@
 `build-graph` dibuja un **grafo interactivo en un solo archivo HTML** que conecta
 cinco capas que ninguna otra herramienta combina:
 
-- **código → código** — importaciones de Python (basadas en AST, con conciencia
-  de `TYPE_CHECKING`)
-- **código ↔ documentación** — qué archivos markdown mencionan qué fuentes
+- **código → código** — importaciones resueltas desde el AST (con conciencia
+  de `TYPE_CHECKING`). Python viene de fábrica; el resolutor es la única parte
+  del paquete que depende del lenguaje — véase [otro lenguaje](#otro-lenguaje)
+- **código ↔ documentación** — qué archivos markdown mencionan qué fuentes,
+  emparejados de forma determinista: sin modelo de por medio, la misma entrada
+  siempre da la misma respuesta, así que sirve como control en CI
 - **desviación de git** — capa de added / modified / renamed / deleted más nodos
-  fantasma para archivos que ya no existen
+  fantasma para archivos que ya no existen, o un diff entre dos refs
+  cualesquiera
 - **mapa de calor de cambios** — permite localizar y atenuar los puntos calientes
   de cambios, junto con las probables fuentes de errores
 - **mapa de cobertura de tests** — lee el `coverage.xml` del proyecto y muestra la
@@ -53,10 +57,18 @@ cinco capas que ninguna otra herramienta combina:
 …y exporta el mismo mapa como un **JSON compacto y eficiente en tokens**, pensado
 para el contexto de un agente LLM.
 
-Y todo ello con **cero dependencias**: pura biblioteca estándar de Python,
-`pip install` no arrastra nada más. El único código de terceros es D3.js en el
-navegador, cargado desde CDN con fijación SRI o totalmente incrustado con
-`--no-cdn` para una autonomía completa.
+**Se ejecuta por completo en tu máquina.** Sin clave de API, sin cuenta, sin
+telemetría; ni el código ni la documentación salen del repositorio — el análisis
+es puro parseo, no una pasada de LLM, así que no cuesta nada y produce el mismo
+grafo siempre. La exportación se la das al agente que ya pagas.
+
+**Cero dependencias**, y es una restricción dura, no un estado pasajero: pura
+biblioteca estándar de Python, `pip install` no arrastra nada más. Sin
+gramáticas que compilar, sin base de datos, sin indexador en segundo plano, sin
+demonio. El único código de terceros es D3.js en el navegador, cargado desde CDN
+con fijación SRI o totalmente incrustado con `--no-cdn` — tras lo cual el HTML
+es realmente autónomo y se abre sin conexión, en una máquina que jamás ha oído
+hablar de esta herramienta.
 
 ![El layout de fuerzas se estabiliza en un proyecto real — 1070 nodos / 6279 aristas, tema oscuro](../docs/media/hero.gif)
 
@@ -474,9 +486,31 @@ no semántico:
   analiza.
 - Los enlaces se resuelven a archivos enteros — los anclajes de sección
   (`file.md#part`) mapean al nodo de archivo.
-- Las aristas código→código son, por ahora, solo de Python (las capas de
-  markdown/docs son independientes del lenguaje).
+- Las aristas código→código son, por ahora, solo de Python (todas las demás
+  capas son independientes del lenguaje — véase abajo).
 - Un repo por grafo; los symlinks se tratan como rutas físicas.
+
+## Otro lenguaje
+
+Solo el resolutor de importaciones sabe qué lenguaje está leyendo: unas 450 de
+las ~5.600 líneas del paquete, todas en un módulo. Los archivos de otros
+lenguajes **ya** se convierten en nodos y ya llevan sus capas de documentación,
+git, calor y cobertura; lo que añade un lenguaje nuevo son las aristas entre
+fuentes.
+
+Todo lo demás se reutiliza tal cual: la capa git y el diff de refs invocan git,
+el mapa de calor cuenta commits, la capa de cobertura lee XML de Cobertura (que
+emiten JaCoCo, istanbul/nyc, coverlet y gocover-cobertura), la capa de
+documentación escanea markdown, y el front-end HTML, las exportaciones JSON,
+`graph-query`, `find-related-docs` y `verify-doc-links` no miran nunca la
+sintaxis del código.
+
+Así que portarlo a Go o TypeScript es escribir un resolutor contra un contrato
+documentado, no rehacer la herramienta. El contrato, los puntos de enganche y la
+forma de las aristas están en
+[CONTRIBUTING.md](../CONTRIBUTING.md#adding-another-language). Solo stdlib: sin
+gramáticas que compilar, sin wheels nativos, sin nada que convierta
+`pip install` en una compilación.
 
 ## Licencia
 

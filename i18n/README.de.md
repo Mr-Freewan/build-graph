@@ -41,10 +41,15 @@
 `build-graph` zeichnet einen **interaktiven Graphen in einer einzigen
 HTML-Datei**, der fünf Ebenen verbindet, die kein anderes Werkzeug vereint:
 
-- **Code → Code** — Python-Importe (AST-basiert, `TYPE_CHECKING`-bewusst)
-- **Code ↔ Dokumentation** — welche Markdown-Dateien welche Quelldateien erwähnen
+- **Code → Code** — Importe, aus dem AST aufgelöst (`TYPE_CHECKING`-bewusst).
+  Python ist ab Werk dabei; der Resolver ist der einzige sprachabhängige Teil
+  des Pakets — siehe [eine andere Sprache](#eine-andere-sprache)
+- **Code ↔ Dokumentation** — welche Markdown-Dateien welche Quelldateien
+  erwähnen, deterministisch zugeordnet: kein Modell im Spiel, gleiche Eingabe
+  ergibt immer dieselbe Antwort, und damit taugt es als CI-Gate
 - **Git-Drift** — Overlay für added / modified / renamed / deleted plus
-  Geisterknoten für Dateien, die es nicht mehr gibt
+  Geisterknoten für Dateien, die es nicht mehr gibt, oder ein Diff zwischen
+  zwei beliebigen Refs
 - **Heatmap der Dateiänderungen** — spürt die heißesten Änderungs-Brennpunkte
   samt potenzieller Fehlerquellen auf und hilft, sie zu entschärfen
 - **Testabdeckungs-Karte** — liest die `coverage.xml` des Projekts und zeigt die
@@ -53,10 +58,19 @@ HTML-Datei**, der fünf Ebenen verbindet, die kein anderes Werkzeug vereint:
 …und exportiert dieselbe Karte als **kompaktes, tokensparsames JSON**, das für
 den Kontext eines LLM-Agenten gedacht ist.
 
-Und das alles mit **null Abhängigkeiten**: reine Python-Standardbibliothek,
-`pip install` zieht nichts Zusätzliches nach. Der einzige Fremdcode ist D3.js im
-Browser, per CDN mit SRI-Pinning eingebunden oder mit `--no-cdn` vollständig
-eingebettet für völlige Autonomie.
+**Es läuft vollständig auf Ihrem Rechner.** Kein API-Schlüssel, kein Konto,
+keine Telemetrie; weder Code noch Dokumentation verlassen das Repository — die
+Analyse ist schlichtes Parsen, kein LLM-Durchlauf, kostet also nichts und
+liefert jedes Mal denselben Graphen. Den Export bekommt der Agent, den Sie
+ohnehin schon bezahlen.
+
+**Null Abhängigkeiten**, und das ist eine harte Vorgabe, kein Momentaufnahme:
+reine Python-Standardbibliothek, `pip install` zieht nichts Zusätzliches nach.
+Keine Grammatiken zum Kompilieren, keine Datenbank, kein Hintergrund-Indexer,
+kein Daemon. Der einzige Fremdcode ist D3.js im Browser, per CDN mit
+SRI-Pinning eingebunden oder mit `--no-cdn` vollständig eingebettet — danach
+ist das HTML wirklich autark und öffnet sich offline, auch auf einem Rechner,
+der von diesem Werkzeug noch nie gehört hat.
 
 ![Kräfte-Layout pendelt sich auf einem echten Projekt ein — 1070 Knoten / 6279 Kanten, dunkles Theme](../docs/media/hero.gif)
 
@@ -474,9 +488,30 @@ Karte, keine semantische:
 - Markdown-Templating (`{{ ref }}`, Jekyll/Hugo-Shortcodes) wird nicht geparst.
 - Links lösen sich zu ganzen Dateien auf — Abschnitts-Anker (`file.md#part`)
   bilden auf den Datei-Knoten ab.
-- Code→Code-Kanten sind vorerst nur Python (die Markdown-/Doc-Ebenen sind
-  sprachunabhängig).
+- Code→Code-Kanten sind vorerst nur Python (alle anderen Ebenen sind
+  sprachunabhängig — siehe unten).
 - Ein Repo pro Graph; Symlinks werden als physische Pfade behandelt.
+
+## Eine andere Sprache
+
+Nur der Import-Resolver weiß, welche Sprache er liest — rund 450 der ~5.600
+Zeilen des Pakets, alle in einem Modul. Dateien anderer Sprachen werden
+**bereits** zu Knoten und tragen bereits ihre Doc-, Git-, Heat- und
+Coverage-Ebenen; eine neue Sprache ergänzt nur die Kanten zwischen Quelldateien.
+
+Alles andere ist unverändert wiederverwendbar: Git-Overlay und Ref-Diff rufen
+git auf, die Heatmap zählt Commits, die Coverage-Ebene liest Cobertura-XML (das
+JaCoCo, istanbul/nyc, coverlet und gocover-cobertura allesamt schreiben), die
+Doc-Ebene scannt Markdown, und das HTML-Frontend, die JSON-Exporte,
+`graph-query`, `find-related-docs` und `verify-doc-links` sehen den Quelltext
+nie an.
+
+Eine Portierung nach Go oder TypeScript heißt also: einen Resolver gegen einen
+dokumentierten Vertrag schreiben — nicht das Werkzeug neu bauen. Vertrag,
+Einhängepunkte und Kantenform stehen in
+[CONTRIBUTING.md](../CONTRIBUTING.md#adding-another-language). Nur stdlib:
+keine Grammatik zum Kompilieren, kein natives Wheel, nichts, was `pip install`
+in einen Build verwandelt.
 
 ## Lizenz
 

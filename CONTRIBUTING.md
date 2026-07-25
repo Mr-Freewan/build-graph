@@ -39,6 +39,58 @@ platform-specific assumptions (path separators are the usual trap — use
   `--compact` shapes must update `schema/*.schema.json` and bump the schema
   version.
 
+## Adding another language
+
+Only the import resolver is language-specific — about 450 of the package's
+~5,600 lines, all of them in `_build.py`. Everything else already works for
+any language and needs no changes:
+
+- files of other languages **already become nodes** (`_KIND_BY_EXT` in
+  `_config.py` maps `.js`, `.sh`, `.sql`, … to the `code` kind), so they
+  already appear on the map with their docs, git, heat and coverage layers;
+- the **docs layer** scans markdown for file references — language-neutral;
+- the **git layer**, the **ref diff** and the **heat map** shell out to git —
+  language-neutral;
+- the **coverage layer** reads Cobertura XML, which JaCoCo, istanbul/nyc,
+  coverlet and gocover-cobertura all emit — language-neutral already;
+- the HTML front-end, the three JSON exports, `graph-query`,
+  `find-related-docs` and `verify-doc-links` never look at source syntax.
+
+So a fork for Go, TypeScript or anything else means writing one resolver, not
+a new tool.
+
+**The contract.** Produce a list of edge dicts:
+
+```python
+{
+    "source": "<node id of the importing file>",
+    "target": "<node id of the imported file>",
+    "type": "code->code",   # or "type-only" for imports that exist for types
+    "weight": 1,            # bumped when the same pair repeats
+    "lines": [12, 88],      # 1-based line numbers of the import statements
+}
+```
+
+Node ids are what `build_all_nodes` assigned — resolve an import to a
+project-relative path, then look the id up; drop anything that resolves
+outside the project (third-party imports are not nodes). Merge duplicates by
+`(source, target, type)` and keep `lines` sorted.
+
+**Where to plug in** (`_build.py`, mirroring the Python implementation):
+
+| Python version | What a new language needs |
+|---|---|
+| `_parse_code_trees` | parse each file once, cache the tree |
+| `_ImportCollector` / `_collect_python_imports` | walk the tree, collect (module, line, is_type_only) |
+| `_resolve_python_import` | turn a module reference into a project file path |
+| `add_code_code_edges` | assemble the edges above |
+| `add_docstring_edges` | *optional* — file mentions inside doc comments |
+
+Keep it stdlib-only. Python gets this for free through `ast`; for another
+language a hand-written scanner over import lines is usually enough, and it
+stays deterministic — no grammars to compile, no native wheels, nothing that
+turns the install into a build.
+
 ## Pull requests
 
 - Keep PRs small and single-purpose; one logical change per commit,

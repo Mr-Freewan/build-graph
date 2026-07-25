@@ -41,11 +41,15 @@
 `build-graph` dessine un **graphe interactif dans un seul fichier HTML** qui relie
 cinq couches qu'aucun autre outil ne combine :
 
-- **code → code** — imports Python (basés sur l'AST, conscients de
-  `TYPE_CHECKING`)
-- **code ↔ documentation** — quels fichiers markdown mentionnent quelles sources
+- **code → code** — imports résolus depuis l'AST (conscients de
+  `TYPE_CHECKING`). Python est fourni d'origine ; le résolveur est la seule
+  partie du paquet liée au langage — voir [un autre langage](#un-autre-langage)
+- **code ↔ documentation** — quels fichiers markdown mentionnent quelles
+  sources, appariés de façon déterministe : aucun modèle dans la boucle, la même
+  entrée donne toujours la même réponse, ce qui en fait une barrière de CI
 - **dérive git** — calque added / modified / renamed / deleted plus des nœuds
-  fantômes pour les fichiers qui n'existent plus
+  fantômes pour les fichiers qui n'existent plus, ou un diff entre deux refs
+  quelconques
 - **carte de chaleur des modifications** — permet de repérer et d'apaiser les
   points chauds de changements, ainsi que les sources probables de bugs
 - **carte de couverture des tests** — lit le `coverage.xml` du projet et montre la
@@ -55,10 +59,18 @@ cinq couches qu'aucun autre outil ne combine :
 …et exporte la même carte sous forme de **JSON compact et économe en tokens**,
 conçu pour le contexte d'un agent LLM.
 
-Et tout cela avec **zéro dépendance** : pure bibliothèque standard de Python,
-`pip install` n'entraîne rien d'autre. Le seul code tiers est D3.js dans le
-navigateur, chargé depuis un CDN avec épinglage SRI ou entièrement intégré avec
-`--no-cdn` pour une autonomie complète.
+**Tout tourne sur votre machine.** Pas de clé d'API, pas de compte, pas de
+télémétrie ; ni le code ni la documentation ne quittent le dépôt — l'analyse est
+du simple parsing, pas une passe de LLM : elle ne coûte rien et rend le même
+graphe à chaque fois. L'export, vous le donnez à l'agent que vous payez déjà.
+
+**Zéro dépendance**, et c'est une contrainte dure, pas un état de fait : pure
+bibliothèque standard de Python, `pip install` n'entraîne rien d'autre. Aucune
+grammaire à compiler, aucune base de données, aucun indexeur en arrière-plan,
+aucun démon. Le seul code tiers est D3.js dans le navigateur, chargé depuis un
+CDN avec épinglage SRI ou entièrement intégré avec `--no-cdn` — après quoi le
+HTML est réellement autonome et s'ouvre hors ligne, sur une machine qui n'a
+jamais entendu parler de cet outil.
 
 ![La disposition à forces se stabilise sur un projet réel — 1070 nœuds / 6279 arêtes, thème sombre](../docs/media/hero.gif)
 
@@ -478,10 +490,31 @@ référentielle, pas sémantique :
 - Le templating Markdown (`{{ ref }}`, shortcodes Jekyll/Hugo) n'est pas analysé.
 - Les liens se résolvent vers des fichiers entiers — les ancres de section
   (`file.md#part`) pointent vers le nœud du fichier.
-- Les arêtes code→code sont pour l'instant uniquement Python (les couches
-  markdown/docs sont indépendantes du langage).
+- Les arêtes code→code sont pour l'instant uniquement Python (toutes les
+  autres couches sont indépendantes du langage — voir ci-dessous).
 - Un dépôt par graphe ; les liens symboliques sont traités comme des chemins
   physiques.
+
+## Un autre langage
+
+Seul le résolveur d'imports sait quel langage il lit — environ 450 des ~5 600
+lignes du paquet, toutes dans un seul module. Les fichiers d'autres langages
+deviennent **déjà** des nœuds et portent déjà leurs couches docs, git, chaleur
+et couverture ; un nouveau langage n'ajoute que les arêtes entre sources.
+
+Tout le reste se réutilise tel quel : le calque git et le diff de refs appellent
+git, la carte de chaleur compte les commits, la couche de couverture lit du XML
+Cobertura (qu'émettent JaCoCo, istanbul/nyc, coverlet et gocover-cobertura), la
+couche docs scanne le markdown, et le front-end HTML, les exports JSON,
+`graph-query`, `find-related-docs` et `verify-doc-links` ne regardent jamais la
+syntaxe du code.
+
+Porter l'outil vers Go ou TypeScript, c'est donc écrire un résolveur contre un
+contrat documenté — pas reconstruire l'outil. Le contrat, les points d'accroche
+et la forme des arêtes sont dans
+[CONTRIBUTING.md](../CONTRIBUTING.md#adding-another-language). Stdlib
+uniquement : aucune grammaire à compiler, aucune wheel native, rien qui
+transforme `pip install` en compilation.
 
 ## Licence
 

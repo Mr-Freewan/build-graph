@@ -27,10 +27,14 @@
 `build-graph` renders a **single-file interactive HTML graph** connecting
 five layers no other tool combines:
 
-- **code → code** — Python imports (AST-based, `TYPE_CHECKING`-aware)
-- **code ↔ docs** — which markdown files mention which source files
+- **code → code** — imports, resolved from the AST (`TYPE_CHECKING`-aware).
+  Python ships in the box; the resolver is the only language-specific part of
+  the package — see [another language](#another-language)
+- **code ↔ docs** — which markdown files mention which source files, matched
+  deterministically: no model in the loop, so the same input always gives the
+  same answer and it can gate CI
 - **git drift** — added / modified / renamed / deleted overlay with ghost
-  nodes for files that no longer exist
+  nodes for files that no longer exist, or a diff between any two refs
 - **file-change heat map** — surface and tame the hottest spots of churn, and
   the likely sources of bugs
 - **test-coverage map** — reads the project's `coverage.xml` and shows test
@@ -39,9 +43,17 @@ five layers no other tool combines:
 …and exports the same map as a **compact, token-efficient JSON** designed to
 drop into an LLM agent's context.
 
-All of that with **zero dependencies** — pure Python stdlib, `pip install`
-brings in nothing else. The only third-party code is D3.js in the browser,
-SRI-pinned from CDN or fully embedded with `--no-cdn`.
+**It runs entirely on your machine.** No API key, no account, no telemetry,
+no code or documentation leaving the repo — the analysis is plain parsing, not
+an LLM pass, so it costs nothing to run and produces the same graph every
+time. Feed the export to whichever agent you already pay for.
+
+**Zero dependencies**, and that is a hard constraint, not a current state:
+pure Python stdlib, `pip install` brings in nothing else. No grammars to
+compile, no database, no background indexer, no daemon. The only third-party
+code is D3.js in the browser, SRI-pinned from CDN or fully embedded with
+`--no-cdn` — after which the HTML is genuinely self-contained and opens
+offline, on a machine that has never heard of this tool.
 
 ![Force layout settling on a real project — 1070 nodes / 6279 edges, dark theme](docs/media/hero.gif)
 
@@ -441,9 +453,30 @@ semantic one:
 - Markdown templating (`{{ ref }}`, Jekyll/Hugo shortcodes) isn't parsed.
 - Links resolve to whole files — section anchors (`file.md#part`) map to the
   file node.
-- code→code edges are Python-only for now (the markdown/doc layers are
-  language-agnostic).
+- code→code edges are Python-only for now (every other layer is
+  language-agnostic — see below).
 - One repo per graph; symlinks are treated as physical paths.
+
+## Another language
+
+Only the import resolver knows what language it is reading — roughly 450 of
+the package's ~5,600 lines, all in one module. Files of other languages
+**already** become nodes and already carry their docs, git, heat and coverage
+layers; what a new language adds is the edges between source files.
+
+Everything else is reusable as-is: the git overlay and ref diff shell out to
+git, the heat map counts commits, the coverage layer reads Cobertura XML
+(which JaCoCo, istanbul/nyc, coverlet and gocover-cobertura all emit), the
+docs layer scans markdown, and the HTML front-end, the JSON exports,
+`graph-query`, `find-related-docs` and `verify-doc-links` never look at source
+syntax at all.
+
+So porting this to Go or TypeScript is writing one resolver against a
+documented contract — not rebuilding the tool. The contract, the plug-in
+points and the edge shape are in
+[CONTRIBUTING.md](CONTRIBUTING.md#adding-another-language). Stdlib only: no
+grammar to compile, no native wheel, nothing that turns `pip install` into a
+build.
 
 ## License
 
