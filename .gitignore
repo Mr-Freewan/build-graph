@@ -9,9 +9,11 @@ build/
 graph.html
 graph.json
 graph-compact.json
+graph-ultra.json
 demo/
 .coverage
 coverage.xml
 uv.lock
 !examples/expected/graph.json
 !examples/expected/graph-compact.json
+!examples/expected/graph-ultra.json

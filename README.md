@@ -76,7 +76,7 @@ pip install ./build-graph
 ```bash
 cd your-project
 build-graph                    # autodiscovery, no config needed → docs/graph.html
-build-graph --compact          # + docs/graph-compact.json for AI agents
+build-graph --ultra-compact    # + docs/graph-ultra.json for AI agents
 build-graph --init             # optional: pin discovered structure to graph.toml
 ```
 
@@ -99,8 +99,8 @@ see [Companion tools](#companion-tools).
 
 ## Designed for AI agents
 
-`--compact` writes a self-documenting JSON snapshot (embedded legend, indexed
-nodes, 3-letter type codes) that agents use for:
+`--ultra-compact` (or the older `--compact`) writes a self-documenting JSON
+snapshot — embedded legend, no external schema needed — that agents use for:
 
 1. **Blast radius** — incoming imports of the file you're about to change,
    without grep.
@@ -110,16 +110,55 @@ nodes, 3-letter type codes) that agents use for:
    should be documented but isn't, and (3) what's documented but no longer
    exists (ghost nodes = staleness detector).
 
-Add `build-graph --compact` to a pre-commit hook or CI step to keep the map
-fresh for every agent session.
+Add `build-graph --ultra-compact` to a pre-commit hook or CI step to keep the
+map fresh for every agent session.
+
+### The ultra-compact format
+
+`--ultra-compact` writes `graph-ultra.json` (schema v3) — the format to reach
+for when the snapshot is going into a context window. It carries exactly what
+`--compact` carries, in roughly 40% of the bytes, by writing each fact once:
+
+```jsonc
+{
+  "v": "3.0",
+  "legend": { "...": "what every section and code below means" },
+  "stats": { "nodes": 1070, "ghosts": 0, "edges": 6279 },
+  "cols": ["id", "file", "cat", "heat", "cov"],
+  "n": {
+    "app/core/security": [[412, "access.py", "cor", 23, 87]],
+    "docs/adr":          [[7, "0009-parser-framework.md", "adr", 4, -1]]
+  },
+  "git": [[412, "mod"]],
+  "e": {
+    "imported_by":  [[412, [[518, 31], [604, [12, 88]]]]],
+    "doc_mentions": [[7, [[412, 142]]]]
+  }
+}
+```
+
+Files are grouped under their directory, so a path is written once and a node
+row is just `id, filename, category` — plus a `heat` column (commits touching
+the file) and a `cov` column (line coverage %, `-1` when unmeasured) whenever
+those layers were collected. `cols` declares that layout, so a row is never
+ambiguous.
+
+Edges are grouped into sections named after the group key, so a row reads
+key-first and direction never has to be inferred from argument order:
+`imported_by` is keyed by the module being imported, `doc_mentions` by the doc
+doing the mentioning. An item is a bare id, `[id, line]`, or `[id, [lines]]`.
+Optional layers — `git` statuses, `ghosts` (deleted files still referenced by
+docs), `ge` (edges touching them) — appear only when there is something to
+report. `degree` isn't stored: it is the number of incident edges.
 
 ### The compact format
 
-`--compact` writes `graph-compact.json` (schema v2): nodes as an indexed
-array, edges as `[source_idx, target_idx, type, [line_numbers]]` rows,
-3-letter codes for every category and edge type. The `legend` key embeds the
-full decoding table — an agent needs no external schema, the file explains
-itself:
+`--compact` writes `graph-compact.json` (schema v2), the flatter predecessor
+of the format above — unchanged, and still the right pick if you already
+parse it: nodes as an indexed array, edges as
+`[source_idx, target_idx, type, [line_numbers]]` rows, 3-letter codes for
+every category and edge type. The `legend` key embeds the full decoding
+table, so this file explains itself too:
 
 ```jsonc
 {
@@ -144,22 +183,23 @@ Deleted-but-still-referenced files ride along as ghost nodes (`"G": 1`).
 
 ### What it costs in context
 
-Real numbers from a production repo — 1,070 mapped files, 6,279 edges
-(tokens ≈ bytes / 4, the usual rough estimate):
+Real numbers from a production repo — a thousand-odd mapped files and several
+thousand edges (tokens ≈ bytes / 4, the usual rough estimate):
 
 | What you put in context             |   Size | ≈ Tokens   |
 |-------------------------------------|-------:|-----------:|
-| The mapped files themselves         |  15 MB | ~3,700,000 |
-| `--json` (verbose snapshot)         | 1.6 MB |   ~410,000 |
-| **`--compact`**                     | **0.33 MB** | **~80,000** |
+| The mapped files themselves         |  14 MB | ~3,650,000 |
+| `--json` (verbose snapshot)         | 1.2 MB |   ~320,000 |
+| `--compact`                         | 0.27 MB |   ~69,000 |
+| **`--ultra-compact`**               | **0.10 MB** | **~27,000** |
 
 The whole architecture — every import, every doc mention, every stale
-reference — lands in ~2 % of what the raw text would cost, and fits in a
-single 200 k-context session with room to work. Without the map an agent
-rediscovers this structure every session: dozens of speculative greps and
-file reads that burn comparable tokens *per question*, not once. On small
-projects the map is almost free — the compact snapshot of this very repo is
-4 KB ≈ ~1,000 tokens.
+reference — lands in well under 1 % of what the raw text would cost, and
+leaves a 200 k-context session almost entirely free to work in. Without the
+map an agent rediscovers this structure every session: dozens of speculative
+greps and file reads that burn comparable tokens *per question*, not once. On
+small projects the map is almost free — the ultra-compact snapshot of this
+very repo is under 8 KB ≈ ~2,000 tokens.
 
 <details>
 <summary>Don't take these numbers on faith — measure your own repo</summary>
@@ -170,9 +210,10 @@ $ build-graph --root . --bench
 Context cost on this repo (tokens ~= bytes / 4):
 
   What you put in context            Size      ~Tokens  vs corpus
-  raw corpus (1070 files)         14.3 MB    3,757,913     100.0%
-  --json export (schema v1)        1.5 MB      397,419      10.6%
-  --compact export (schema v2)   311.4 KB       79,729       2.1%
+  raw corpus (1060 files)         13.9 MB    3,651,892     100.0%
+  --json export (schema v1)        1.2 MB      320,439       8.8%
+  --compact export (schema v2)   270.9 KB       69,339       1.9%
+  --ultra-compact export (v3)    103.6 KB       26,517       0.7%
 ```
 
 `--bench` only measures — it writes no files.
@@ -182,9 +223,9 @@ Context cost on this repo (tokens ~= bytes / 4):
 ### A prompt to start from
 
 ```text
-graph-compact.json is a dependency map of this repository: nodes are
+graph-ultra.json is a dependency map of this repository: nodes are
 files, edges are imports and documentation mentions. Read the embedded
-"legend" key first — it explains every field and code.
+"legend" key first — it explains every section and code.
 
 Using the map (before any grep):
 1. Lay of the land: the 10 highest-degree hubs, grouped by category,
@@ -277,7 +318,7 @@ Two optional plain-text companions, both looked up in the project root:
 | `--config PATH` | graph.toml location (default: `<root>/graph.toml`) |
 | `--output PATH` | HTML output (default: `docs/graph.html` or `[output].path`) |
 | `--scope full\|package` | whole repo (default) or package+tests+docs only |
-| `--json` / `--compact` | verbose / agent-oriented JSON snapshots next to the HTML |
+| `--json` / `--compact` / `--ultra-compact` | JSON snapshots next to the HTML: verbose (v1), compact (v2), ultra-compact (v3) |
 | `--docs-only` / `--no-tests` | trim the node set |
 | `--no-cdn` | fully offline output: embed D3.js inline (SHA-256 verified) and drop the external font link |
 | `--mock-git` | synthetic git overlay for demos/testing |
@@ -362,8 +403,8 @@ around a block, or `<!-- ignore-ref: path/to/file.py -->` anywhere in the file.
 ### graph-query
 
 Ask the graph questions without opening a browser. Works on the JSON written
-by `--json` or `--compact` (auto-detected; defaults to
-`docs/graph-compact.json`):
+by `--json`, `--compact` or `--ultra-compact` (auto-detected; defaults to
+`docs/graph-ultra.json`, then the older snapshots):
 
 <details>
 <summary>Flags &amp; examples</summary>

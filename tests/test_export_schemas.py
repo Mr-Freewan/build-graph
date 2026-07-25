@@ -40,7 +40,15 @@ def _run(tiny_project: Path, monkeypatch: pytest.MonkeyPatch, *extra: str) -> No
     monkeypatch.setattr(
         sys,
         "argv",
-        ["build-graph", "--root", str(tiny_project), "--json", "--compact", *extra],
+        [
+            "build-graph",
+            "--root",
+            str(tiny_project),
+            "--json",
+            "--compact",
+            "--ultra-compact",
+            *extra,
+        ],
     )
     graph.main()
 
@@ -69,7 +77,16 @@ def test_exports_match_schemas(
     )
     _validate(compact, _load_schema("graph-compact-v2.schema.json"))
 
+    ultra = json.loads(
+        (tiny_project / "docs" / "graph-ultra.json").read_text(encoding="utf-8")
+    )
+    _validate(ultra, _load_schema("graph-ultra-v3.schema.json"))
+
 
 def test_schemas_are_valid_2020_12() -> None:
-    for name in ("graph-v1.schema.json", "graph-compact-v2.schema.json"):
+    for name in (
+        "graph-v1.schema.json",
+        "graph-compact-v2.schema.json",
+        "graph-ultra-v3.schema.json",
+    ):
         jsonschema.Draft202012Validator.check_schema(_load_schema(name))

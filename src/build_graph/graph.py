@@ -131,6 +131,40 @@ _GIT_CODES: dict[str, str] = {
     "renamed": "ren",
 }
 
+# Ultra-compact export (schema v3). Each edge type becomes a section whose
+# name says what the group key *is*, so direction is read off the name
+# instead of argument order: "imported_by" keyed by the module, "doc_mentions"
+# keyed by the doc. The int picks which endpoint of the edge is that key
+# (0 = source, 1 = target); the other endpoint goes in the row's item list.
+# Keying by the busier side is also what makes the section compact — one
+# heavily-referenced doc collapses hundreds of rows into one.
+_ULTRA_SECTIONS: dict[str, tuple[str, int]] = {
+    "imported_by": ("code->code", 1),
+    "type_only_imported_by": ("type-only", 1),
+    "doc_mentions": ("code->doc", 1),
+    "doc_links": ("doc->doc", 0),
+    "docstring_refs": ("docstring", 0),
+    "renamed_to": ("rename", 0),
+}
+_ULTRA_SECTION_LEGEND: dict[str, str] = {
+    "imported_by": (
+        "[module, [importer|[importer, line]|[importer, [lines]], ...]] - "
+        "each listed file imports module at runtime"
+    ),
+    "type_only_imported_by": (
+        "[module, [...]] - same shape; import lives under TYPE_CHECKING only"
+    ),
+    "doc_mentions": (
+        "[doc, [...]] - the doc mentions each listed code file; line is the "
+        "line in the doc"
+    ),
+    "doc_links": "[doc, [...]] - the doc links to each listed doc",
+    "docstring_refs": (
+        "[code file, [...]] - a docstring in this file mentions each listed node"
+    ),
+    "renamed_to": "[old path (ghost), [new path node]] - git rename",
+}
+
 
 def build_cat_codes(categories: set[str]) -> dict[str, str]:
     """Short codes for every category present in this build.
@@ -267,6 +301,142 @@ def build_llm_export_compact(
     ghost_edge_rows = [row for e in ghost_edges if (row := _edge(e)) is not None]
     if ghost_edge_rows:
         result["ge"] = ghost_edge_rows
+    return result
+
+
+def build_llm_export_ultra(
+    nodes: list[dict],
+    edges: list[dict],
+    cat_codes: dict[str, str],
+    heat_data: dict[str, int] | None = None,
+    coverage_data: dict[str, float] | None = None,
+) -> dict:
+    """Ultra-compact JSON snapshot for LLM consumption (schema v3).
+
+    Same information as v2 in roughly 40% of the bytes. Nothing is dropped
+    that cannot be recomputed: ``degree`` is gone because it is exactly the
+    number of incident edges, and v2's index->path legend is gone because a
+    node's id is written on its own row.
+
+    Where the bytes went, versus v2:
+
+    * Directories are written once, as the heading a group of files sits
+      under, instead of once per file inside every path.
+    * Edges are grouped: the edge type is written once per section and the
+      shared endpoint once per group, rather than on all 6k rows.
+    * A single line number is a bare int instead of a one-element array.
+
+    Optional layers appear only when their data was collected: ``git`` and
+    ``ghosts`` as sparse sections, ``heat`` / ``cov`` as extra node columns
+    declared in ``cols`` (dense metrics are cheaper as columns than as
+    id-value pairs). The node row itself stays strictly regular, so a reader
+    never has to guess which trailing field it is looking at.
+    """
+    live_nodes = [n for n in nodes if not n.get("ghost")]
+    ghost_nodes = [n for n in nodes if n.get("ghost")]
+    ordered = live_nodes + ghost_nodes
+    id_to_idx: dict[str, int] = {n["id"]: i for i, n in enumerate(ordered)}
+
+    cols = ["id", "file", "cat"]
+    if heat_data is not None:
+        cols.append("heat")
+    if coverage_data is not None:
+        cols.append("cov")
+
+    tree: dict[str, list[list[Any]]] = {}
+    for i, n in enumerate(ordered):
+        path = n["path"]
+        directory, _, filename = path.rpartition("/")
+        row: list[Any] = [i, filename, cat_codes.get(n["type"], n["type"])]
+        if heat_data is not None:
+            row.append(heat_data.get(path, 0))
+        if coverage_data is not None:
+            percent = coverage_data.get(path)
+            row.append(-1 if percent is None else round(percent))
+        tree.setdefault(directory or ".", []).append(row)
+
+    def _sections(edge_list: list[dict]) -> dict[str, list]:
+        out: dict[str, list] = {}
+        for name, (edge_type, key_side) in _ULTRA_SECTIONS.items():
+            groups: dict[int, list[tuple[int, list[int]]]] = {}
+            for e in edge_list:
+                if e["type"] != edge_type:
+                    continue
+                si = id_to_idx.get(e["source"])
+                ti = id_to_idx.get(e["target"])
+                if si is None or ti is None:
+                    continue
+                key, other = (ti, si) if key_side else (si, ti)
+                groups.setdefault(key, []).append((other, e.get("lines") or []))
+            if not groups:
+                continue
+            rows = []
+            for key in sorted(groups):
+                items: list[Any] = []
+                for other, lines in groups[key]:
+                    if not lines:
+                        items.append(other)
+                    elif len(lines) == 1:
+                        items.append([other, lines[0]])
+                    else:
+                        items.append([other, lines])
+                rows.append([key, items])
+            out[name] = rows
+        return out
+
+    live_edges = [e for e in edges if not e.get("ghost")]
+    ghost_edges = [e for e in edges if e.get("ghost")]
+    live_sections = _sections(live_edges)
+    ghost_sections = _sections(ghost_edges)
+
+    legend: dict[str, Any] = {
+        "n": (
+            "files grouped by directory ('.' = repository root); "
+            f"row = [{', '.join(cols)}]; id is what every edge refers to"
+        ),
+        "e": (
+            "edge sections; the section name says what the group key is, so "
+            "[key, [items]] always reads key-first"
+        ),
+    }
+    if heat_data is not None:
+        legend["heat"] = "commits touching the file (0 = none in window)"
+    if coverage_data is not None:
+        legend["cov"] = "line coverage %, -1 = not measured"
+    for name in live_sections.keys() | ghost_sections.keys():
+        legend[name] = _ULTRA_SECTION_LEGEND[name]
+    legend["c"] = cat_codes
+    if any(n.get("gitStatus", "clean") != "clean" for n in ordered):
+        legend["git"] = "[node, status] for files that are not clean"
+        legend["s"] = _GIT_CODES
+    if ghost_nodes:
+        legend["ghosts"] = "nodes for deleted-but-still-referenced files"
+    if ghost_sections:
+        legend["ge"] = "edges touching a ghost node, same shape as e"
+
+    result: dict[str, Any] = {
+        "v": "3.0",
+        "legend": legend,
+        "stats": {
+            "nodes": len(live_nodes),
+            "ghosts": len(ghost_nodes),
+            "edges": len(live_edges),
+        },
+        "cols": cols,
+        "n": tree,
+    }
+    git_rows = [
+        [i, _GIT_CODES.get(status, status)]
+        for i, n in enumerate(ordered)
+        if (status := n.get("gitStatus", "clean")) != "clean"
+    ]
+    if git_rows:
+        result["git"] = git_rows
+    if ghost_nodes:
+        result["ghosts"] = [i for i, n in enumerate(ordered) if n.get("ghost")]
+    result["e"] = live_sections
+    if ghost_sections:
+        result["ge"] = ghost_sections
     return result
 
 
@@ -414,12 +584,22 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     p.add_argument(
+        "--ultra-compact",
+        action="store_true",
+        help=(
+            "Also write an ultra-compact JSON snapshot next to the HTML "
+            "(<output>-ultra.json, schema v3). Same information as "
+            "--compact in ~40% of the bytes; carries the heat and coverage "
+            "layers too, when those were collected."
+        ),
+    )
+    p.add_argument(
         "--bench",
         action="store_true",
         help=(
-            "Print a context-cost report for this repo (raw corpus vs "
-            "--json vs --compact sizes with token estimates) and exit "
-            "without writing any files."
+            "Print a context-cost report for this repo (raw corpus vs the "
+            "JSON exports, with token estimates) and exit without writing "
+            "any files."
         ),
     )
     return p.parse_args()
@@ -453,6 +633,46 @@ def _compact_json(obj: dict) -> str:
     return "\n".join(parts)
 
 
+def _ultra_json(obj: dict) -> str:
+    """Line-oriented writer for the v3 export.
+
+    One directory per line inside ``n``, one edge group per line inside the
+    ``e`` / ``ge`` sections; everything else stays on a single line. Same
+    motivation as ``_compact_json``: keep the file diff-friendly and safe for
+    line-oriented tools without paying for full pretty-printing.
+    """
+    parts: list[str] = ["{"]
+    last_key = list(obj.keys())[-1]
+    for key, val in obj.items():
+        sep = "" if key == last_key else ","
+        if key == "n":
+            parts.append(f'  "{key}": {{')
+            dirs = list(val)
+            for i, directory in enumerate(dirs):
+                rows = json.dumps(
+                    val[directory], ensure_ascii=False, separators=(",", ":")
+                )
+                name = json.dumps(directory, ensure_ascii=False)
+                parts.append(f"    {name}: {rows}{',' if i < len(dirs) - 1 else ''}")
+            parts.append(f"  }}{sep}")
+        elif key in ("e", "ge"):
+            parts.append(f'  "{key}": {{')
+            names = list(val)
+            for si, name in enumerate(names):
+                parts.append(f'    "{name}": [')
+                rows = val[name]
+                for i, row in enumerate(rows):
+                    s = json.dumps(row, ensure_ascii=False, separators=(",", ":"))
+                    parts.append(f"      {s}{',' if i < len(rows) - 1 else ''}")
+                parts.append(f"    ]{',' if si < len(names) - 1 else ''}")
+            parts.append(f"  }}{sep}")
+        else:
+            s = json.dumps(val, ensure_ascii=False, separators=(",", ":"))
+            parts.append(f'  "{key}": {s}{sep}')
+    parts.append("}")
+    return "\n".join(parts)
+
+
 def _fmt_size(n: int) -> str:
     if n >= 1024 * 1024:
         return f"{n / (1024 * 1024):.1f} MB"
@@ -467,6 +687,8 @@ def print_bench_report(
     project_root: Path,
     git_available: bool,
     cat_codes: dict[str, str],
+    heat_data: dict[str, int] | None = None,
+    coverage_data: dict[str, float] | None = None,
 ) -> None:
     """Print a context-cost report: raw corpus vs the two JSON exports.
 
@@ -490,6 +712,9 @@ def print_bench_report(
     compact = _compact_json(
         build_llm_export_compact(nodes, edges, project_root, git_available, cat_codes)
     ).encode("utf-8")
+    ultra = _ultra_json(
+        build_llm_export_ultra(nodes, edges, cat_codes, heat_data, coverage_data)
+    ).encode("utf-8")
 
     def row(label: str, size: int) -> str:
         pct = f"{size / corpus_bytes * 100:.1f}%" if corpus_bytes else "n/a"
@@ -503,6 +728,7 @@ def print_bench_report(
     print(row(f"raw corpus ({corpus_files} files)", corpus_bytes))
     print(row("--json export (schema v1)", len(verbose)))
     print(row("--compact export (schema v2)", len(compact)))
+    print(row("--ultra-compact export (v3)", len(ultra)))
 
 
 def main() -> None:
@@ -736,7 +962,13 @@ def main() -> None:
 
     if args.bench:
         print_bench_report(
-            all_nodes, all_edges, project_root, git_data is not None, cat_codes
+            all_nodes,
+            all_edges,
+            project_root,
+            git_data is not None,
+            cat_codes,
+            heat_data,
+            coverage_data,
         )
         return
 
@@ -778,6 +1010,15 @@ def main() -> None:
             encoding="utf-8",
         )
         print(f"  also wrote {compact_path}")
+    if args.ultra_compact:
+        ultra_path = output_path.with_stem(output_path.stem + "-ultra").with_suffix(
+            ".json"
+        )
+        export_ultra = build_llm_export_ultra(
+            all_nodes, all_edges, cat_codes, heat_data, coverage_data
+        )
+        ultra_path.write_text(_ultra_json(export_ultra), encoding="utf-8")
+        print(f"  also wrote {ultra_path}")
     print(f"Done. Open {output_path} in your browser.")
 
 

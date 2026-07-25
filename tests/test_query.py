@@ -109,6 +109,33 @@ def _v2_snapshot() -> dict:
     }
 
 
+def _v3_snapshot() -> dict:
+    """Same graph again, ultra-compact."""
+    return {
+        "v": "3.0",
+        "legend": {
+            "n": "…",
+            "e": "…",
+            "c": {"code/app": "app", "doc/docs": "doc"},
+        },
+        "stats": {"nodes": 5, "ghosts": 0, "edges": 3},
+        "cols": ["id", "file", "cat"],
+        "n": {
+            "app": [
+                [0, "a.py", "app"],
+                [1, "b.py", "app"],
+                [2, "c.py", "app"],
+                [4, "lone.py", "app"],
+            ],
+            "docs": [[3, "guide.md", "doc"]],
+        },
+        "e": {
+            "imported_by": [[1, [[0, 1]]], [2, [[1, 2]]]],
+            "doc_mentions": [[3, [[1, 7]]]],
+        },
+    }
+
+
 @pytest.fixture()
 def snap_v1(tmp_path: Path) -> Snapshot:
     p = tmp_path / "graph.json"
@@ -137,6 +164,24 @@ def test_both_schemas_normalize_identically(tmp_path: Path) -> None:
     p2 = tmp_path / "graph-compact.json"
     p2.write_text(json.dumps(_v2_snapshot()), encoding="utf-8")
     assert load_snapshot(p1) == load_snapshot(p2)
+
+
+def test_v3_normalizes_to_the_same_snapshot(tmp_path: Path) -> None:
+    p1 = tmp_path / "graph.json"
+    p1.write_text(json.dumps(_v1_snapshot()), encoding="utf-8")
+    p3 = tmp_path / "graph-ultra.json"
+    p3.write_text(json.dumps(_v3_snapshot()), encoding="utf-8")
+    a, b = load_snapshot(p1), load_snapshot(p3)
+    assert (a.paths, a.types, a.degrees, a.ghosts) == (
+        b.paths,
+        b.types,
+        b.degrees,
+        b.ghosts,
+    )
+    # Section order is a v3 storage detail; the edge set is what must match.
+    assert {(s, t, ty, tuple(ln)) for s, t, ty, ln in a.edges} == {
+        (s, t, ty, tuple(ln)) for s, t, ty, ln in b.edges
+    }
 
 
 def test_unknown_format_rejected(tmp_path: Path) -> None:

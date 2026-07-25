@@ -23,7 +23,14 @@ def test_tiny_project_matches_expected_exports(
     monkeypatch.setattr(
         sys,
         "argv",
-        ["build-graph", "--root", str(project), "--json", "--compact"],
+        [
+            "build-graph",
+            "--root",
+            str(project),
+            "--json",
+            "--compact",
+            "--ultra-compact",
+        ],
     )
     graph.main()
 
@@ -41,3 +48,11 @@ def test_tiny_project_matches_expected_exports(
         (EXAMPLES / "expected" / "graph-compact.json").read_text(encoding="utf-8")
     )
     assert produced_compact == expected_compact
+
+    produced_ultra = json.loads(
+        (project / "docs" / "graph-ultra.json").read_text(encoding="utf-8")
+    )
+    expected_ultra = json.loads(
+        (EXAMPLES / "expected" / "graph-ultra.json").read_text(encoding="utf-8")
+    )
+    assert produced_ultra == expected_ultra

@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/Mr-Freewan/build-graph/main/schema/graph-ultra-v3.schema.json",
+  "title": "build-graph ultra-compact JSON export (schema v3)",
+  "description": "Snapshot written by `build-graph --ultra-compact` (<output>-ultra.json). Carries the same information as schema v2 in roughly 40% of the bytes: directories are written once as headings, edges are grouped into sections named after their group key, degree is left to the reader (it is the number of incident edges), and optional layers appear only when their data was collected.",
+  "type": "object",
+  "required": ["v", "legend", "stats", "cols", "n", "e"],
+  "additionalProperties": false,
+  "properties": {
+    "v": { "const": "3.0" },
+    "legend": {
+      "type": "object",
+      "description": "Self-documenting key: describes the node row layout, every edge section present, and the category/git code tables.",
+      "required": ["n", "e", "c"],
+      "additionalProperties": { "type": ["string", "object"] }
+    },
+    "stats": {
+      "type": "object",
+      "required": ["nodes", "ghosts", "edges"],
+      "additionalProperties": false,
+      "properties": {
+        "nodes": { "type": "integer", "minimum": 0, "description": "Live (non-ghost) node count." },
+        "ghosts": { "type": "integer", "minimum": 0 },
+        "edges": { "type": "integer", "minimum": 0, "description": "Live edge count (ghost edges live in \"ge\")." }
+      }
+    },
+    "cols": {
+      "type": "array",
+      "description": "Layout of a node row. The first three columns are always present; optional metric columns follow in this declared order.",
+      "prefixItems": [
+        { "const": "id" },
+        { "const": "file" },
+        { "const": "cat" }
+      ],
+      "items": { "enum": ["heat", "cov"] },
+      "minItems": 3,
+      "maxItems": 5
+    },
+    "n": {
+      "type": "object",
+      "description": "Nodes grouped by directory. The key is the project-relative directory (\".\" for the repository root); each row is one file, laid out as declared in \"cols\". Ids are dense: every integer from 0 to stats.nodes + stats.ghosts - 1 appears exactly once, live nodes first.",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "$ref": "#/$defs/nodeRow" }
+      }
+    },
+    "git": {
+      "type": "array",
+      "description": "Git status for files that are not clean; absent when no git overlay was collected or everything is clean.",
+      "items": {
+        "type": "array",
+        "prefixItems": [
+          { "type": "integer", "minimum": 0 },
+          { "enum": ["mod", "add", "del", "ren"] }
+        ],
+        "items": false,
+        "minItems": 2,
+        "maxItems": 2
+      }
+    },
+    "ghosts": {
+      "type": "array",
+      "description": "Ids of ghost nodes — deleted files still referenced by docs. Absent when there are none.",
+      "items": { "type": "integer", "minimum": 0 }
+    },
+    "e": { "$ref": "#/$defs/edgeSections" },
+    "ge": {
+      "$ref": "#/$defs/edgeSections",
+      "description": "Edges with a ghost endpoint (including git renames); present only when a git overlay produced any."
+    }
+  },
+  "$defs": {
+    "nodeRow": {
+      "type": "array",
+      "description": "[id, filename, category code, heat?, cov?] — the exact layout is declared in \"cols\". heat = commits touching the file; cov = line coverage percent, -1 when unmeasured.",
+      "prefixItems": [
+        { "type": "integer", "minimum": 0 },
+        { "type": "string" },
+        { "type": "string" }
+      ],
+      "items": { "type": "integer" },
+      "minItems": 3,
+      "maxItems": 5
+    },
+    "edgeSections": {
+      "type": "object",
+      "description": "Edge sections keyed by section name. The name says which endpoint the group key is, so a row always reads key-first: \"imported_by\" is keyed by the imported module, \"doc_mentions\" by the doc doing the mentioning.",
+      "additionalProperties": false,
+      "properties": {
+        "imported_by": { "$ref": "#/$defs/edgeGroups" },
+        "type_only_imported_by": { "$ref": "#/$defs/edgeGroups" },
+        "doc_mentions": { "$ref": "#/$defs/edgeGroups" },
+        "doc_links": { "$ref": "#/$defs/edgeGroups" },
+        "docstring_refs": { "$ref": "#/$defs/edgeGroups" },
+        "renamed_to": { "$ref": "#/$defs/edgeGroups" }
+      }
+    },
+    "edgeGroups": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "description": "[group key node id, [items]]",
+        "prefixItems": [
+          { "type": "integer", "minimum": 0 },
+          {
+            "type": "array",
+            "items": { "$ref": "#/$defs/edgeItem" }
+          }
+        ],
+        "items": false,
+        "minItems": 2,
+        "maxItems": 2
+      }
+    },
+    "edgeItem": {
+      "description": "The other endpoint: a bare id when there are no line numbers, [id, line] for one, [id, [lines]] for several.",
+      "oneOf": [
+        { "type": "integer", "minimum": 0 },
+        {
+          "type": "array",
+          "prefixItems": [
+            { "type": "integer", "minimum": 0 },
+            { "type": "integer", "minimum": 1 }
+          ],
+          "items": false,
+          "minItems": 2,
+          "maxItems": 2
+        },
+        {
+          "type": "array",
+          "prefixItems": [
+            { "type": "integer", "minimum": 0 },
+            {
+              "type": "array",
+              "items": { "type": "integer", "minimum": 1 },
+              "minItems": 2
+            }
+          ],
+          "items": false,
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    }
+  }
+}

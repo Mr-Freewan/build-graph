@@ -9,9 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `--ultra-compact` — a third JSON export (`<output>-ultra.json`, schema v3)
+  carrying the same graph as `--compact` in roughly 40% of the bytes, for
+  snapshots that go into an LLM context window. Files are grouped under their
+  directory, so a path is written once; edges are grouped into sections named
+  after their group key (`imported_by`, `doc_mentions`, …), so a row reads
+  key-first and the direction of a dependency never has to be inferred from
+  argument order. Optional layers appear only when collected: git statuses,
+  ghost nodes and their edges, plus `heat` and `cov` node columns — the first
+  export to carry the Heat and Coverage data at all. `degree` is no longer
+  stored; it is the number of incident edges. Published as
+  `schema/graph-ultra-v3.schema.json`.
+- `graph-query` reads schema v3 as well (still auto-detected), and now
+  prefers `docs/graph-ultra.json` when no `--input` is given.
+- `--bench` reports the ultra-compact size alongside the other two exports.
 - `docs/agent-prompts.md` — ready-made prompts for driving an LLM agent with
-  `graph-compact.json` (blast radius, three-way doc-sync, ghost detection,
+  the graph snapshot (blast radius, three-way doc-sync, ghost detection,
   dead-code and missing-edges hunts), linked from the README.
+
+### Notes
+
+- `--compact` and schema v2 are unchanged and stay supported; existing
+  snapshots and any tooling that reads them keep working.
 
 ## [0.3.0] — 2026-07-19
 

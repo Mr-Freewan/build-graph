@@ -36,6 +36,18 @@ _CODE_TO_NAME = {
     "ren": "rename",
 }
 
+# Schema v3 edge sections: name -> (edge type, which endpoint is the group
+# key). Mirrors _ULTRA_SECTIONS in graph.py; kept as a local copy so the
+# query CLI does not import the builder.
+_V3_SECTIONS = {
+    "imported_by": ("code->code", 1),
+    "type_only_imported_by": ("type-only", 1),
+    "doc_mentions": ("code->doc", 1),
+    "doc_links": ("doc->doc", 0),
+    "docstring_refs": ("docstring", 0),
+    "renamed_to": ("rename", 0),
+}
+
 
 @dataclass
 class Snapshot:
@@ -90,27 +102,95 @@ def _load_v2(data: dict) -> Snapshot:
     return snap
 
 
+def _v3_edge_items(items: list) -> list[tuple[int, list[int]]]:
+    """Expand one v3 group's items into (node, lines) pairs.
+
+    An item is a bare int (no line numbers), ``[node, line]`` for a single
+    line, or ``[node, [lines]]`` for several.
+    """
+    out: list[tuple[int, list[int]]] = []
+    for item in items:
+        if isinstance(item, int):
+            out.append((item, []))
+        elif len(item) == 1:
+            out.append((item[0], []))
+        elif isinstance(item[1], list):
+            out.append((item[0], item[1]))
+        else:
+            out.append((item[0], [item[1]]))
+    return out
+
+
+def _load_v3(data: dict) -> Snapshot:
+    code_to_cat = {v: k for k, v in data.get("legend", {}).get("c", {}).items()}
+    cols = data.get("cols", ["id", "file", "cat"])
+    id_col, file_col, cat_col = (cols.index(c) for c in ("id", "file", "cat"))
+
+    rows: list[tuple[int, str, str]] = []
+    for directory, files in data["n"].items():
+        prefix = "" if directory == "." else directory + "/"
+        for row in files:
+            rows.append((row[id_col], prefix + row[file_col], row[cat_col]))
+    rows.sort(key=lambda r: r[0])
+
+    snap = Snapshot(
+        paths=[r[1] for r in rows],
+        types=[code_to_cat.get(r[2], r[2]) for r in rows],
+        degrees=[0] * len(rows),
+        ghosts=set(data.get("ghosts", [])),
+    )
+
+    def _walk(sections: dict) -> list[tuple[int, int, str, list[int]]]:
+        out = []
+        for name, groups in sections.items():
+            edge_type, key_side = _V3_SECTIONS.get(name, (name, 0))
+            for key, items in groups:
+                for other, lines in _v3_edge_items(items):
+                    src, tgt = (other, key) if key_side else (key, other)
+                    out.append((src, tgt, edge_type, lines))
+        return out
+
+    live = _walk(data.get("e", {}))
+    # Degree counts every edge the builder saw, ghost ones included — that is
+    # what v1/v2 stored in their `degree` field, and orphan detection has to
+    # agree across the three schemas.
+    for src, tgt, _type, _lines in live + _walk(data.get("ge", {})):
+        for idx in (src, tgt):
+            if 0 <= idx < len(snap.degrees):
+                snap.degrees[idx] += 1
+    # Ghost edges themselves stay out of the edge list, mirroring _load_v2.
+    snap.edges = [e for e in live if e[2] != "rename"]
+    return snap
+
+
 def load_snapshot(input_path: Path) -> Snapshot:
-    """Read a v1 or v2 export; the schema is detected from its keys."""
+    """Read a v1, v2 or v3 export; the schema is detected from its keys."""
     data = json.loads(input_path.read_text(encoding="utf-8"))
+    if data.get("v") == "3.0":
+        return _load_v3(data)
     if data.get("v") == "2.0":
         return _load_v2(data)
     if data.get("schema_version") == "1.0":
         return _load_v1(data)
     raise ValueError(
-        f"{input_path} is neither a --json (schema v1) nor a --compact "
-        "(schema v2) export"
+        f"{input_path} is not a --json (schema v1), --compact (schema v2) "
+        "or --ultra-compact (schema v3) export"
     )
 
 
 def _default_input(root: Path) -> Path:
-    for candidate in ("docs/graph-compact.json", "docs/graph.json"):
+    for candidate in (
+        "docs/graph-ultra.json",
+        "docs/graph-compact.json",
+        "docs/graph.json",
+    ):
         p = root / candidate
         if p.is_file():
             return p
     print(
-        f"No snapshot found under {root} (tried docs/graph-compact.json, "
-        "docs/graph.json).\nRun `build-graph --compact` first, or pass --input.",
+        f"No snapshot found under {root} (tried docs/graph-ultra.json, "
+        "docs/graph-compact.json, docs/graph.json).\nRun "
+        "`build-graph --ultra-compact` first, or pass --input.",
         file=sys.stderr,
     )
     sys.exit(2)

@@ -78,8 +78,10 @@ def test_bench_reports_sizes_without_writing(
     assert "raw corpus (4 files)" in out
     assert "--json export (schema v1)" in out
     assert "--compact export (schema v2)" in out
+    assert "--ultra-compact export (v3)" in out
 
     docs = tiny_project / "docs"
     assert not (docs / "graph.html").exists()
     assert not (docs / "graph.json").exists()
     assert not (docs / "graph-compact.json").exists()
+    assert not (docs / "graph-ultra.json").exists()

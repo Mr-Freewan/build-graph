@@ -291,6 +291,19 @@ The **File menu** collects the outputs:
 - **Export / Import prefs** — move your entire setup (positions, sliders,
   filters, theme) to another machine as a JSON file.
 
+For an agent, the file to hand over is the ultra-compact snapshot — the same
+graph as the other exports, at roughly a third of the tokens, and the only
+one that also carries the Heat and Coverage layers:
+
+```bash
+build-graph --ultra-compact                            # docs/graph-ultra.json
+build-graph --ultra-compact --coverage coverage.xml    # + the coverage column
+build-graph --bench                                    # what each export costs
+```
+
+Its `legend` key explains the file to whoever reads it, so no schema is
+needed alongside; `graph-query` reads it too, and picks it up by default.
+
 A real *Copy as Mermaid* example — one admin subsystem isolated via search,
 exported, pasted into markdown as-is:
 

@@ -1,0 +1,18 @@
+{
+  "v": "3.0",
+  "legend": {"n":"files grouped by directory ('.' = repository root); row = [id, file, cat]; id is what every edge refers to","e":"edge sections; the section name says what the group key is, so [key, [items]] always reads key-first","imported_by":"[module, [importer|[importer, line]|[importer, [lines]], ...]] - each listed file imports module at runtime","doc_mentions":"[doc, [...]] - the doc mentions each listed code file; line is the line in the doc","c":{"code/app":"app","doc/docs":"doc"}},
+  "stats": {"nodes":4,"ghosts":0,"edges":2},
+  "cols": ["id","file","cat"],
+  "n": {
+    "docs": [[0,"design.md","doc"]],
+    "app": [[1,"__init__.py","app"],[2,"cli.py","app"],[3,"core.py","app"]]
+  },
+  "e": {
+    "imported_by": [
+      [3,[[2,1]]]
+    ],
+    "doc_mentions": [
+      [0,[[2,3]]]
+    ]
+  }
+}
