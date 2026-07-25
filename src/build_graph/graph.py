@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Generate an interactive HTML dependency graph for the project.
 
 Usage:
@@ -589,7 +588,9 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Also write an ultra-compact JSON snapshot next to the HTML "
             "(<output>-ultra.json, schema v3). Same information as "
-            "--compact in ~40% of the bytes; carries the heat and coverage "
+            # argparse interpolates help through %-formatting: literal
+            # percent signs must be doubled or --help raises TypeError.
+            "--compact in ~40%% of the bytes; carries the heat and coverage "
             "layers too, when those were collected."
         ),
     )

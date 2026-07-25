@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Verify that file references in .md files actually exist.
 
 Usage:

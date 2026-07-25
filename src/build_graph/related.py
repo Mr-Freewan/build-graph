@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Find documentation files that mention a given code file.
 
 Usage:

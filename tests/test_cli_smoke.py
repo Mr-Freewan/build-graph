@@ -1,6 +1,7 @@
 """End-to-end smoke test: build a graph for a tiny synthetic project."""
 
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -27,6 +28,35 @@ def tiny_project(tmp_path: Path) -> Path:
         encoding="utf-8",
     )
     return tmp_path
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [
+        "build_graph.graph",
+        "build_graph.query",
+        "build_graph.related",
+        "build_graph.links",
+    ],
+)
+def test_help_renders(entry: str) -> None:
+    """--help must render for every CLI.
+
+    argparse interpolates help text through %-formatting, so a literal
+    percent sign in a flag's help blows up at --help time only — never
+    during a normal run, and never in a test that just builds a graph.
+    """
+    result = subprocess.run(
+        [sys.executable, "-m", entry, "--help"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=60,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "usage:" in result.stdout.lower()
 
 
 def test_build_graph_end_to_end(

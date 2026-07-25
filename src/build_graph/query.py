@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Query a graph snapshot from the command line.
 
 Works on the JSON exports written by ``build-graph --json`` (schema v1)
