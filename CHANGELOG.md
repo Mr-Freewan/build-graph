@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-07-26
+
 ### Added
 
 - `--ultra-compact` — a third JSON export (`<output>-ultra.json`, schema v3)
@@ -25,7 +27,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `--bench` reports the ultra-compact size alongside the other two exports.
 - `docs/agent-prompts.md` — ready-made prompts for driving an LLM agent with
   the graph snapshot (blast radius, three-way doc-sync, ghost detection,
-  dead-code and missing-edges hunts), linked from the README.
+  dead-code and missing-edges hunts), linked from the README. Every prompt is
+  labelled with the schema it targets, and each has a v3 counterpart.
+- README and the UI guide are translated into the nine existing languages for
+  everything above.
+
+### Fixed
+
+- The package modules no longer carry a `#!/usr/bin/env python3` line: they are
+  installed as console entry points and are never executed directly.
 
 ### Notes
 
@@ -158,6 +168,7 @@ Initial public release.
   as too similar to an existing unrelated project. The CLI commands keep the
   `build-graph` family of names.
 
+[0.4.0]: https://github.com/Mr-Freewan/build-graph/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Mr-Freewan/build-graph/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Mr-Freewan/build-graph/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Mr-Freewan/build-graph/releases/tag/v0.1.0
