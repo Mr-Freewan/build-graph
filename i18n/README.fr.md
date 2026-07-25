@@ -93,7 +93,7 @@ pip install ./build-graph
 ```bash
 cd your-project
 build-graph                    # autodécouverte, aucune configuration → docs/graph.html
-build-graph --compact          # + docs/graph-compact.json pour les agents IA
+build-graph --ultra-compact    # + docs/graph-ultra.json pour les agents IA
 build-graph --init             # optionnel : figer la structure détectée dans graph.toml
 ```
 
@@ -118,8 +118,9 @@ paquet ; voir [Outils CLI](#outils-cli).
 
 ## Conçu pour les agents IA
 
-`--compact` écrit un instantané JSON auto-documenté (légende intégrée, nœuds
-indexés, codes de type à trois lettres) que les agents utilisent pour :
+`--ultra-compact` (ou l'ancien `--compact`) écrit un instantané JSON
+auto-documenté — légende intégrée, aucun schéma externe nécessaire — que les
+agents utilisent pour :
 
 1. **Rayon d'impact** — les imports entrants du fichier que vous allez changer,
    sans grep.
@@ -129,16 +130,58 @@ indexés, codes de type à trois lettres) que les agents utilisent pour :
    (2) ce qui devrait l'être mais ne l'est pas, et (3) ce qui est documenté mais
    n'existe plus (nœuds fantômes = détecteur d'obsolescence).
 
-Ajoutez `build-graph --compact` à un hook de pre-commit ou à une étape de CI pour
-que la carte reste fraîche à chaque session d'agent.
+Ajoutez `build-graph --ultra-compact` à un hook de pre-commit ou à une étape de
+CI pour que la carte reste fraîche à chaque session d'agent.
+
+### Le format ultra-compact
+
+`--ultra-compact` écrit `graph-ultra.json` (schéma v3) — le format à privilégier
+quand l'instantané part dans une fenêtre de contexte. Il porte exactement ce que
+porte `--compact`, en 40 % des octets environ, parce que chaque fait n'est écrit
+qu'une fois :
+
+```jsonc
+{
+  "v": "3.0",
+  "legend": { "...": "ce que signifient chaque section et chaque code ci-dessous" },
+  "stats": { "nodes": 1070, "ghosts": 0, "edges": 6279 },
+  "cols": ["id", "file", "cat", "heat", "cov"],
+  "n": {
+    "app/core/security": [[412, "access.py", "cor", 23, 87]],
+    "docs/adr":          [[7, "0009-parser-framework.md", "adr", 4, -1]]
+  },
+  "git": [[412, "mod"]],
+  "e": {
+    "imported_by":  [[412, [[518, 31], [604, [12, 88]]]]],
+    "doc_mentions": [[7, [[412, 142]]]]
+  }
+}
+```
+
+Les fichiers sont groupés sous leur répertoire : un chemin n'est écrit qu'une
+fois et la ligne d'un nœud se réduit à `id, nom de fichier, catégorie` — plus une
+colonne `heat` (combien de commits ont touché le fichier) et une colonne `cov`
+(couverture de lignes en pourcentage, `-1` si non mesurée) dès que ces couches
+ont été collectées. `cols` déclare cette disposition, une ligne n'est donc jamais
+ambiguë.
+
+Les arêtes sont groupées en sections nommées d'après leur clé de groupe : une
+ligne se lit en partant de la clé et le sens ne se déduit jamais de l'ordre des
+arguments. `imported_by` est indexé par le module importé, `doc_mentions` par le
+document qui mentionne. Un élément est un id nu, `[id, ligne]` ou
+`[id, [lignes]]`. Les couches optionnelles — statuts `git`, `ghosts` (fichiers
+supprimés que les docs citent encore), `ge` (les arêtes qui les touchent) —
+n'apparaissent que s'il y a quelque chose à signaler. `degree` n'est pas
+stocké : c'est le nombre d'arêtes incidentes.
 
 ### Le format compact
 
-`--compact` écrit `graph-compact.json` (schéma v2) : les nœuds sous forme de
-tableau indexé, les arêtes sous forme de lignes `[index_source, index_cible, type,
-[numéros_de_ligne]]`, des codes à trois lettres pour chaque catégorie et type
-d'arête. La clé `legend` intègre la table de décodage complète — un agent n'a
-besoin d'aucun schéma externe, le fichier s'explique tout seul :
+`--compact` écrit `graph-compact.json` (schéma v2), le prédécesseur plus plat du
+format ci-dessus — inchangé, et toujours le bon choix si vous le parsez déjà :
+les nœuds sous forme de tableau indexé, les arêtes sous forme de lignes
+`[index_source, index_cible, type, [numéros_de_ligne]]`, des codes à trois
+lettres pour chaque catégorie et type d'arête. La clé `legend` intègre la table
+de décodage complète, ce fichier aussi s'explique donc tout seul :
 
 ```jsonc
 {
@@ -164,23 +207,26 @@ nœuds fantômes (`"G": 1`).
 
 ### Ce que ça coûte en contexte
 
-Chiffres réels d'un dépôt en production — 1 070 fichiers cartographiés, 6 279
-arêtes (tokens ≈ octets / 4, l'estimation approximative habituelle) :
+Chiffres réels d'un dépôt en production — un bon millier de fichiers
+cartographiés et quelques milliers d'arêtes (tokens ≈ octets / 4, l'estimation
+approximative habituelle) :
 
 | Ce que vous mettez dans le contexte  | Taille | ≈ Tokens   |
 |--------------------------------------|-------:|-----------:|
-| Les fichiers cartographiés eux-mêmes |  15 MB | ~3 700 000 |
-| `--json` (instantané détaillé)       | 1,6 MB |   ~410 000 |
-| **`--compact`**                      | **0,33 MB** | **~80 000** |
+| Les fichiers cartographiés eux-mêmes |  14 MB | ~3 650 000 |
+| `--json` (instantané détaillé)       | 1,2 MB |   ~320 000 |
+| `--compact`                          | 0,27 MB |   ~69 000 |
+| **`--ultra-compact`**                | **0,10 MB** | **~27 000** |
 
 Toute l'architecture — chaque import, chaque mention dans les docs, chaque
-référence obsolète — tient dans ~2 % de ce que coûterait le texte brut, et entre
-dans une seule session de contexte de 200 k avec de la marge pour travailler. Sans
+référence obsolète — tient dans bien moins de 1 % de ce que coûterait le texte
+brut, et laisse une session de contexte de 200 k presque entièrement libre pour
+travailler. Sans
 la carte, un agent redécouvre cette structure à chaque session : des dizaines de
 greps spéculatifs et de lectures de fichiers qui brûlent une quantité comparable
 de tokens *par question*, et non une seule fois. Sur les petits projets, la carte
-est presque gratuite — l'instantané compact de ce dépôt même pèse 4 Ko ≈ ~1 000
-tokens.
+est presque gratuite — l'instantané ultra-compact de ce dépôt même pèse moins de
+8 Ko ≈ ~2 000 tokens.
 
 <details>
 <summary>Ne croyez pas ces chiffres sur parole — mesurez votre propre dépôt</summary>
@@ -191,9 +237,10 @@ $ build-graph --root . --bench
 Context cost on this repo (tokens ~= bytes / 4):
 
   What you put in context            Size      ~Tokens  vs corpus
-  raw corpus (1070 files)         14.3 MB    3,757,913     100.0%
-  --json export (schema v1)        1.5 MB      397,419      10.6%
-  --compact export (schema v2)   311.4 KB       79,729      2.1%
+  raw corpus (1060 files)         13.9 MB    3,651,892     100.0%
+  --json export (schema v1)        1.2 MB      320,439       8.8%
+  --compact export (schema v2)   270.9 KB       69,339       1.9%
+  --ultra-compact export (v3)    103.6 KB       26,517       0.7%
 ```
 
 `--bench` ne fait que mesurer — il n'écrit aucun fichier.
@@ -203,9 +250,9 @@ Context cost on this repo (tokens ~= bytes / 4):
 ### Un prompt pour démarrer
 
 ```text
-graph-compact.json is a dependency map of this repository: nodes are
+graph-ultra.json is a dependency map of this repository: nodes are
 files, edges are imports and documentation mentions. Read the embedded
-"legend" key first — it explains every field and code.
+"legend" key first — it explains every section and code.
 
 Using the map (before any grep):
 1. Lay of the land: the 10 highest-degree hubs, grouped by category,
@@ -304,7 +351,7 @@ Deux compagnons texte facultatifs, tous deux cherchés à la racine du projet :
 | `--config PATH` | emplacement de graph.toml (par défaut : `<root>/graph.toml`) |
 | `--output PATH` | sortie HTML (par défaut : `docs/graph.html` ou `[output].path`) |
 | `--scope full\|package` | tout le dépôt (par défaut) ou seulement paquet+tests+docs |
-| `--json` / `--compact` | instantanés JSON détaillé / orienté agent |
+| `--json` / `--compact` / `--ultra-compact` | instantanés JSON à côté du HTML : détaillé (v1), compact (v2), ultra-compact (v3) |
 | `--docs-only` / `--no-tests` | réduire l'ensemble des nœuds |
 | `--no-cdn` | sortie entièrement hors ligne : intégrer D3.js inline (vérifié SHA-256) et retirer le lien de police externe |
 | `--mock-git` | calque git synthétique pour démos/tests |
@@ -391,8 +438,8 @@ ligne avec des commentaires HTML (invisibles dans le Markdown rendu) :
 ### graph-query
 
 Posez des questions au graphe sans ouvrir de navigateur. Fonctionne sur le JSON
-écrit par `--json` ou `--compact` (détecté automatiquement ; par défaut
-`docs/graph-compact.json`) :
+écrit par `--json`, `--compact` ou `--ultra-compact` (détecté automatiquement ;
+par défaut `docs/graph-ultra.json`, puis les instantanés plus anciens) :
 
 <details>
 <summary>Options &amp; exemples</summary>

@@ -157,6 +157,16 @@ Coverage 모드를 켜면 범례에서 `code/*`를 제외한 모든 Node type도
 - **Copy JSON** — LLM 에이전트를 위한 전체 그래프 데이터(CLI 플래그 `--json` / `--compact`와 동일한 데이터).
 - **Export / Import prefs** — 전체 설정(위치, 슬라이더, 필터, 테마)을 JSON 파일로 다른 기기에 옮깁니다.
 
+에이전트에게 건넬 파일은 울트라 컴팩트 스냅숏입니다. 다른 내보내기와 같은 그래프를 약 3분의 1의 토큰으로 담고, Heat 및 Coverage 레이어까지 싣는 유일한 형식입니다:
+
+```bash
+build-graph --ultra-compact                            # docs/graph-ultra.json
+build-graph --ultra-compact --coverage coverage.xml    # + 커버리지 열
+build-graph --bench                                    # 각 내보내기의 비용
+```
+
+`legend` 키가 읽는 사람에게 파일을 설명하므로 옆에 스키마가 필요 없습니다. `graph-query` 도 이 파일을 읽고 기본으로 선택합니다.
+
 실제 *Copy as Mermaid* 예 — 검색으로 분리한 하나의 admin 서브시스템을 내보내 markdown에 그대로 붙여 넣은 것:
 
 ![렌더링된 Copy-as-Mermaid 출력](../docs/media/guide/14-mermaid-example.png)

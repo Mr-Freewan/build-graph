@@ -91,7 +91,7 @@ pip install ./build-graph
 ```bash
 cd your-project
 build-graph                    # Autodiscovery, keine Konfiguration nötig → docs/graph.html
-build-graph --compact          # + docs/graph-compact.json für KI-Agenten
+build-graph --ultra-compact    # + docs/graph-ultra.json für KI-Agenten
 build-graph --init             # optional: die erkannte Struktur in graph.toml festschreiben
 ```
 
@@ -116,8 +116,9 @@ Zwei Begleit-Tools — `find-related-docs` (umgekehrte Suche: Code → Docs) und
 
 ## Für KI-Agenten entwickelt
 
-`--compact` schreibt einen selbstdokumentierenden JSON-Snapshot (eingebettete
-Legende, indizierte Knoten, dreibuchstabige Typcodes), den Agenten nutzen für:
+`--ultra-compact` (oder das ältere `--compact`) schreibt einen
+selbstdokumentierenden JSON-Snapshot — mit eingebetteter Legende, ein externes
+Schema braucht es nicht —, den Agenten nutzen für:
 
 1. **Auswirkungsradius** — eingehende Importe der Datei, die Sie ändern wollen,
    ganz ohne grep.
@@ -127,16 +128,59 @@ Legende, indizierte Knoten, dreibuchstabige Typcodes), den Agenten nutzen für:
    (2) was dokumentiert sein sollte, es aber nicht ist, und (3) was dokumentiert
    ist, aber nicht mehr existiert (Geisterknoten = Veraltungs-Detektor).
 
-Fügen Sie `build-graph --compact` einem pre-commit-Hook oder einem CI-Schritt
-hinzu, damit die Karte für jede Agenten-Sitzung aktuell bleibt.
+Fügen Sie `build-graph --ultra-compact` einem pre-commit-Hook oder einem
+CI-Schritt hinzu, damit die Karte für jede Agenten-Sitzung aktuell bleibt.
+
+### Das ultrakompakte Format
+
+`--ultra-compact` schreibt `graph-ultra.json` (Schema v3) — das Format der Wahl,
+wenn der Snapshot in ein Kontextfenster wandert. Es trägt genau das, was auch
+`--compact` trägt, in rund 40 % der Bytes, weil jede Tatsache nur einmal
+geschrieben wird:
+
+```jsonc
+{
+  "v": "3.0",
+  "legend": { "...": "was jeder Abschnitt und jeder Code unten bedeutet" },
+  "stats": { "nodes": 1070, "ghosts": 0, "edges": 6279 },
+  "cols": ["id", "file", "cat", "heat", "cov"],
+  "n": {
+    "app/core/security": [[412, "access.py", "cor", 23, 87]],
+    "docs/adr":          [[7, "0009-parser-framework.md", "adr", 4, -1]]
+  },
+  "git": [[412, "mod"]],
+  "e": {
+    "imported_by":  [[412, [[518, 31], [604, [12, 88]]]]],
+    "doc_mentions": [[7, [[412, 142]]]]
+  }
+}
+```
+
+Dateien stehen unter ihrem Verzeichnis gruppiert, ein Pfad wird also einmal
+geschrieben, und eine Knotenzeile ist schlicht `id, Dateiname, Kategorie` —
+dazu eine `heat`-Spalte (wie viele Commits die Datei berührt haben) und eine
+`cov`-Spalte (Zeilenabdeckung in Prozent, `-1` = nicht gemessen), sobald diese
+Ebenen erhoben wurden. `cols` deklariert dieses Layout, eine Zeile ist damit nie
+mehrdeutig.
+
+Kanten sind in Abschnitte gruppiert, die nach ihrem Gruppenschlüssel benannt
+sind: eine Zeile liest sich vom Schlüssel her, und die Richtung muss nie aus der
+Argumentreihenfolge erschlossen werden. `imported_by` ist nach dem importierten
+Modul geschlüsselt, `doc_mentions` nach dem Dokument, das erwähnt. Ein Eintrag
+ist eine nackte id, `[id, Zeile]` oder `[id, [Zeilen]]`. Optionale Ebenen —
+`git`-Status, `ghosts` (gelöschte Dateien, auf die Docs noch verweisen), `ge`
+(die Kanten, die sie berühren) — erscheinen nur, wenn es etwas zu melden gibt.
+`degree` wird nicht gespeichert: es ist die Anzahl der anliegenden Kanten.
 
 ### Das kompakte Format
 
-`--compact` schreibt `graph-compact.json` (Schema v2): Knoten als indiziertes
-Array, Kanten als Zeilen `[Quell-Index, Ziel-Index, Typ, [Zeilennummern]]`,
-dreibuchstabige Codes für jede Kategorie und jeden Kantentyp. Der Schlüssel
-`legend` bettet die vollständige Dekodierungstabelle ein — ein Agent braucht kein
-externes Schema, die Datei erklärt sich selbst:
+`--compact` schreibt `graph-compact.json` (Schema v2), den flacheren Vorgänger
+des Formats oben — unverändert und weiterhin die richtige Wahl, wenn Sie es
+bereits parsen: Knoten als indiziertes Array, Kanten als Zeilen
+`[Quell-Index, Ziel-Index, Typ, [Zeilennummern]]`, dreibuchstabige Codes für
+jede Kategorie und jeden Kantentyp. Der Schlüssel `legend` bettet die
+vollständige Dekodierungstabelle ein, auch diese Datei erklärt sich also
+selbst:
 
 ```jsonc
 {
@@ -161,22 +205,24 @@ Gelöschte, aber noch erwähnte Dateien fahren als Geisterknoten mit (`"G": 1`).
 
 ### Was es an Kontext kostet
 
-Echte Zahlen aus einem Produktions-Repository — 1.070 zugeordnete Dateien, 6.279
-Kanten (Tokens ≈ Bytes / 4, die übliche grobe Schätzung):
+Echte Zahlen aus einem Produktions-Repository — gut tausend zugeordnete Dateien
+und einige tausend Kanten (Tokens ≈ Bytes / 4, die übliche grobe Schätzung):
 
 | Was Sie in den Kontext legen         |  Größe | ≈ Tokens   |
 |--------------------------------------|-------:|-----------:|
-| Die zugeordneten Dateien selbst      |  15 MB | ~3.700.000 |
-| `--json` (ausführlicher Snapshot)    | 1,6 MB |   ~410.000 |
-| **`--compact`**                      | **0,33 MB** | **~80.000** |
+| Die zugeordneten Dateien selbst      |  14 MB | ~3.650.000 |
+| `--json` (ausführlicher Snapshot)    | 1,2 MB |   ~320.000 |
+| `--compact`                          | 0,27 MB |   ~69.000 |
+| **`--ultra-compact`**                | **0,10 MB** | **~27.000** |
 
 Die gesamte Architektur — jeder Import, jede Doc-Erwähnung, jede veraltete
-Referenz — landet in ~2 % dessen, was der Rohtext kosten würde, und passt mit
-Spielraum zum Arbeiten in eine einzige Sitzung mit 200-k-Kontext. Ohne die Karte
+Referenz — landet in deutlich unter 1 % dessen, was der Rohtext kosten würde,
+und lässt eine Sitzung mit 200-k-Kontext fast vollständig zum Arbeiten frei. Ohne die Karte
 entdeckt ein Agent diese Struktur jede Sitzung neu: Dutzende spekulative greps
 und Datei-Lesevorgänge, die vergleichbar viele Tokens verbrennen — *pro Frage*,
 nicht einmalig. Bei kleinen Projekten ist die Karte fast gratis — der kompakte
-Snapshot genau dieses Repositorys ist 4 KB ≈ ~1.000 Tokens groß.
+ultrakompakte Snapshot genau dieses Repositorys ist unter 8 KB ≈ ~2.000 Tokens
+groß.
 
 <details>
 <summary>Vertrauen Sie diesen Zahlen nicht blind — messen Sie Ihr eigenes Repository</summary>
@@ -187,9 +233,10 @@ $ build-graph --root . --bench
 Context cost on this repo (tokens ~= bytes / 4):
 
   What you put in context            Size      ~Tokens  vs corpus
-  raw corpus (1070 files)         14.3 MB    3,757,913     100.0%
-  --json export (schema v1)        1.5 MB      397,419      10.6%
-  --compact export (schema v2)   311.4 KB       79,729      2.1%
+  raw corpus (1060 files)         13.9 MB    3,651,892     100.0%
+  --json export (schema v1)        1.2 MB      320,439       8.8%
+  --compact export (schema v2)   270.9 KB       69,339       1.9%
+  --ultra-compact export (v3)    103.6 KB       26,517       0.7%
 ```
 
 `--bench` misst nur — es schreibt keine Dateien.
@@ -199,9 +246,9 @@ Context cost on this repo (tokens ~= bytes / 4):
 ### Ein Prompt für den Anfang
 
 ```text
-graph-compact.json is a dependency map of this repository: nodes are
+graph-ultra.json is a dependency map of this repository: nodes are
 files, edges are imports and documentation mentions. Read the embedded
-"legend" key first — it explains every field and code.
+"legend" key first — it explains every section and code.
 
 Using the map (before any grep):
 1. Lay of the land: the 10 highest-degree hubs, grouped by category,
@@ -299,7 +346,7 @@ Zwei optionale Klartext-Begleiter, beide werden im Projektstamm gesucht:
 | `--config PATH` | Ort der graph.toml (Standard: `<root>/graph.toml`) |
 | `--output PATH` | HTML-Ausgabe (Standard: `docs/graph.html` oder `[output].path`) |
 | `--scope full\|package` | ganzes Repo (Standard) oder nur Paket+Tests+Docs |
-| `--json` / `--compact` | ausführliche / agentenorientierte JSON-Snapshots |
+| `--json` / `--compact` / `--ultra-compact` | JSON-Snapshots neben dem HTML: ausführlich (v1), kompakt (v2), ultrakompakt (v3) |
 | `--docs-only` / `--no-tests` | die Knotenmenge beschneiden |
 | `--no-cdn` | vollständig offline: D3.js inline einbetten (SHA-256-geprüft) und den externen Font-Link weglassen |
 | `--mock-git` | synthetisches Git-Overlay für Demos/Tests |
@@ -386,8 +433,9 @@ irgendwo in der Datei.
 ### graph-query
 
 Stellen Sie dem Graphen Fragen, ohne einen Browser zu öffnen. Arbeitet mit dem
-JSON, das `--json` oder `--compact` schreibt (automatisch erkannt; Standard:
-`docs/graph-compact.json`):
+JSON, das `--json`, `--compact` oder `--ultra-compact` schreibt (automatisch
+erkannt; Standard:
+`docs/graph-ultra.json`, dann die älteren Snapshots):
 
 <details>
 <summary>Flags &amp; Beispiele</summary>

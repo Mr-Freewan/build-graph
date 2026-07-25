@@ -92,7 +92,7 @@ pip install ./build-graph
 ```bash
 cd your-project
 build-graph                    # 自動検出、設定不要 → docs/graph.html
-build-graph --compact          # + AI エージェント向けの docs/graph-compact.json
+build-graph --ultra-compact    # + AI エージェント向けの docs/graph-ultra.json
 build-graph --init             # 任意: 検出した構造を graph.toml に固定
 ```
 
@@ -115,9 +115,9 @@ build-graph --init             # 任意: 検出した構造を graph.toml に固
 
 ## AI エージェント向けの設計
 
-`--compact` は自己記述的な JSON スナップショット（埋め込みの凡例、インデックス
-化されたノード、3 文字のタイプコード）を書き出します。エージェントはこれを次の
-用途に使います:
+`--ultra-compact`（または従来の `--compact`）は自己記述的な JSON スナップ
+ショットを書き出します。凡例が埋め込まれているため外部スキーマは不要です。
+エージェントはこれを次の用途に使います:
 
 1. **影響範囲** — これから変更するファイルへの受信インポートを、grep なしで。
 2. **ドキュメントのルーティング** — ファイルを編集する *前* に読むべき ADR /
@@ -126,15 +126,56 @@ build-graph --init             # 任意: 検出した構造を graph.toml に固
    べきだが未対応のもの、(3) 文書化されているがもう存在しないもの（ゴーストノード
    = 陳腐化検出器）を示します。
 
-`build-graph --compact` を pre-commit フックや CI ステップに加えると、
+`build-graph --ultra-compact` を pre-commit フックや CI ステップに加えると、
 エージェントのセッションごとにマップが最新に保たれます。
+
+### ウルトラコンパクトフォーマット
+
+`--ultra-compact` は `graph-ultra.json`（スキーマ v3）を書き出します。スナップ
+ショットをコンテキストウィンドウに入れるなら、まずこの形式です。`--compact` と
+まったく同じ内容を、およそ 40 % のバイト数で運びます。どの事実も一度しか書かれ
+ないからです:
+
+```jsonc
+{
+  "v": "3.0",
+  "legend": { "...": "以下の各セクションとコードの意味" },
+  "stats": { "nodes": 1070, "ghosts": 0, "edges": 6279 },
+  "cols": ["id", "file", "cat", "heat", "cov"],
+  "n": {
+    "app/core/security": [[412, "access.py", "cor", 23, 87]],
+    "docs/adr":          [[7, "0009-parser-framework.md", "adr", 4, -1]]
+  },
+  "git": [[412, "mod"]],
+  "e": {
+    "imported_by":  [[412, [[518, 31], [604, [12, 88]]]]],
+    "doc_mentions": [[7, [[412, 142]]]]
+  }
+}
+```
+
+ファイルはディレクトリごとにまとめられるため、パスは一度だけ書かれ、ノードの行は
+`id, ファイル名, カテゴリ` だけになります。さらに、それらのレイヤーを収集した
+ときには `heat` 列（そのファイルに触れたコミット数）と `cov` 列（行カバレッジの
+パーセント、未計測は `-1`）が付きます。この並びは `cols` が宣言するので、行が
+曖昧になることはありません。
+
+エッジはグループキーにちなんだ名前のセクションにまとめられます。行はキーから
+読めばよく、依存の向きを引数の順序から推測する必要はありません: `imported_by`
+のキーはインポートされるモジュール、`doc_mentions` のキーは言及する側の
+ドキュメントです。要素は素の id、`[id, 行]`、または `[id, [行]]` です。任意の
+レイヤー — `git` ステータス、`ghosts`（削除済みだがドキュメントがまだ参照して
+いるファイル）、`ge`（それらに接するエッジ）— は、報告すべきものがあるときだけ
+現れます。`degree` は保存しません: 接続するエッジの本数そのものだからです。
 
 ### コンパクトフォーマット
 
-`--compact` は `graph-compact.json`（スキーマ v2）を書き出します: ノードは
-インデックス配列、エッジは `[ソース索引, ターゲット索引, タイプ, [行番号]]` の
-行、各カテゴリとエッジタイプに 3 文字コード。`legend` キーは完全なデコード表を
-埋め込むため、エージェントに外部スキーマは不要で、ファイルが自らを説明します:
+`--compact` は `graph-compact.json`（スキーマ v2）を書き出します。上の形式の
+より平坦な前身で、内容は変わっておらず、すでにパースしているならこちらのままで
+問題ありません: ノードはインデックス配列、エッジは
+`[ソース索引, ターゲット索引, タイプ, [行番号]]` の行、各カテゴリとエッジタイプ
+に 3 文字コード。`legend` キーは完全なデコード表を埋め込むため、こちらのファイル
+も自らを説明します:
 
 ```jsonc
 {
@@ -160,22 +201,23 @@ build-graph --init             # 任意: 検出した構造を graph.toml に固
 
 ### コンテキストでのコスト
 
-本番リポジトリの実数値 — マッピング済み 1,070 ファイル、6,279 エッジ
+本番リポジトリの実数値 — マッピング済みは千数十ファイル、エッジは数千
 （トークン ≈ バイト / 4、いつもの粗い見積もり）:
 
 | コンテキストに入れるもの             |   サイズ | ≈ トークン |
 |--------------------------------------|---------:|-----------:|
-| マッピングされたファイルそのもの     |   15 MB | ~3,700,000 |
-| `--json`（詳細スナップショット）     |  1.6 MB |   ~410,000 |
-| **`--compact`**                      | **0.33 MB** | **~80,000** |
+| マッピングされたファイルそのもの     |   14 MB | ~3,650,000 |
+| `--json`（詳細スナップショット）     |  1.2 MB |   ~320,000 |
+| `--compact`                          | 0.27 MB |    ~69,000 |
+| **`--ultra-compact`**                | **0.10 MB** | **~27,000** |
 
 アーキテクチャ全体 — すべてのインポート、すべてのドキュメント言及、すべての
-陳腐化した参照 — が、生テキストにかかるコストの約 2 % に収まり、作業の余裕を
-残して 200k コンテキストの 1 セッションに収まります。マップがなければ、
+陳腐化した参照 — が、生テキストにかかるコストの 1 % を大きく下回り、200k
+コンテキストの 1 セッションをほぼまるごと作業に残します。マップがなければ、
 エージェントは毎セッションこの構造を再発見します: 数十の投機的な grep と
 ファイル読み込みが、1 回きりではなく *質問ごとに* 同程度のトークンを燃やします。
-小さなプロジェクトではマップはほぼ無料です — このリポジトリのコンパクト
-スナップショットは 4 KB ≈ 約 1,000 トークンです。
+小さなプロジェクトではマップはほぼ無料です — このリポジトリのウルトラコンパクト
+スナップショットは 8 KB 未満 ≈ 約 2,000 トークンです。
 
 <details>
 <summary>これらの数字を鵜呑みにせず — 自分のリポジトリで測ってください</summary>
@@ -186,9 +228,10 @@ $ build-graph --root . --bench
 Context cost on this repo (tokens ~= bytes / 4):
 
   What you put in context            Size      ~Tokens  vs corpus
-  raw corpus (1070 files)         14.3 MB    3,757,913     100.0%
-  --json export (schema v1)        1.5 MB      397,419      10.6%
-  --compact export (schema v2)   311.4 KB       79,729      2.1%
+  raw corpus (1060 files)         13.9 MB    3,651,892     100.0%
+  --json export (schema v1)        1.2 MB      320,439       8.8%
+  --compact export (schema v2)   270.9 KB       69,339       1.9%
+  --ultra-compact export (v3)    103.6 KB       26,517       0.7%
 ```
 
 `--bench` は測定するだけ — ファイルは一切書き込みません。
@@ -198,9 +241,9 @@ Context cost on this repo (tokens ~= bytes / 4):
 ### 出発点となるプロンプト
 
 ```text
-graph-compact.json is a dependency map of this repository: nodes are
+graph-ultra.json is a dependency map of this repository: nodes are
 files, edges are imports and documentation mentions. Read the embedded
-"legend" key first — it explains every field and code.
+"legend" key first — it explains every section and code.
 
 Using the map (before any grep):
 1. Lay of the land: the 10 highest-degree hubs, grouped by category,
@@ -292,7 +335,7 @@ build-graph --init --merge   # 新規フォルダのカバレッジを追加し�
 | `--config PATH` | graph.toml の場所（既定: `<root>/graph.toml`） |
 | `--output PATH` | HTML 出力（既定: `docs/graph.html` または `[output].path`） |
 | `--scope full\|package` | リポジトリ全体（既定）またはパッケージ+テスト+ドキュメントのみ |
-| `--json` / `--compact` | 詳細 / エージェント向けの JSON スナップショット |
+| `--json` / `--compact` / `--ultra-compact` | HTML の隣に書き出す JSON スナップショット: 詳細 (v1)、コンパクト (v2)、ウルトラコンパクト (v3) |
 | `--docs-only` / `--no-tests` | ノード集合を絞る |
 | `--no-cdn` | 完全オフライン出力: D3.js をインライン埋め込み（SHA-256 検証）し、外部フォントリンクを外す |
 | `--mock-git` | デモ / テスト用の合成 git オーバーレイ |
@@ -377,8 +420,9 @@ verify-doc-links docs/reference -v   # 1 つのサブツリー、該当行付き
 
 ### graph-query
 
-ブラウザを開かずにグラフへ問い合わせます。`--json` または `--compact` が書き出す
-JSON 上で動作します（自動検出。既定: `docs/graph-compact.json`）:
+ブラウザを開かずにグラフへ問い合わせます。`--json`、`--compact`、
+`--ultra-compact` が書き出す JSON 上で動作します（自動検出。既定は
+`docs/graph-ultra.json`、次に古いスナップショット）:
 
 <details>
 <summary>フラグと例</summary>

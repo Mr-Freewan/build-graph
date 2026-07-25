@@ -296,6 +296,19 @@ O **menu File** reúne as saídas:
 - **Export / Import prefs** — mova toda a sua configuração (posições, controles
   deslizantes, filtros, tema) para outra máquina como arquivo JSON.
 
+Para um agente, o arquivo a entregar é o snapshot ultracompacto: o mesmo grafo
+das outras exportações, com cerca de um terço dos tokens, e o único que também
+carrega as camadas Heat e Coverage:
+
+```bash
+build-graph --ultra-compact                            # docs/graph-ultra.json
+build-graph --ultra-compact --coverage coverage.xml    # + a coluna de cobertura
+build-graph --bench                                    # quanto custa cada exportação
+```
+
+A chave `legend` explica o arquivo a quem o lê, então não é preciso um esquema
+ao lado; o `graph-query` também o lê e o escolhe por padrão.
+
 Um exemplo real de *Copy as Mermaid* — um subsistema admin isolado via busca,
 exportado, colado em markdown como está:
 

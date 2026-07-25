@@ -91,7 +91,7 @@ pip install ./build-graph
 ```bash
 cd your-project
 build-graph                    # autodescoberta, sem configuração → docs/graph.html
-build-graph --compact          # + docs/graph-compact.json para agentes de IA
+build-graph --ultra-compact    # + docs/graph-ultra.json para agentes de IA
 build-graph --init             # opcional: fixar a estrutura detectada em graph.toml
 ```
 
@@ -115,8 +115,9 @@ pacote; veja [Ferramentas CLI](#ferramentas-cli).
 
 ## Projetado para agentes de IA
 
-O `--compact` escreve um snapshot JSON autodocumentado (legenda incorporada, nós
-indexados, códigos de tipo de três letras) que os agentes usam para:
+O `--ultra-compact` (ou o antigo `--compact`) escreve um snapshot JSON
+autodocumentado — com a legenda incorporada, sem precisar de esquema externo —
+que os agentes usam para:
 
 1. **Raio de impacto** — as importações de entrada do arquivo que você vai mudar,
    sem grep.
@@ -126,16 +127,56 @@ indexados, códigos de tipo de três letras) que os agentes usam para:
    que deveria estar mas não está, e (3) o que está documentado mas já não existe
    (nós fantasma = detector de obsolescência).
 
-Adicione `build-graph --compact` a um hook de pre-commit ou a um passo de CI para
+Adicione `build-graph --ultra-compact` a um hook de pre-commit ou a um passo de CI para
 que o mapa fique atualizado a cada sessão do agente.
+
+### O formato ultracompacto
+
+O `--ultra-compact` escreve `graph-ultra.json` (esquema v3) — o formato a preferir
+quando o snapshot vai para uma janela de contexto. Ele carrega exatamente o que o
+`--compact` carrega, em cerca de 40 % dos bytes, porque cada fato é escrito uma
+única vez:
+
+```jsonc
+{
+  "v": "3.0",
+  "legend": { "...": "o que cada seção e cada código abaixo significam" },
+  "stats": { "nodes": 1070, "ghosts": 0, "edges": 6279 },
+  "cols": ["id", "file", "cat", "heat", "cov"],
+  "n": {
+    "app/core/security": [[412, "access.py", "cor", 23, 87]],
+    "docs/adr":          [[7, "0009-parser-framework.md", "adr", 4, -1]]
+  },
+  "git": [[412, "mod"]],
+  "e": {
+    "imported_by":  [[412, [[518, 31], [604, [12, 88]]]]],
+    "doc_mentions": [[7, [[412, 142]]]]
+  }
+}
+```
+
+Os arquivos ficam agrupados sob o seu diretório, então um caminho é escrito uma
+vez só e a linha de um nó é apenas `id, nome do arquivo, categoria` — mais uma
+coluna `heat` (quantos commits tocaram o arquivo) e uma coluna `cov` (cobertura
+de linhas em porcentagem, `-1` quando não medida) sempre que essas camadas foram
+coletadas. O `cols` declara esse layout, de modo que uma linha nunca é ambígua.
+
+As arestas são agrupadas em seções nomeadas segundo a sua chave de grupo: uma
+linha se lê a partir da chave e a direção nunca precisa ser deduzida da ordem dos
+argumentos. `imported_by` é chaveado pelo módulo importado, `doc_mentions` pelo
+documento que menciona. Um item é um id puro, `[id, linha]` ou `[id, [linhas]]`.
+As camadas opcionais — status `git`, `ghosts` (arquivos apagados que os docs
+ainda citam), `ge` (as arestas que os tocam) — aparecem apenas quando há algo a
+relatar. `degree` não é armazenado: é o número de arestas incidentes.
 
 ### O formato compacto
 
-O `--compact` escreve `graph-compact.json` (esquema v2): os nós como um array
-indexado, as arestas como linhas `[índice_origem, índice_destino, tipo,
-[números_de_linha]]`, códigos de três letras para cada categoria e tipo de aresta. A
-chave `legend` incorpora a tabela de decodificação completa — um agente não precisa
-de esquema externo, o arquivo se explica sozinho:
+O `--compact` escreve `graph-compact.json` (esquema v2), o antecessor mais plano
+do formato acima — inalterado e ainda a escolha certa se você já o processa: os
+nós como um array indexado, as arestas como linhas
+`[índice_origem, índice_destino, tipo, [números_de_linha]]`, códigos de três
+letras para cada categoria e tipo de aresta. A chave `legend` incorpora a tabela
+de decodificação completa, então este arquivo também se explica sozinho:
 
 ```jsonc
 {
@@ -161,22 +202,23 @@ fantasma (`"G": 1`).
 
 ### Quanto custa em contexto
 
-Números reais de um repositório em produção — 1.070 arquivos mapeados, 6.279
-arestas (tokens ≈ bytes / 4, a estimativa aproximada usual):
+Números reais de um repositório em produção — mil e poucos arquivos mapeados e
+alguns milhares de arestas (tokens ≈ bytes / 4, a estimativa aproximada usual):
 
 | O que você coloca no contexto        | Tamanho | ≈ Tokens   |
 |--------------------------------------|--------:|-----------:|
-| Os próprios arquivos mapeados        |   15 MB | ~3.700.000 |
-| `--json` (snapshot detalhado)        |  1,6 MB |   ~410.000 |
-| **`--compact`**                      | **0,33 MB** | **~80.000** |
+| Os próprios arquivos mapeados        |   14 MB | ~3.650.000 |
+| `--json` (snapshot detalhado)        |  1,2 MB |   ~320.000 |
+| `--compact`                          | 0,27 MB |    ~69.000 |
+| **`--ultra-compact`**                | **0,10 MB** | **~27.000** |
 
 Toda a arquitetura — cada importação, cada menção em docs, cada referência obsoleta
-— cabe em ~2 % do que o texto bruto custaria, e entra numa única sessão de contexto
-de 200 k com folga para trabalhar. Sem o mapa, um agente redescobre essa estrutura a
+— cabe em bem menos de 1 % do que o texto bruto custaria, e deixa uma sessão de
+contexto de 200 k quase inteira livre para trabalhar. Sem o mapa, um agente redescobre essa estrutura a
 cada sessão: dezenas de greps especulativos e leituras de arquivos que queimam uma
 quantidade comparável de tokens *por pergunta*, não uma única vez. Em projetos
-pequenos o mapa é quase de graça — o snapshot compacto deste próprio repositório
-tem 4 KB ≈ ~1.000 tokens.
+pequenos o mapa é quase de graça — o snapshot ultracompacto deste próprio
+repositório tem menos de 8 KB ≈ ~2.000 tokens.
 
 <details>
 <summary>Não confie nesses números — meça o seu próprio repositório</summary>
@@ -187,9 +229,10 @@ $ build-graph --root . --bench
 Context cost on this repo (tokens ~= bytes / 4):
 
   What you put in context            Size      ~Tokens  vs corpus
-  raw corpus (1070 files)         14.3 MB    3,757,913     100.0%
-  --json export (schema v1)        1.5 MB      397,419      10.6%
-  --compact export (schema v2)   311.4 KB       79,729      2.1%
+  raw corpus (1060 files)         13.9 MB    3,651,892     100.0%
+  --json export (schema v1)        1.2 MB      320,439       8.8%
+  --compact export (schema v2)   270.9 KB       69,339       1.9%
+  --ultra-compact export (v3)    103.6 KB       26,517       0.7%
 ```
 
 O `--bench` apenas mede — não escreve arquivo algum.
@@ -199,9 +242,9 @@ O `--bench` apenas mede — não escreve arquivo algum.
 ### Um prompt para começar
 
 ```text
-graph-compact.json is a dependency map of this repository: nodes are
+graph-ultra.json is a dependency map of this repository: nodes are
 files, edges are imports and documentation mentions. Read the embedded
-"legend" key first — it explains every field and code.
+"legend" key first — it explains every section and code.
 
 Using the map (before any grep):
 1. Lay of the land: the 10 highest-degree hubs, grouped by category,
@@ -298,7 +341,7 @@ Dois complementos opcionais em texto puro, ambos buscados na raiz do projeto:
 | `--config PATH` | localização do graph.toml (padrão: `<root>/graph.toml`) |
 | `--output PATH` | saída HTML (padrão: `docs/graph.html` ou `[output].path`) |
 | `--scope full\|package` | repo inteiro (padrão) ou apenas pacote+testes+docs |
-| `--json` / `--compact` | snapshots JSON detalhado / orientado ao agente |
+| `--json` / `--compact` / `--ultra-compact` | snapshots JSON ao lado do HTML: detalhado (v1), compacto (v2), ultracompacto (v3) |
 | `--docs-only` / `--no-tests` | reduzir o conjunto de nós |
 | `--no-cdn` | saída totalmente offline: incorporar D3.js inline (verificado por SHA-256) e remover o link de fonte externa |
 | `--mock-git` | camada git sintética para demos/testes |
@@ -385,8 +428,8 @@ arquivo.
 ### graph-query
 
 Faça perguntas ao grafo sem abrir um navegador. Funciona sobre o JSON escrito por
-`--json` ou `--compact` (detectado automaticamente; padrão
-`docs/graph-compact.json`):
+`--json`, `--compact` ou `--ultra-compact` (detectado automaticamente; padrão
+`docs/graph-ultra.json`, depois os snapshots mais antigos):
 
 <details>
 <summary>Flags e exemplos</summary>

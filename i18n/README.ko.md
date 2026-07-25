@@ -88,7 +88,7 @@ pip install ./build-graph
 ```bash
 cd your-project
 build-graph                    # 자동 검색, 설정 불필요 → docs/graph.html
-build-graph --compact          # + AI 에이전트용 docs/graph-compact.json
+build-graph --ultra-compact    # + AI 에이전트용 docs/graph-ultra.json
 build-graph --init             # 선택: 검색된 구조를 graph.toml 에 고정
 ```
 
@@ -109,8 +109,9 @@ build-graph --init             # 선택: 검색된 구조를 graph.toml 에 고�
 
 ## AI 에이전트를 위한 설계
 
-`--compact` 는 자기 문서화된 JSON 스냅숏(내장 범례, 인덱싱된 노드, 세 글자 타입
-코드)을 씁니다. 에이전트는 이를 다음에 사용합니다:
+`--ultra-compact`(또는 기존 `--compact`)는 자기 문서화된 JSON 스냅숏을 씁니다.
+범례가 내장되어 있어 외부 스키마가 필요 없습니다. 에이전트는 이를 다음에
+사용합니다:
 
 1. **영향 범위** — 곧 변경할 파일로 들어오는 임포트를 grep 없이.
 2. **문서 라우팅** — 파일을 편집하기 *전에* 읽어야 할 ADR / 참조 문서.
@@ -118,15 +119,52 @@ build-graph --init             # 선택: 검색된 구조를 graph.toml 에 고�
    하지만 안 된 것, (3) 문서화되어 있으나 더 이상 존재하지 않는 것(고스트 노드 =
    진부화 감지기)을 보여줍니다.
 
-`build-graph --compact` 를 pre-commit 훅이나 CI 단계에 추가하면, 에이전트
+`build-graph --ultra-compact` 를 pre-commit 훅이나 CI 단계에 추가하면, 에이전트
 세션마다 지도가 최신으로 유지됩니다.
+
+### 울트라 컴팩트 형식
+
+`--ultra-compact` 는 `graph-ultra.json`(스키마 v3)을 씁니다 — 스냅숏을 컨텍스트
+창에 넣을 때 먼저 집어야 할 형식입니다. `--compact` 가 담는 것을 그대로 담으면서
+바이트는 약 40 % 뿐인데, 모든 사실을 한 번씩만 적기 때문입니다:
+
+```jsonc
+{
+  "v": "3.0",
+  "legend": { "...": "아래 각 섹션과 코드의 의미" },
+  "stats": { "nodes": 1070, "ghosts": 0, "edges": 6279 },
+  "cols": ["id", "file", "cat", "heat", "cov"],
+  "n": {
+    "app/core/security": [[412, "access.py", "cor", 23, 87]],
+    "docs/adr":          [[7, "0009-parser-framework.md", "adr", 4, -1]]
+  },
+  "git": [[412, "mod"]],
+  "e": {
+    "imported_by":  [[412, [[518, 31], [604, [12, 88]]]]],
+    "doc_mentions": [[7, [[412, 142]]]]
+  }
+}
+```
+
+파일은 자신의 디렉터리 아래로 묶이므로 경로는 한 번만 적히고, 노드 행은
+`id, 파일명, 카테고리` 뿐입니다. 여기에 해당 레이어를 수집했다면 `heat` 열(그
+파일을 건드린 커밋 수)과 `cov` 열(줄 커버리지 퍼센트, 측정하지 않았으면 `-1`)이
+붙습니다. 이 배치는 `cols` 가 선언하므로 행이 모호할 일이 없습니다.
+
+엣지는 그룹 키의 이름을 딴 섹션으로 묶입니다. 행은 키부터 읽으면 되고, 의존
+방향을 인자 순서에서 추론할 필요가 없습니다: `imported_by` 의 키는 임포트되는
+모듈, `doc_mentions` 의 키는 언급하는 문서입니다. 항목은 맨 id, `[id, 줄]`,
+또는 `[id, [줄들]]` 입니다. 선택적 레이어 — `git` 상태, `ghosts`(삭제되었지만
+문서가 여전히 가리키는 파일), `ge`(그것들에 닿는 엣지) — 는 보고할 것이 있을
+때만 나타납니다. `degree` 는 저장하지 않습니다: 인접한 엣지의 수 그 자체입니다.
 
 ### 컴팩트 형식
 
-`--compact` 는 `graph-compact.json`(스키마 v2)을 씁니다: 노드는 인덱싱된 배열,
-엣지는 `[소스_인덱스, 타깃_인덱스, 타입, [줄_번호]]` 행, 각 카테고리와 엣지
-타입에 세 글자 코드. `legend` 키는 전체 디코딩 표를 내장하므로, 에이전트는 외부
-스키마가 필요 없고 파일이 스스로를 설명합니다:
+`--compact` 는 `graph-compact.json`(스키마 v2)을 씁니다 — 위 형식의 더 평평한
+전신으로, 그대로 유지되며 이미 파싱하고 있다면 여전히 알맞은 선택입니다: 노드는
+인덱싱된 배열, 엣지는 `[소스_인덱스, 타깃_인덱스, 타입, [줄_번호]]` 행, 각
+카테고리와 엣지 타입에 세 글자 코드. `legend` 키는 전체 디코딩 표를 내장하므로
+이 파일도 스스로를 설명합니다:
 
 ```jsonc
 {
@@ -151,21 +189,22 @@ build-graph --init             # 선택: 검색된 구조를 graph.toml 에 고�
 
 ### 컨텍스트 비용
 
-프로덕션 저장소의 실제 수치 — 매핑된 파일 1,070 개, 엣지 6,279 개
+프로덕션 저장소의 실제 수치 — 매핑된 파일은 천 몇십 개, 엣지는 수천 개
 (토큰 ≈ 바이트 / 4, 흔한 대략 추정):
 
 | 컨텍스트에 넣는 것                   |    크기 | ≈ 토큰     |
 |--------------------------------------|--------:|-----------:|
-| 매핑된 파일 자체                     |   15 MB | ~3,700,000 |
-| `--json`(상세 스냅숏)                |  1.6 MB |   ~410,000 |
-| **`--compact`**                      | **0.33 MB** | **~80,000** |
+| 매핑된 파일 자체                     |   14 MB | ~3,650,000 |
+| `--json`(상세 스냅숏)                |  1.2 MB |   ~320,000 |
+| `--compact`                          | 0.27 MB |    ~69,000 |
+| **`--ultra-compact`**                | **0.10 MB** | **~27,000** |
 
 아키텍처 전체 — 모든 임포트, 모든 문서 언급, 모든 진부해진 참조 — 가 원시
-텍스트가 들 비용의 약 2 % 에 들어가며, 작업 여유를 남긴 채 200k 컨텍스트 한
-세션에 담깁니다. 지도가 없으면 에이전트는 매 세션 이 구조를 재발견합니다: 수십
+텍스트가 들 비용의 1 % 에 훨씬 못 미치며, 200k 컨텍스트 한 세션을 거의 통째로
+작업에 남겨 둡니다. 지도가 없으면 에이전트는 매 세션 이 구조를 재발견합니다: 수십
 번의 추측성 grep 과 파일 읽기가, 한 번이 아니라 *질문마다* 비슷한 양의 토큰을
-태웁니다. 작은 프로젝트에서 지도는 거의 공짜입니다 — 바로 이 저장소의 컴팩트
-스냅숏은 4 KB ≈ 약 1,000 토큰입니다.
+태웁니다. 작은 프로젝트에서 지도는 거의 공짜입니다 — 바로 이 저장소의 울트라 컴팩트
+스냅숏은 8 KB 미만 ≈ 약 2,000 토큰입니다.
 
 <details>
 <summary>이 수치를 그대로 믿지 말고 — 직접 저장소에서 측정하세요</summary>
@@ -176,9 +215,10 @@ $ build-graph --root . --bench
 Context cost on this repo (tokens ~= bytes / 4):
 
   What you put in context            Size      ~Tokens  vs corpus
-  raw corpus (1070 files)         14.3 MB    3,757,913     100.0%
-  --json export (schema v1)        1.5 MB      397,419      10.6%
-  --compact export (schema v2)   311.4 KB       79,729      2.1%
+  raw corpus (1060 files)         13.9 MB    3,651,892     100.0%
+  --json export (schema v1)        1.2 MB      320,439       8.8%
+  --compact export (schema v2)   270.9 KB       69,339       1.9%
+  --ultra-compact export (v3)    103.6 KB       26,517       0.7%
 ```
 
 `--bench` 는 측정만 합니다 — 어떤 파일도 쓰지 않습니다.
@@ -188,9 +228,9 @@ Context cost on this repo (tokens ~= bytes / 4):
 ### 시작용 프롬프트
 
 ```text
-graph-compact.json is a dependency map of this repository: nodes are
+graph-ultra.json is a dependency map of this repository: nodes are
 files, edges are imports and documentation mentions. Read the embedded
-"legend" key first — it explains every field and code.
+"legend" key first — it explains every section and code.
 
 Using the map (before any grep):
 1. Lay of the land: the 10 highest-degree hubs, grouped by category,
@@ -281,7 +321,7 @@ build-graph --init --merge   # 새 폴더의 커버리지를 추가하되, 당�
 | `--config PATH` | graph.toml 위치(기본: `<root>/graph.toml`) |
 | `--output PATH` | HTML 출력(기본: `docs/graph.html` 또는 `[output].path`) |
 | `--scope full\|package` | 전체 저장소(기본) 또는 패키지+테스트+문서만 |
-| `--json` / `--compact` | 상세 / 에이전트 지향 JSON 스냅숏 |
+| `--json` / `--compact` / `--ultra-compact` | HTML 옆에 쓰는 JSON 스냅숏: 상세(v1), 컴팩트(v2), 울트라 컴팩트(v3) |
 | `--docs-only` / `--no-tests` | 노드 집합을 축소 |
 | `--no-cdn` | 완전 오프라인 출력: D3.js 를 인라인 임베드(SHA-256 검증)하고 외부 폰트 링크를 제거 |
 | `--mock-git` | 데모 / 테스트용 합성 git 오버레이 |
@@ -365,8 +405,9 @@ verify-doc-links docs/reference -v   # 하위 트리 하나, 문제 줄 포함
 
 ### graph-query
 
-브라우저를 열지 않고 그래프에 질문합니다. `--json` 또는 `--compact` 가 쓴 JSON
-위에서 동작합니다(자동 감지; 기본: `docs/graph-compact.json`):
+브라우저를 열지 않고 그래프에 질문합니다. `--json`, `--compact`,
+`--ultra-compact` 가 쓴 JSON 위에서 동작합니다(자동 감지; 기본은
+`docs/graph-ultra.json`, 그다음 이전 스냅숏):
 
 <details>
 <summary>플래그 및 예시</summary>

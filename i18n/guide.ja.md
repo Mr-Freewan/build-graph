@@ -157,6 +157,16 @@ Coverage モードをオンにすると、凡例内の `code/*` を除くすべ�
 - **Copy JSON** — LLM エージェント向けの完全なグラフデータ（CLI フラグ `--json` / `--compact` と同じデータ）。
 - **Export / Import prefs** — セットアップ全体（位置、スライダー、フィルター、テーマ）を JSON ファイルとして別のマシンに移動します。
 
+エージェントに渡すのはウルトラコンパクトなスナップショットです。他のエクスポートと同じグラフを、およそ 3 分の 1 のトークンで運び、Heat と Coverage のレイヤーを併せ持つ唯一の形式です:
+
+```bash
+build-graph --ultra-compact                            # docs/graph-ultra.json
+build-graph --ultra-compact --coverage coverage.xml    # + カバレッジ列
+build-graph --bench                                    # 各エクスポートのコスト
+```
+
+`legend` キーが読み手にファイルを説明するため、別途スキーマは要りません。`graph-query` もこれを読み、既定で選びます。
+
 実際の *Copy as Mermaid* の例 — 検索で分離した 1 つの admin サブシステムを、エクスポートして markdown にそのまま貼り付けたもの：
 
 ![レンダリングされた Copy-as-Mermaid の出力](../docs/media/guide/14-mermaid-example.png)

@@ -314,6 +314,20 @@ Das **File-Menü** sammelt die Ausgaben:
 - **Export / Import prefs** — verschieben Sie Ihr gesamtes Setup (Positionen,
   Slider, Filter, Theme) als JSON-Datei auf eine andere Maschine.
 
+Einem Agenten reicht man den ultrakompakten Snapshot: derselbe Graph wie bei den
+anderen Exporten, bei etwa einem Drittel der Tokens — und als einziger trägt er
+auch die Heat- und Coverage-Ebenen:
+
+```bash
+build-graph --ultra-compact                            # docs/graph-ultra.json
+build-graph --ultra-compact --coverage coverage.xml    # + die Coverage-Spalte
+build-graph --bench                                    # was jeder Export kostet
+```
+
+Sein `legend`-Schlüssel erklärt die Datei jedem, der sie liest, ein Schema
+daneben braucht es also nicht; `graph-query` liest sie ebenfalls und greift
+standardmäßig zu ihr.
+
 Ein echtes *Copy as Mermaid*-Beispiel — ein Admin-Subsystem per Suche isoliert,
 exportiert, unverändert in Markdown eingefügt:
 

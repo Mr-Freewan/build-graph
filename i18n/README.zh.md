@@ -85,7 +85,7 @@ pip install ./build-graph
 ```bash
 cd your-project
 build-graph                    # 自动发现，无需配置 → docs/graph.html
-build-graph --compact          # + 供 AI 智能体使用的 docs/graph-compact.json
+build-graph --ultra-compact    # + 供 AI 智能体使用的 docs/graph-ultra.json
 build-graph --init             # 可选: 将发现的结构固定到 graph.toml
 ```
 
@@ -106,22 +106,57 @@ build-graph --init             # 可选: 将发现的结构固定到 graph.toml
 
 ## 为 AI 智能体而设计
 
-`--compact` 写出一个自描述的 JSON 快照（内嵌图例、带索引的节点、三字母类型
-代码），智能体用它来:
+`--ultra-compact`（或旧的 `--compact`）写出一个自描述的 JSON 快照 —— 图例内嵌，
+无需外部 schema —— 智能体用它来:
 
 1. **影响范围** —— 你即将改动的文件的入向导入，无需 grep。
 2. **文档路由** —— 在编辑某文件 *之前* 应先读哪个 ADR / 参考文档。
 3. **三层 doc-sync** —— 图谱展示 (1) 什么已被记录、(2) 什么应当记录却尚未
    记录、(3) 什么已被记录却不再存在（幽灵节点 = 陈旧检测器）。
 
-把 `build-graph --compact` 加入 pre-commit 钩子或 CI 步骤，即可让地图在每次
-智能体会话中保持最新。
+把 `build-graph --ultra-compact` 加入 pre-commit 钩子或 CI 步骤，即可让地图在
+每次智能体会话中保持最新。
+
+### 超紧凑格式
+
+`--ultra-compact` 写出 `graph-ultra.json`（schema v3）—— 当快照要送进上下文窗口
+时，首选这个格式。它承载的信息与 `--compact` 完全相同，字节数却只有约 40 %，
+因为每个事实只写一次:
+
+```jsonc
+{
+  "v": "3.0",
+  "legend": { "...": "下面每个区块与代码的含义" },
+  "stats": { "nodes": 1070, "ghosts": 0, "edges": 6279 },
+  "cols": ["id", "file", "cat", "heat", "cov"],
+  "n": {
+    "app/core/security": [[412, "access.py", "cor", 23, 87]],
+    "docs/adr":          [[7, "0009-parser-framework.md", "adr", 4, -1]]
+  },
+  "git": [[412, "mod"]],
+  "e": {
+    "imported_by":  [[412, [[518, 31], [604, [12, 88]]]]],
+    "doc_mentions": [[7, [[412, 142]]]]
+  }
+}
+```
+
+文件按所在目录分组，因此路径只写一次，节点行就只是 `id、文件名、类别`；当采集了
+相应图层时，再加上 `heat` 列（有多少次提交动过该文件）与 `cov` 列（行覆盖率
+百分比，未测量为 `-1`）。这一排布由 `cols` 声明，所以任何一行都不会含混。
+
+边被分组到以其分组键命名的区块中: 一行从键读起，依赖方向永远不需要靠参数顺序
+去推断 —— `imported_by` 以被导入的模块为键，`doc_mentions` 以发出提及的文档为
+键。条目是一个裸 id、`[id, 行号]` 或 `[id, [行号]]`。可选图层 —— `git` 状态、
+`ghosts`（已删除但文档仍指向的文件）、`ge`（触及它们的边）—— 只在确有内容时
+出现。`degree` 不再存储: 它就是相邻边的数量。
 
 ### 紧凑格式
 
-`--compact` 写出 `graph-compact.json`（schema v2）: 节点为带索引的数组，边为
+`--compact` 写出 `graph-compact.json`（schema v2），即上述格式更扁平的前身 ——
+保持不变，若你已经在解析它，它依然是合适的选择: 节点为带索引的数组，边为
 `[源索引, 目标索引, 类型, [行号]]` 行，每个类别与边类型都用三字母代码。`legend`
-键内嵌完整的解码表 —— 智能体无需外部 schema，文件自我说明:
+键内嵌完整的解码表，因此这个文件同样自我说明:
 
 ```jsonc
 {
@@ -146,20 +181,21 @@ build-graph --init             # 可选: 将发现的结构固定到 graph.toml
 
 ### 上下文成本
 
-来自一个生产仓库的真实数字 —— 1,070 个已映射文件、6,279 条边（token ≈
+来自一个生产仓库的真实数字 —— 一千余个已映射文件、数千条边（token ≈
 字节 / 4，常用的粗略估算）:
 
 | 你放进上下文的内容                   |    大小 | ≈ token    |
 |--------------------------------------|--------:|-----------:|
-| 已映射文件本身                       |   15 MB | ~3,700,000 |
-| `--json`（详细快照）                 |  1.6 MB |   ~410,000 |
-| **`--compact`**                      | **0.33 MB** | **~80,000** |
+| 已映射文件本身                       |   14 MB | ~3,650,000 |
+| `--json`（详细快照）                 |  1.2 MB |   ~320,000 |
+| `--compact`                          | 0.27 MB |    ~69,000 |
+| **`--ultra-compact`**                | **0.10 MB** | **~27,000** |
 
 整套架构 —— 每一条导入、每一次文档提及、每一处陈旧引用 —— 都落在原始文本成本
-的约 2 % 之内，并能带着余量装进一次 200k 上下文的会话。没有这张地图，智能体
+的 1 % 以内且远低于它，让一次 200k 上下文的会话几乎整个留给干活。没有这张地图，智能体
 每次会话都要重新发现这套结构: 数十次投机式的 grep 与文件读取，*每个问题* 都要
 烧掉相当数量的 token，而非一次性完成。在小项目上地图几乎是免费的 —— 正是这个
-仓库的紧凑快照仅 4 KB ≈ 约 1,000 token。
+仓库的超紧凑快照不到 8 KB ≈ 约 2,000 token。
 
 <details>
 <summary>别轻信这些数字 —— 在你自己的仓库上测量</summary>
@@ -170,9 +206,10 @@ $ build-graph --root . --bench
 Context cost on this repo (tokens ~= bytes / 4):
 
   What you put in context            Size      ~Tokens  vs corpus
-  raw corpus (1070 files)         14.3 MB    3,757,913     100.0%
-  --json export (schema v1)        1.5 MB      397,419      10.6%
-  --compact export (schema v2)   311.4 KB       79,729      2.1%
+  raw corpus (1060 files)         13.9 MB    3,651,892     100.0%
+  --json export (schema v1)        1.2 MB      320,439       8.8%
+  --compact export (schema v2)   270.9 KB       69,339       1.9%
+  --ultra-compact export (v3)    103.6 KB       26,517       0.7%
 ```
 
 `--bench` 只做测量 —— 不写任何文件。
@@ -182,9 +219,9 @@ Context cost on this repo (tokens ~= bytes / 4):
 ### 一个起步提示词
 
 ```text
-graph-compact.json is a dependency map of this repository: nodes are
+graph-ultra.json is a dependency map of this repository: nodes are
 files, edges are imports and documentation mentions. Read the embedded
-"legend" key first — it explains every field and code.
+"legend" key first — it explains every section and code.
 
 Using the map (before any grep):
 1. Lay of the land: the 10 highest-degree hubs, grouped by category,
@@ -264,7 +301,7 @@ build-graph --init --merge   # 为新文件夹补充覆盖，保留你的编辑
 | `--config PATH` | graph.toml 位置（默认: `<root>/graph.toml`） |
 | `--output PATH` | HTML 输出（默认: `docs/graph.html` 或 `[output].path`） |
 | `--scope full\|package` | 整个仓库（默认）或仅包+测试+文档 |
-| `--json` / `--compact` | 详细 / 面向智能体的 JSON 快照 |
+| `--json` / `--compact` / `--ultra-compact` | 写在 HTML 旁边的 JSON 快照: 详细 (v1)、紧凑 (v2)、超紧凑 (v3) |
 | `--docs-only` / `--no-tests` | 缩减节点集合 |
 | `--no-cdn` | 完全离线输出: 内联嵌入 D3.js（经 SHA-256 校验）并去掉外部字体链接 |
 | `--mock-git` | 用于演示 / 测试的合成 git 叠加层 |
@@ -347,8 +384,8 @@ verify-doc-links docs/reference -v   # 单个子树，带问题行
 
 ### graph-query
 
-无需打开浏览器即可向图谱提问。作用于 `--json` 或 `--compact` 写出的 JSON
-（自动检测；默认 `docs/graph-compact.json`）:
+无需打开浏览器即可向图谱提问。作用于 `--json`、`--compact` 或 `--ultra-compact`
+写出的 JSON（自动检测；默认 `docs/graph-ultra.json`，其次是更旧的快照）:
 
 <details>
 <summary>标志与示例</summary>

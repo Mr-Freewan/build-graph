@@ -157,6 +157,16 @@
 - **Copy JSON** —— 供 LLM 代理使用的完整图谱数据（与 CLI 标志 `--json` / `--compact` 相同的数据）。
 - **Export / Import prefs** —— 把你的整套设置（位置、滑块、过滤器、主题）作为 JSON 文件迁移到另一台机器。
 
+交给智能体的应当是超紧凑快照: 与其他导出相同的图谱，token 约为三分之一，也是唯一同时携带 Heat 与 Coverage 图层的格式:
+
+```bash
+build-graph --ultra-compact                            # docs/graph-ultra.json
+build-graph --ultra-compact --coverage coverage.xml    # + 覆盖率列
+build-graph --bench                                    # 每种导出的成本
+```
+
+它的 `legend` 键会向读者说明文件本身，因此旁边无需 schema；`graph-query` 也能读取它，并默认选用。
+
 一个真实的 *Copy as Mermaid* 示例 —— 通过搜索隔离出的一个 admin 子系统，导出后原样粘贴进 markdown：
 
 ![渲染后的 Copy-as-Mermaid 输出](../docs/media/guide/14-mermaid-example.png)
